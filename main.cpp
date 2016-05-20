@@ -16,7 +16,11 @@
 
 #include <unistd.h>
 
-int main() {
+#include <android-base/logging.h>
+
+int main(int argc, char** argv) {
+  android::base::InitLogging(argv);
+  LOG(INFO) << "wificond is starting up...";
   while (true) {
     sleep(1);
   }

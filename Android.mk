@@ -19,13 +19,11 @@ LOCAL_PATH := $(call my-dir)
 ###
 include $(CLEAR_VARS)
 LOCAL_MODULE := wificond
-
 LOCAL_CLANG := true
-LOCAL_CPPFLAGS := -std=c++11 -Wall -Werror
-
+LOCAL_CPPFLAGS := -std=c++11 -Wall -Werror -Wno-unused-parameter
 LOCAL_INIT_RC := wificond.rc
-
 LOCAL_SRC_FILES := \
-    main.cpp \
-
+    main.cpp
+LOCAL_SHARED_LIBRARIES := \
+    libbase
 include $(BUILD_EXECUTABLE)
