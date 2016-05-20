@@ -27,3 +27,16 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES := \
     libbase
 include $(BUILD_EXECUTABLE)
+
+###
+### wificond unit tests.
+###
+include $(CLEAR_VARS)
+LOCAL_MODULE := wificond_unit_test
+LOCAL_CPPFLAGS := -std=c++11 -Wall -Werror -Wno-unused-parameter
+LOCAL_SRC_FILES := \
+    tests/main.cpp \
+    tests/wificond_unittest.cpp
+LOCAL_STATIC_LIBRARIES := \
+    libgmock_host
+include $(BUILD_HOST_NATIVE_TEST)
