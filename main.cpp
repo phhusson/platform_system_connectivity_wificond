@@ -16,13 +16,28 @@
 
 #include <unistd.h>
 
+#include <csignal>
+
 #include <android-base/logging.h>
+
+namespace {
+
+volatile bool ShouldContinue = true;
+
+}  // namespace
+
+void leave_loop(int signal) {
+  ShouldContinue = false;
+}
 
 int main(int argc, char** argv) {
   android::base::InitLogging(argv);
   LOG(INFO) << "wificond is starting up...";
-  while (true) {
+  std::signal(SIGINT, &leave_loop);
+  std::signal(SIGTERM, &leave_loop);
+  while (ShouldContinue) {
     sleep(1);
   }
+  LOG(INFO) << "Leaving the loop...";
   return 0;
 }
