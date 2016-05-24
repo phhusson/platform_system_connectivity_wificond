@@ -23,9 +23,12 @@ LOCAL_CLANG := true
 LOCAL_CPPFLAGS := -std=c++11 -Wall -Werror -Wno-unused-parameter
 LOCAL_INIT_RC := wificond.rc
 LOCAL_SRC_FILES := \
-    main.cpp
+    main.cpp \
+    looper_backed_event_loop.cpp
 LOCAL_SHARED_LIBRARIES := \
-    libbase
+    libbase \
+    libutils
+LOCAL_MODULE_HOST_OS := linux
 include $(BUILD_EXECUTABLE)
 
 ###

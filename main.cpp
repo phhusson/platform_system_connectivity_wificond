@@ -17,27 +17,62 @@
 #include <unistd.h>
 
 #include <csignal>
+#include <memory>
 
 #include <android-base/logging.h>
+#include <android-base/macros.h>
+
+#include <looper_backed_event_loop.h>
 
 namespace {
 
-volatile bool ShouldContinue = true;
+class ScopedSignalHandler final {
+ public:
+  ScopedSignalHandler(android::wificond::LooperBackedEventLoop* event_loop) {
+    if (s_event_loop_ != nullptr) {
+      LOG(FATAL) << "Only instantiate one signal handler per process!";
+    }
+    s_event_loop_ = event_loop;
+    std::signal(SIGINT, &ScopedSignalHandler::LeaveLoop);
+    std::signal(SIGTERM, &ScopedSignalHandler::LeaveLoop);
+  }
+
+  ~ScopedSignalHandler() {
+    std::signal(SIGINT, SIG_DFL);
+    std::signal(SIGTERM, SIG_DFL);
+    s_event_loop_ = nullptr;
+  }
+
+ private:
+  static android::wificond::LooperBackedEventLoop* s_event_loop_;
+  static void LeaveLoop(int signal) {
+    if (s_event_loop_ != nullptr) {
+      s_event_loop_->TriggerExit();
+    }
+  }
+
+  DISALLOW_COPY_AND_ASSIGN(ScopedSignalHandler);
+};
+
+android::wificond::LooperBackedEventLoop*
+    ScopedSignalHandler::s_event_loop_ = nullptr;
 
 }  // namespace
 
-void leave_loop(int signal) {
-  ShouldContinue = false;
+void callback_for_test() {
+  LOG(INFO) << "callback is executed...";
 }
 
 int main(int argc, char** argv) {
   android::base::InitLogging(argv);
   LOG(INFO) << "wificond is starting up...";
-  std::signal(SIGINT, &leave_loop);
-  std::signal(SIGTERM, &leave_loop);
-  while (ShouldContinue) {
-    sleep(1);
-  }
+  std::unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher_(
+      new android::wificond::LooperBackedEventLoop());
+  ScopedSignalHandler scoped_signal_handler(event_dispatcher_.get());
+  //TODO(nywang): b//28982981, Remove this when we have unittest for event loop checked in.
+  event_dispatcher_->PostTask(&callback_for_test);
+  event_dispatcher_->PostDelayedTask(&callback_for_test, 5000);
+  event_dispatcher_->Poll();
   LOG(INFO) << "Leaving the loop...";
   return 0;
 }
