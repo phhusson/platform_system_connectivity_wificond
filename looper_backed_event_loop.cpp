@@ -16,6 +16,7 @@
 
 #include <looper_backed_event_loop.h>
 
+#include <android-base/logging.h>
 #include <utils/Looper.h>
 #include <utils/Timers.h>
 
@@ -37,6 +38,25 @@ class EventLoopCallback : public android::MessageHandler {
   const std::function<void()> callback_;
 
   DISALLOW_COPY_AND_ASSIGN(EventLoopCallback);
+};
+
+class WatchFdCallback : public android::LooperCallback {
+ public:
+  explicit WatchFdCallback(const std::function<void(int)>& callback)
+      : callback_(callback) {
+  }
+
+  ~WatchFdCallback() override = default;
+
+  virtual int handleEvent(int fd, int events, void* data) {
+    callback_(fd);
+    return 0;
+  }
+
+ private:
+  const std::function<void(int)> callback_;
+
+  DISALLOW_COPY_AND_ASSIGN(WatchFdCallback);
 };
 
 }  // namespace
@@ -64,6 +84,31 @@ void LooperBackedEventLoop::PostDelayedTask(
     int64_t delay_ms) {
   sp<android::MessageHandler> looper_callback = new EventLoopCallback(callback);
   looper_->sendMessageDelayed(ms2ns(delay_ms), looper_callback, NULL);
+}
+
+bool LooperBackedEventLoop::WatchFileDescriptor(
+    int fd,
+    ReadyMode mode,
+    const std::function<void(int)>& callback) {
+  sp<android::LooperCallback>  watch_fd_callback = new WatchFdCallback(callback);
+  int event;
+  if (mode == kModeInput) {
+    event = Looper::EVENT_INPUT;
+  } else if (mode == kModeOutput) {
+    event = Looper::EVENT_OUTPUT;
+  } else {
+    LOG(ERROR) << "Invalid mode for WatchFileDescriptor().";
+    return false;
+  }
+  // addFd() returns 1 if descriptor was added, 0 if arguments were invalid.
+  // Since we are using non-NULL callback, the second parameter 'ident' will
+  // always be ignored. It is OK to use 0 for 'ident'.
+  // See Looper.h for more details.
+  if (looper_->addFd(fd, 0, event, watch_fd_callback, NULL) == 0) {
+    LOG(ERROR) << "Invalid arguments for Looper::addFd().";
+    return false;
+  }
+  return true;
 }
 
 void LooperBackedEventLoop::Poll() {

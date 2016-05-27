@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
+#include <string.h>
+
 #include <memory>
 
+#include <android-base/logging.h>
+#include <android-base/unique_fd.h>
 #include <gtest/gtest.h>
+#include <utils/Errors.h>
 #include <utils/StopWatch.h>
 
 #include <looper_backed_event_loop.h>
@@ -24,6 +29,44 @@
 namespace {
 
 const int kTimingToleranceMs = 25;
+
+// Adapt from libutils/tests/TestHelpers.h
+class Pipe {
+public:
+  android::base::unique_fd send_fd;
+  android::base::unique_fd receive_fd;
+
+  Pipe() {
+    int fds[2];
+    ::pipe(fds);
+
+    receive_fd = android::base::unique_fd(fds[0]);
+    send_fd = android::base::unique_fd(fds[1]);
+  }
+
+  bool writeSignal() {
+    ssize_t n_written = ::write(send_fd, "*", 1);
+    if (n_written != 1) {
+      LOG(ERROR) << "Failed to write signal to pipe: " << strerror(errno);
+      return false;
+    }
+    return true;
+  }
+
+  bool readSignal() {
+    char buf[1];
+    ssize_t n_read = ::read(receive_fd, buf, 1);
+    if (n_read != 1) {
+      if (n_read == 0) {
+        LOG(ERROR) << "No data from pipe";
+      } else {
+        LOG(ERROR) << "Failed to read signal from pipe: " << strerror(errno);
+      }
+      return false;
+    }
+    return true;
+  }
+};
 
 }  // namespace
 
@@ -59,6 +102,38 @@ TEST_F(WificondLooperBackedEventLoopTest,
   int32_t elapsedMillis = ns2ms(stopWatch.elapsedTime());
   EXPECT_NEAR(500, elapsedMillis, kTimingToleranceMs);
   EXPECT_TRUE(task_executed);
+}
+
+TEST_F(WificondLooperBackedEventLoopTest, LooperBackedEventLoopWatchFdInputReadyTest) {
+  Pipe pipe;
+  android::status_t read_result;
+  android::status_t write_result;
+  event_loop_->PostTask([&write_result, &pipe]() {write_result = pipe.writeSignal();});
+  // Read data from pipe when fd is ready for input.
+  EXPECT_TRUE(event_loop_->WatchFileDescriptor(
+      pipe.receive_fd,
+      EventLoop::kModeInput,
+      [&read_result, &pipe, this](int fd) {
+          read_result = pipe.readSignal();
+          event_loop_->TriggerExit();}));
+  event_loop_->Poll();
+  EXPECT_EQ(true, read_result);
+  EXPECT_EQ(true, write_result);
+}
+
+TEST_F(WificondLooperBackedEventLoopTest, LooperBackedEventLoopWatchFdOutputReadyTest) {
+  Pipe pipe;
+  android::status_t write_result;
+  // Write data to pipe when fd is ready for output.
+  EXPECT_TRUE(event_loop_->WatchFileDescriptor(
+      pipe.send_fd,
+      EventLoop::kModeOutput,
+      [&write_result, &pipe, this](int fd) {
+          write_result = pipe.writeSignal();
+          event_loop_->TriggerExit();}));
+  event_loop_->Poll();
+  EXPECT_EQ(true, write_result);
+  EXPECT_EQ(true, pipe.readSignal());
 }
 
 }  // namespace wificond

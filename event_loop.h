@@ -25,6 +25,11 @@ namespace wificond {
 // Abstract class for dispatching tasks.
 class EventLoop {
  public:
+  enum ReadyMode {
+      kModeInput,
+      kModeOutput
+  };
+
   virtual ~EventLoop() {}
 
   // Enqueues a callback.
@@ -36,7 +41,16 @@ class EventLoop {
   // This function can be called on any thread.
   virtual void PostDelayedTask(const std::function<void()>& callback,
                                int64_t delay_ms) = 0;
-  //TODO(nywang): monitoring file descriptor for data
+
+  // Monitoring file descriptor for data.
+  // Callback will be executed when specific file descriptor is ready.
+  // File descriptor is provided as a parameter to this callback:
+  // This function can be called on any thread.
+  // This returns true upon success and returns false when it failed.
+  virtual bool WatchFileDescriptor(
+      int fd,
+      ReadyMode mode,
+      const std::function<void(int)>& callback_) = 0;
 };
 
 }  // namespace wificond

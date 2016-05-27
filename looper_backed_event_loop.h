@@ -36,6 +36,11 @@ class LooperBackedEventLoop: public EventLoop {
   // See event_loop.h
   void PostDelayedTask(const std::function<void()>& callback,
                        int64_t delay_ms) override;
+  // See event_loop.h
+  bool WatchFileDescriptor(
+      int fd,
+      ReadyMode mode,
+      const std::function<void(int)>& callback) override;
 
   // Performs all pending callbacks and waiting for new events until
   // TriggerExit() is called.

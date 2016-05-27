@@ -59,19 +59,12 @@ android::wificond::LooperBackedEventLoop*
 
 }  // namespace
 
-void callback_for_test() {
-  LOG(INFO) << "callback is executed...";
-}
-
 int main(int argc, char** argv) {
   android::base::InitLogging(argv);
   LOG(INFO) << "wificond is starting up...";
   std::unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher_(
       new android::wificond::LooperBackedEventLoop());
   ScopedSignalHandler scoped_signal_handler(event_dispatcher_.get());
-  //TODO(nywang): b//28982981, Remove this when we have unittest for event loop checked in.
-  event_dispatcher_->PostTask(&callback_for_test);
-  event_dispatcher_->PostDelayedTask(&callback_for_test, 5000);
   event_dispatcher_->Poll();
   LOG(INFO) << "Leaving the loop...";
   return 0;
