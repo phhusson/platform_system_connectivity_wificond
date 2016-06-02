@@ -24,9 +24,13 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := wificond
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_INIT_RC := wificond.rc
+LOCAL_AIDL_INCLUDES += $(LOCAL_PATH)/aidl
 LOCAL_SRC_FILES := \
-    main.cpp
+    main.cpp \
+    aidl/android/wificond/IServer.aidl \
+    server.cpp
 LOCAL_SHARED_LIBRARIES := \
+    libbinder \
     libbase \
     libutils
 LOCAL_STATIC_LIBRARIES := \
