@@ -17,6 +17,9 @@ LOCAL_PATH := $(call my-dir)
 wificond_cpp_flags := -std=c++11 -Wall -Werror -Wno-unused-parameter
 wificond_cpp_src := looper_backed_event_loop.cpp
 
+wificond_test_util_cpp_src := \
+    tests/shell_utils.cpp \
+
 ###
 ### wificond daemon.
 ###
@@ -50,7 +53,7 @@ LOCAL_SHARED_LIBRARIES := \
 include $(BUILD_STATIC_LIBRARY)
 
 ###
-### wificond host static library
+### host version of the wificond static library (for use in tests)
 ###
 include $(CLEAR_VARS)
 LOCAL_MODULE := libwificond_host
@@ -63,17 +66,33 @@ LOCAL_MODULE_HOST_OS := linux
 include $(BUILD_HOST_STATIC_LIBRARY)
 
 ###
+### host version of test util library
+###
+include $(CLEAR_VARS)
+LOCAL_MODULE := libwificond_test_utils_host
+LOCAL_MODULE_HOST_OS := linux
+LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_LDLIBS_linux := -lrt
+LOCAL_SRC_FILES := $(wificond_test_util_cpp_src)
+LOCAL_STATIC_LIBRARIES := \
+    libbase
+include $(BUILD_HOST_STATIC_LIBRARY)
+
+###
 ### wificond host unit tests.
 ###
 include $(CLEAR_VARS)
 LOCAL_MODULE := wificond_unit_test
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_LDLIBS_linux := -lrt
 LOCAL_SRC_FILES := \
     tests/main.cpp \
-    tests/looper_backed_event_loop_unittest.cpp
+    tests/looper_backed_event_loop_unittest.cpp \
+    tests/shell_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \
     libgmock_host \
     libwificond_host \
+    libwificond_test_utils_host \
     libbase \
     libutils \
     liblog
