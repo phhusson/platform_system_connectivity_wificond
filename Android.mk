@@ -66,6 +66,17 @@ LOCAL_MODULE_HOST_OS := linux
 include $(BUILD_HOST_STATIC_LIBRARY)
 
 ###
+### test util library
+###
+include $(CLEAR_VARS)
+LOCAL_MODULE := libwificond_test_utils
+LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_SRC_FILES := $(wificond_test_util_cpp_src)
+LOCAL_SHARED_LIBRARIES := \
+    libbase
+include $(BUILD_STATIC_LIBRARY)
+
+###
 ### host version of test util library
 ###
 include $(CLEAR_VARS)
@@ -98,3 +109,18 @@ LOCAL_STATIC_LIBRARIES := \
     liblog
 LOCAL_MODULE_HOST_OS := linux
 include $(BUILD_HOST_NATIVE_TEST)
+
+###
+### wificond device integration tests.
+###
+include $(CLEAR_VARS)
+LOCAL_MODULE := wificond_integration_test
+LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_SRC_FILES := \
+    tests/main.cpp \
+    tests/integration/life_cycle_test.cpp
+LOCAL_SHARED_LIBRARIES := \
+    libbase
+LOCAL_STATIC_LIBRARIES := \
+    libwificond_test_utils
+include $(BUILD_NATIVE_TEST)
