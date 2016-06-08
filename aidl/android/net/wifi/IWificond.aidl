@@ -14,9 +14,18 @@
  * limitations under the License.
  */
 
-package android.wificond;
+package android.net.wifi;
 
-interface IServer {
-  // Retrieve a quick response message from the server.
-  @utf8InCpp String Ping();
+import android.net.wifi.IChip;
+
+// Service interface that exposes primitives for controlling the WiFi
+// subsystems of a host.
+interface IWificond {
+
+  // Get a list of chips that export WiFi functionality.
+  //
+  // @return list of android.net.wifi.IChip objects representing
+  //         the set of WiFi chips on this device.
+  List<IBinder> GetChips();
+
 }

@@ -26,8 +26,8 @@ LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_INIT_RC := wificond.rc
 LOCAL_AIDL_INCLUDES += $(LOCAL_PATH)/aidl
 LOCAL_SRC_FILES := \
+    aidl/android/net/wifi/IWificond.aidl \
     main.cpp \
-    aidl/android/wificond/IServer.aidl \
     server.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbinder \

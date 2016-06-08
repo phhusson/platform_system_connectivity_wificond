@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-#include "server.h"
+package android.net.wifi;
 
-namespace android {
-namespace wificond {
+// IChip represents a particular chip attached to the host.  Generally,
+// chips have a set of capabilities which determine the ways they can
+// be configured.  To use the functionality of a chip, request an interface
+// be configured via IChip.Configure*Interface().  Chips may support being
+// configured with multiple interfaces at once.
+interface IChip {
 
-android::binder::Status Server::GetChips(std::vector<sp<IBinder>>* chips) {
-  // TODO: Enumerate chips and return the ones we know about.
-  chips->clear();
-  return binder::Status::ok();
 }
-
-}  // namespace wificond
-}  // namespace android
