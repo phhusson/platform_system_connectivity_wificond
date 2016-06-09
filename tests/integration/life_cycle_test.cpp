@@ -19,10 +19,17 @@
 #include <ctime>
 
 #include <android-base/strings.h>
+#include <binder/IServiceManager.h>
+#include <utils/Errors.h>
+#include <utils/String16.h>
+#include <utils/StrongPointer.h>
 
+#include "android/net/wifi/IWificond.h"
 #include "tests/shell_utils.h"
 
+using android::String16;
 using android::base::Trim;
+using android::net::wifi::IWificond;
 using android::wificond::tests::integration::RunShellCommand;
 
 namespace android {
@@ -31,6 +38,8 @@ namespace {
 
 const uint32_t kWificondDeathTimeoutSeconds = 10;
 const uint32_t kWificondStartTimeoutSeconds = 10;
+
+const char kWificondServiceName[] = "wificond";
 
 bool WificondIsRunning() {
   std::string output;
@@ -41,6 +50,8 @@ bool WificondIsRunning() {
   }
   return true;
 }
+
+bool WificondIsDead() { return !WificondIsRunning(); }
 
 bool WaitForTrue(std::function<bool()> condition, time_t timeout_seconds) {
   time_t start_time_seconds = time(nullptr);
@@ -53,20 +64,28 @@ bool WaitForTrue(std::function<bool()> condition, time_t timeout_seconds) {
   return false;
 }
 
+bool IsRegistered() {
+  sp<IWificond> service;
+  return getService(String16(kWificondServiceName), &service) == NO_ERROR;
+}
+
 }  // namespace
 
 
 TEST(LifeCycleTest, ProcessStartsUp) {
   // Request that wificond be stopped (regardless of its current state).
   RunShellCommand("stop wificond");
+  EXPECT_TRUE(WaitForTrue(WificondIsDead, kWificondDeathTimeoutSeconds));
 
-  // Confirm that wificond is stopped.
-  ASSERT_TRUE(WaitForTrue([]() { return !WificondIsRunning(); },
-                          kWificondDeathTimeoutSeconds));
+  // Confirm that the service manager has no binder for wificond.
+  EXPECT_FALSE(IsRegistered());
 
   // Start wificond.
   RunShellCommand("start wificond");
-  ASSERT_TRUE(WaitForTrue(WificondIsRunning, kWificondStartTimeoutSeconds));
+  EXPECT_TRUE(WaitForTrue(WificondIsRunning, kWificondStartTimeoutSeconds));
+
+  // wificond should eventually register with the service manager.
+  EXPECT_TRUE(WaitForTrue(IsRegistered, kWificondStartTimeoutSeconds));
 }
 
 }  // namespace wificond

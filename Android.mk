@@ -107,7 +107,10 @@ LOCAL_SRC_FILES := \
     tests/main.cpp \
     tests/integration/life_cycle_test.cpp
 LOCAL_SHARED_LIBRARIES := \
-    libbase
+    libbase \
+    libbinder \
+    libutils
 LOCAL_STATIC_LIBRARIES := \
+    libwificond_ipc \
     libwificond_test_utils
 include $(BUILD_NATIVE_TEST)
