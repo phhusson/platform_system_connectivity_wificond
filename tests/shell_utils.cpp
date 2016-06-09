@@ -36,7 +36,7 @@ namespace tests {
 namespace integration {
 namespace {
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 const char kShellPath[] = "/system/bin/sh";
 #else
 const char kShellPath[] = "/bin/sh";
