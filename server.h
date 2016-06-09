@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-#include "android/wificond/BnServer.h"
+#include "android/net/wifi/BnWificond.h"
 
 namespace android {
 namespace wificond {
 
-class Server : public BnServer {
+class Server : public android::net::wifi::BnWificond {
  public:
-  android::binder::Status Ping(::std::string* _aidl_return) override;
+  android::binder::Status GetChips(std::vector<sp<IBinder>>* chips);
 };
 
-}  // namespace android
 }  // namespace wificond
-
+}  // namespace android

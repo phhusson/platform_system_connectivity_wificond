@@ -29,6 +29,8 @@
 #include <looper_backed_event_loop.h>
 #include <server.h>
 
+using android::net::wifi::IWificond;
+
 namespace {
 
 class ScopedSignalHandler final {
@@ -89,7 +91,7 @@ int main(int argc, char** argv) {
   }
   android::sp<android::IServiceManager> sm = android::defaultServiceManager();
   CHECK_EQ(sm != NULL, true) << "Could not obtain IServiceManager";
-  android::sp<android::wificond::Server> server = new android::wificond::Server();
+  android::sp<android::IBinder> server = new android::wificond::Server();
   sm->addService(android::String16("wificond"), server);
 
   event_dispatcher_->Poll();
