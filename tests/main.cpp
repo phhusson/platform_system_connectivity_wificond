@@ -16,7 +16,11 @@
 
 #include <gtest/gtest.h>
 
+#include <android-base/logging.h>
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
+  // Force ourselves to always log to stderr
+  android::base::InitLogging(argv, android::base::StderrLogger);
   return RUN_ALL_TESTS();
 }
