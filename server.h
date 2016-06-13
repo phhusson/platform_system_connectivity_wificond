@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+#ifndef WIFICOND_SERVER_H_
+#define WIFICOND_SERVER_H_
+
+#include <android-base/macros.h>
+
 #include "android/net/wifi/BnWificond.h"
 
 namespace android {
@@ -21,8 +26,16 @@ namespace wificond {
 
 class Server : public android::net::wifi::BnWificond {
  public:
+  Server() = default;
+  ~Server() override = default;
+
   android::binder::Status GetChips(std::vector<sp<IBinder>>* chips);
+
+ private:
+  DISALLOW_COPY_AND_ASSIGN(Server);
 };
 
 }  // namespace wificond
 }  // namespace android
+
+#endif  // WIFICOND_SERVER_H_
