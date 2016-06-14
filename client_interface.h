@@ -14,21 +14,29 @@
  * limitations under the License.
  */
 
-#include "server.h"
+#ifndef WIFICOND_CLIENT_INTERFACE_H_
+#define WIFICOND_CLIENT_INTERFACE_H_
+
+#include <android-base/macros.h>
+
+#include "android/net/wifi/BnClientInterface.h"
 
 namespace android {
 namespace wificond {
 
-Server::Server() {
-  // TODO: Get chip information from HAL.
-  android::wificond::Chip* chip = new android::wificond::Chip();
-  chips_.push_back(chip);
-}
+class ClientInterface : public android::net::wifi::BnClientInterface {
+ public:
+  ClientInterface() = default;
+  ~ClientInterface() override = default;
+  // TODO: Add functions configuring an interface.
 
-android::binder::Status Server::GetChips(std::vector<sp<IBinder>>* chips) {
-  *chips = chips_;
-  return binder::Status::ok();
-}
+ private:
+  // TODO: Add fields decribing an interface.
+
+  DISALLOW_COPY_AND_ASSIGN(ClientInterface);
+};
 
 }  // namespace wificond
 }  // namespace android
+
+#endif  // WIFICOND_CLIENT_INTERFACE_H_

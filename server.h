@@ -20,18 +20,21 @@
 #include <android-base/macros.h>
 
 #include "android/net/wifi/BnWificond.h"
+#include "chip.h"
 
 namespace android {
 namespace wificond {
 
 class Server : public android::net::wifi::BnWificond {
  public:
-  Server() = default;
+  Server();
   ~Server() override = default;
 
-  android::binder::Status GetChips(std::vector<sp<IBinder>>* chips);
+  android::binder::Status GetChips(std::vector<sp<IBinder>>* chips) override;
 
  private:
+  std::vector<sp<IBinder>> chips_;
+
   DISALLOW_COPY_AND_ASSIGN(Server);
 };
 
