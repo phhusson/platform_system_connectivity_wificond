@@ -50,7 +50,10 @@ class WatchFdCallback : public android::LooperCallback {
 
   virtual int handleEvent(int fd, int events, void* data) {
     callback_(fd);
-    return 0;
+    // Returning 1 means Looper keeps watching this file descriptor after
+    // callback is called.
+    // See Looper.h for details.
+    return 1;
   }
 
  private:
