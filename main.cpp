@@ -71,7 +71,7 @@ void OnBinderReadReady(int fd) {
 }
 
 int main(int argc, char** argv) {
-  android::base::InitLogging(argv);
+  android::base::InitLogging(argv, android::base::LogdLogger(android::base::SYSTEM));
   LOG(INFO) << "wificond is starting up...";
   std::unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher_(
       new android::wificond::LooperBackedEventLoop());
