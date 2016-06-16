@@ -16,6 +16,8 @@
 
 #include "chip.h"
 
+#include "android-base/logging.h"
+
 using std::vector;
 using android::sp;
 
@@ -23,17 +25,30 @@ namespace android {
 namespace wificond {
 
 Chip::Chip()
-    : ichip_callback_(nullptr),
-      client_interface_id_(0) {
+    : client_interface_id_(0) {
 }
 
 android::binder::Status Chip::RegisterCallback(const sp<android::net::wifi::IChipCallback>& callback) {
-  ichip_callback_ = callback;
+  for (auto& it : chip_callbacks_) {
+    if (IInterface::asBinder(callback) == IInterface::asBinder(it)) {
+      LOG(WARNING) << "Ignore duplicate chip callback registration";
+      return binder::Status::ok();
+    }
+  }
+  LOG(INFO) << "New chip callback registered";
+  chip_callbacks_.push_back(callback);
   return binder::Status::ok();
 }
 
 android::binder::Status Chip::UnregisterCallback(const sp<android::net::wifi::IChipCallback>& callback) {
-  ichip_callback_ = nullptr;
+  for (auto it = chip_callbacks_.begin(); it != chip_callbacks_.end(); it++) {
+    if (IInterface::asBinder(callback) == IInterface::asBinder(*it)) {
+      chip_callbacks_.erase(it);
+      LOG(INFO) << "Unregister chip callback";
+      return binder::Status::ok();
+    }
+  }
+  LOG(WARNING) << "Failed to find registered chip callback to unregister";
   return binder::Status::ok();
 }
 
@@ -43,7 +58,6 @@ android::binder::Status Chip::ConfigureClientInterface(int32_t* _aidl_return) {
       new android::wificond::ClientInterface();
   client_interfaces_.push_back(interface);
   *_aidl_return = client_interface_id_++;
-
   return binder::Status::ok();
 }
 

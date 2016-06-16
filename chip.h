@@ -44,7 +44,7 @@ class Chip : public android::net::wifi::BnChip {
       std::vector<android::sp<android::IBinder>>* _aidl_return) override;
 
  private:
-  android::sp<android::net::wifi::IChipCallback> ichip_callback_;
+  std::vector<android::sp<android::net::wifi::IChipCallback>> chip_callbacks_;
   std::vector<android::sp<android::IBinder>> client_interfaces_;
   int32_t client_interface_id_;
 
