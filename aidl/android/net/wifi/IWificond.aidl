@@ -16,16 +16,8 @@
 
 package android.net.wifi;
 
-import android.net.wifi.IChip;
-
 // Service interface that exposes primitives for controlling the WiFi
-// subsystems of a host.
+// subsystems of a device.
 interface IWificond {
-
-  // Get a list of chips that export WiFi functionality.
-  //
-  // @return list of android.net.wifi.IChip objects representing
-  //         the set of WiFi chips on this device.
-  List<IBinder> GetChips();
 
 }

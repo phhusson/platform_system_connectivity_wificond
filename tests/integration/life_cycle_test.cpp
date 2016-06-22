@@ -25,12 +25,10 @@
 #include <utils/StrongPointer.h>
 
 #include "android/net/wifi/IWificond.h"
-#include "android/net/wifi/IChip.h"
 #include "tests/shell_utils.h"
 
 using android::String16;
 using android::base::Trim;
-using android::net::wifi::IChip;
 using android::net::wifi::IWificond;
 using android::wificond::tests::integration::RunShellCommand;
 
@@ -89,24 +87,6 @@ TEST(LifeCycleTest, ProcessStartsUp) {
   // wificond should eventually register with the service manager.
   EXPECT_TRUE(WaitForTrue(IsRegistered, kWificondStartTimeoutSeconds));
 }
-
-TEST(LifeCycleTest, ExposeChipAndInterfaceTest) {
-  sp<IWificond> service;
-  EXPECT_EQ(getService(String16(kWificondServiceName), &service), NO_ERROR);
-  std::vector<sp<IBinder>> chips;
-  service->GetChips(&chips);
-  EXPECT_TRUE(chips.size() == 1);
-
-  sp<IChip> chip = IChip::asInterface(chips[0]);
-  int32_t request_id;
-  chip->ConfigureClientInterface(&request_id);
-  EXPECT_EQ(request_id, 0);
-
-  std::vector<sp<IBinder>> interfaces;
-  chip->GetClientInterfaces(&interfaces);
-  EXPECT_TRUE(interfaces.size() == 1);
-}
-
 
 }  // namespace wificond
 }  // namespace android

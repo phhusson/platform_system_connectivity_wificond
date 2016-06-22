@@ -20,14 +20,6 @@ namespace android {
 namespace wificond {
 
 Server::Server() {
-  // TODO: Get chip information from HAL.
-  android::wificond::Chip* chip = new android::wificond::Chip();
-  chips_.push_back(chip);
-}
-
-android::binder::Status Server::GetChips(std::vector<sp<IBinder>>* chips) {
-  *chips = chips_;
-  return binder::Status::ok();
 }
 
 }  // namespace wificond

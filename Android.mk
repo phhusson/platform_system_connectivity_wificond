@@ -40,7 +40,6 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libwificond
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
-    chip.cpp \
     client_interface.cpp \
     looper_backed_event_loop.cpp \
     server.cpp
@@ -60,8 +59,6 @@ LOCAL_AIDL_INCLUDES += $(LOCAL_PATH)/aidl
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IApInterface.aidl \
-    aidl/android/net/wifi/IChip.aidl \
-    aidl/android/net/wifi/IChipCallback.aidl \
     aidl/android/net/wifi/IClientInterface.aidl \
     aidl/android/net/wifi/IWificond.aidl
 LOCAL_SHARED_LIBRARIES := \
