@@ -65,8 +65,9 @@ bool WaitForTrue(std::function<bool()> condition, time_t timeout_seconds) {
 }
 
 bool IsRegistered() {
-  sp<IWificond> service;
-  return getService(String16(kWificondServiceName), &service) == NO_ERROR;
+  sp<IBinder> service =
+      defaultServiceManager()->checkService(String16(kWificondServiceName));
+  return service.get() != nullptr;
 }
 
 }  // namespace
