@@ -14,38 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef WIFICOND_SERVER_H_
-#define WIFICOND_SERVER_H_
-
-#include <memory>
-#include <vector>
-
-#include <android-base/macros.h>
-
-#include "android/net/wifi/BnWificond.h"
-
-#include "ap_interface_impl.h"
+#include "ap_interface_binder.h"
 
 namespace android {
 namespace wificond {
 
-class Server : public android::net::wifi::BnWificond {
- public:
-  Server() = default;
-  ~Server() override = default;
+ApInterfaceBinder::ApInterfaceBinder(ApInterfaceImpl* impl) : impl_{impl} {
+}
 
-  android::binder::Status CreateApInterface(
-      android::sp<android::net::wifi::IApInterface>* created_interface) override;
-
-  android::binder::Status TearDownInterfaces() override;
-
- private:
-  std::vector<std::unique_ptr<ApInterfaceImpl>> ap_interfaces_;
-
-  DISALLOW_COPY_AND_ASSIGN(Server);
-};
+ApInterfaceBinder::~ApInterfaceBinder() {
+}
 
 }  // namespace wificond
 }  // namespace android
-
-#endif  // WIFICOND_SERVER_H_

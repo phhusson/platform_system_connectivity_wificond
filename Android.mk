@@ -40,6 +40,8 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libwificond
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
+    ap_interface_binder.cpp \
+    ap_interface_impl.cpp \
     client_interface.cpp \
     looper_backed_event_loop.cpp \
     server.cpp

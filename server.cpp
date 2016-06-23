@@ -16,10 +16,32 @@
 
 #include "server.h"
 
+using android::binder::Status;
+using android::sp;
+using android::IBinder;
+using std::vector;
+using std::unique_ptr;
+using android::net::wifi::IApInterface;
+
 namespace android {
 namespace wificond {
 
-Server::Server() {
+Status Server::CreateApInterface(sp<IApInterface>* created_interface) {
+  if (!ap_interfaces_.empty()) {
+    // In the future we may support multiple interfaces at once.  However,
+    // today, we support just one.
+    return Status::fromExceptionCode(Status::EX_ILLEGAL_STATE);
+  }
+
+  unique_ptr<ApInterfaceImpl> ap_interface(new ApInterfaceImpl);
+  *created_interface = ap_interface->GetBinder();
+  ap_interfaces_.push_back(std::move(ap_interface));
+  return Status::ok();
+}
+
+Status Server::TearDownInterfaces() {
+  ap_interfaces_.clear();
+  return Status::ok();
 }
 
 }  // namespace wificond

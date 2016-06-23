@@ -24,11 +24,13 @@
 #include <utils/String16.h>
 #include <utils/StrongPointer.h>
 
+#include "android/net/wifi/IApInterface.h"
 #include "android/net/wifi/IWificond.h"
 #include "tests/shell_utils.h"
 
 using android::String16;
 using android::base::Trim;
+using android::net::wifi::IApInterface;
 using android::net::wifi::IWificond;
 using android::wificond::tests::integration::RunShellCommand;
 
@@ -87,6 +89,27 @@ TEST(LifeCycleTest, ProcessStartsUp) {
 
   // wificond should eventually register with the service manager.
   EXPECT_TRUE(WaitForTrue(IsRegistered, kWificondStartTimeoutSeconds));
+}
+
+TEST(LifeCycleTest, CanCreateApInterfaces) {
+  // Restart wificond and wait for it to come back.
+  RunShellCommand("stop wificond");
+  RunShellCommand("start wificond");
+  EXPECT_TRUE(WaitForTrue(IsRegistered, kWificondStartTimeoutSeconds));
+
+  sp<IWificond> service;
+  ASSERT_EQ(getService(String16(kWificondServiceName), &service), NO_ERROR);
+
+  // We should be able to create an AP interface.
+  sp<IApInterface> ap_interface;
+  ASSERT_TRUE(service->CreateApInterface(&ap_interface).isOk());
+
+  // We should not be able to create two AP interfaces.
+  sp<IApInterface> ap_interface2;
+  ASSERT_FALSE(service->CreateApInterface(&ap_interface2).isOk());
+
+  // We can tear down the created interface.
+  ASSERT_TRUE(service->TearDownInterfaces().isOk());
 }
 
 }  // namespace wificond
