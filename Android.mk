@@ -44,6 +44,7 @@ LOCAL_SRC_FILES := \
     ap_interface_impl.cpp \
     client_interface.cpp \
     looper_backed_event_loop.cpp \
+    net/nl80211_attribute.cpp \
     server.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
@@ -88,6 +89,7 @@ LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
     tests/main.cpp \
     tests/looper_backed_event_loop_unittest.cpp \
+    tests/nl80211_attribute_unittest.cpp \
     tests/shell_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
