@@ -21,6 +21,9 @@
 #include <vector>
 
 #include <android-base/macros.h>
+#include <wifi_hal/driver_tool.h>
+#include <wifi_system/hal_tool.h>
+#include <wifi_system/interface_tool.h>
 
 #include "android/net/wifi/BnWificond.h"
 
@@ -31,7 +34,9 @@ namespace wificond {
 
 class Server : public android::net::wifi::BnWificond {
  public:
-  Server() = default;
+  Server(std::unique_ptr<wifi_system::HalTool> hal_tool,
+         std::unique_ptr<wifi_system::InterfaceTool> if_tool,
+         std::unique_ptr<wifi_hal::DriverTool> driver_tool);
   ~Server() override = default;
 
   android::binder::Status CreateApInterface(
@@ -40,6 +45,14 @@ class Server : public android::net::wifi::BnWificond {
   android::binder::Status TearDownInterfaces() override;
 
  private:
+  // Does the actual work of setting up an interface for a particular mode.
+  // |mode| is one of WIFI_GET_FW_PATH_* defined in hardware_legacy/wifi.h.
+  // Returns true on success, false otherwise.
+  bool SetupInterfaceForMode(int mode);
+
+  const std::unique_ptr<wifi_system::HalTool> hal_tool_;
+  const std::unique_ptr<wifi_system::InterfaceTool> if_tool_;
+  const std::unique_ptr<wifi_hal::DriverTool> driver_tool_;
   std::vector<std::unique_ptr<ApInterfaceImpl>> ap_interfaces_;
 
   DISALLOW_COPY_AND_ASSIGN(Server);

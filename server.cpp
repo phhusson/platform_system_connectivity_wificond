@@ -22,14 +22,30 @@ using android::IBinder;
 using std::vector;
 using std::unique_ptr;
 using android::net::wifi::IApInterface;
+using android::wifi_hal::DriverTool;
+using android::wifi_system::HalTool;
+using android::wifi_system::InterfaceTool;
 
 namespace android {
 namespace wificond {
+
+Server::Server(unique_ptr<HalTool> hal_tool,
+               unique_ptr<InterfaceTool> if_tool,
+               unique_ptr<DriverTool> driver_tool)
+    : hal_tool_(std::move(hal_tool)),
+      if_tool_(std::move(if_tool)),
+      driver_tool_(std::move(driver_tool)) {
+}
+
 
 Status Server::CreateApInterface(sp<IApInterface>* created_interface) {
   if (!ap_interfaces_.empty()) {
     // In the future we may support multiple interfaces at once.  However,
     // today, we support just one.
+    return Status::fromExceptionCode(Status::EX_UNSUPPORTED_OPERATION);
+  }
+
+  if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp)) {
     return Status::fromExceptionCode(Status::EX_ILLEGAL_STATE);
   }
 
@@ -40,8 +56,28 @@ Status Server::CreateApInterface(sp<IApInterface>* created_interface) {
 }
 
 Status Server::TearDownInterfaces() {
-  ap_interfaces_.clear();
+  if (!ap_interfaces_.empty()) {
+    ap_interfaces_.clear();
+    if (!driver_tool_->UnloadDriver()) {
+      return Status::fromExceptionCode(Status::EX_ILLEGAL_STATE);
+    }
+  }
   return Status::ok();
+}
+
+bool Server::SetupInterfaceForMode(int mode) {
+  if (!driver_tool_->LoadDriver() ||
+      !driver_tool_->ChangeFirmwareMode(mode)) {
+    return false;
+  }
+
+  // TODO: Confirm the ap interface is ready for use by checking its
+  //       nl80211 published capabilities.
+  if (!if_tool_->SetWifiUpState(false)) {
+    return false;
+  }
+
+  return true;
 }
 
 }  // namespace wificond

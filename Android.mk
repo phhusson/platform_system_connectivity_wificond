@@ -29,7 +29,9 @@ LOCAL_SHARED_LIBRARIES := \
     libbinder \
     libbase \
     libcutils \
-    libutils
+    libutils \
+    libwifi-hal \
+    libwifi-system
 LOCAL_STATIC_LIBRARIES := \
     libwificond
 include $(BUILD_EXECUTABLE)
@@ -48,7 +50,9 @@ LOCAL_SRC_FILES := \
     server.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
-    libutils
+    libutils \
+    libwifi-hal \
+    libwifi-system
 LOCAL_STATIC_LIBRARIES := \
     libwificond_nl
 LOCAL_WHOLE_STATIC_LIBRARIES := \
@@ -105,15 +109,23 @@ LOCAL_SRC_FILES := \
     tests/main.cpp \
     tests/looper_backed_event_loop_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \
+    tests/server_unittest.cpp \
     tests/shell_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
+    libgtest \
+    libwifi-hal-test \
+    libwifi-system-test \
     libwificond \
     libwificond_nl \
-    libwificond_test_utils \
+    libwificond_test_utils
+LOCAL_SHARED_LIBRARIES := \
     libbase \
+    libbinder \
+    liblog \
     libutils \
-    liblog
+    libwifi-hal \
+    libwifi-system
 include $(BUILD_NATIVE_TEST)
 
 ###

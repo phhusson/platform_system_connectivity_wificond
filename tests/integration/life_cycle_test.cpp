@@ -29,7 +29,6 @@
 #include "android/net/wifi/IApInterface.h"
 #include "android/net/wifi/IWificond.h"
 #include "ipc_constants.h"
-#include "server.h"
 #include "tests/shell_utils.h"
 
 using android::String16;

@@ -26,15 +26,22 @@
 #include <binder/ProcessState.h>
 #include <cutils/properties.h>
 #include <utils/String16.h>
+#include <wifi_hal/driver_tool.h>
+#include <wifi_system/hal_tool.h>
+#include <wifi_system/interface_tool.h>
 
 #include "ipc_constants.h"
 #include "looper_backed_event_loop.h"
 #include "server.h"
 
 using android::net::wifi::IWificond;
+using android::wifi_hal::DriverTool;
+using android::wifi_system::HalTool;
+using android::wifi_system::InterfaceTool;
 using android::wificond::ipc_constants::kDevModePropertyKey;
 using android::wificond::ipc_constants::kDevModeServiceName;
 using android::wificond::ipc_constants::kServiceName;
+using std::unique_ptr;
 
 namespace {
 
@@ -101,7 +108,7 @@ int main(int argc, char** argv) {
   android::base::InitLogging(argv, android::base::LogdLogger(android::base::SYSTEM));
   LOG(INFO) << "wificond is starting up...";
 
-  std::unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher(
+  unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher(
       new android::wificond::LooperBackedEventLoop());
   ScopedSignalHandler scoped_signal_handler(event_dispatcher.get());
 
@@ -111,7 +118,11 @@ int main(int argc, char** argv) {
       android::wificond::EventLoop::kModeInput,
       &OnBinderReadReady)) << "Failed to watch binder FD";
 
-  android::sp<android::IBinder> server = new android::wificond::Server();
+
+  android::sp<android::IBinder> server = new android::wificond::Server(
+      unique_ptr<HalTool>(new HalTool),
+      unique_ptr<InterfaceTool>(new InterfaceTool),
+      unique_ptr<DriverTool>(new DriverTool));
   RegisterServiceOrCrash(server);
 
   event_dispatcher->Poll();
