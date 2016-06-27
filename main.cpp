@@ -26,8 +26,8 @@
 #include <binder/ProcessState.h>
 #include <utils/String16.h>
 
-#include <looper_backed_event_loop.h>
-#include <server.h>
+#include "looper_backed_event_loop.h"
+#include "server.h"
 
 using android::net::wifi::IWificond;
 
@@ -64,6 +64,25 @@ class ScopedSignalHandler final {
 android::wificond::LooperBackedEventLoop*
     ScopedSignalHandler::s_event_loop_ = nullptr;
 
+
+// Setup our interface to the Binder driver or die trying.
+int SetupBinderOrCrash() {
+  int binder_fd = -1;
+  android::ProcessState::self()->setThreadPoolMaxThreadCount(0);
+  android::IPCThreadState::self()->disableBackgroundScheduling(true);
+  int err = android::IPCThreadState::self()->setupPolling(&binder_fd);
+  CHECK_EQ(err, 0) << "Error setting up binder polling: " << strerror(-err);
+  CHECK_GE(binder_fd, 0) << "Invalid binder FD: " << binder_fd;
+  return binder_fd;
+}
+
+void RegisterServiceOrCrash(const android::sp<android::IBinder>& service) {
+  android::sp<android::IServiceManager> sm = android::defaultServiceManager();
+  CHECK_EQ(sm != NULL, true) << "Could not obtain IServiceManager";
+  CHECK_EQ(sm->addService(android::String16("wificond"), service),
+           android::NO_ERROR);
+}
+
 }  // namespace
 
 void OnBinderReadReady(int fd) {
@@ -73,28 +92,21 @@ void OnBinderReadReady(int fd) {
 int main(int argc, char** argv) {
   android::base::InitLogging(argv, android::base::LogdLogger(android::base::SYSTEM));
   LOG(INFO) << "wificond is starting up...";
-  std::unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher_(
-      new android::wificond::LooperBackedEventLoop());
-  ScopedSignalHandler scoped_signal_handler(event_dispatcher_.get());
 
-  int binder_fd = -1;
-  android::ProcessState::self()->setThreadPoolMaxThreadCount(0);
-  android::IPCThreadState::self()->disableBackgroundScheduling(true);
-  int err = android::IPCThreadState::self()->setupPolling(&binder_fd);
-  CHECK_EQ(err, 0) << "Error setting up binder polling: " << err;
-  CHECK_GE(binder_fd, 0) << "Invalid binder FD: " << binder_fd;
-  if (!event_dispatcher_->WatchFileDescriptor(
+  std::unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher(
+      new android::wificond::LooperBackedEventLoop());
+  ScopedSignalHandler scoped_signal_handler(event_dispatcher.get());
+
+  int binder_fd = SetupBinderOrCrash();
+  CHECK(event_dispatcher->WatchFileDescriptor(
       binder_fd,
       android::wificond::EventLoop::kModeInput,
-      &OnBinderReadReady)) {
-    LOG(FATAL) << "Failed to watch binder FD";
-  }
-  android::sp<android::IServiceManager> sm = android::defaultServiceManager();
-  CHECK_EQ(sm != NULL, true) << "Could not obtain IServiceManager";
-  android::sp<android::IBinder> server = new android::wificond::Server();
-  sm->addService(android::String16("wificond"), server);
+      &OnBinderReadReady)) << "Failed to watch binder FD";
 
-  event_dispatcher_->Poll();
-  LOG(INFO) << "Leaving the loop...";
+  android::sp<android::IBinder> server = new android::wificond::Server();
+  RegisterServiceOrCrash(server);
+
+  event_dispatcher->Poll();
+  LOG(INFO) << "wificond is about to exit";
   return 0;
 }
