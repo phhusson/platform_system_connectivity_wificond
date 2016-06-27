@@ -24,12 +24,17 @@
 #include <binder/IPCThreadState.h>
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
+#include <cutils/properties.h>
 #include <utils/String16.h>
 
+#include "ipc_constants.h"
 #include "looper_backed_event_loop.h"
 #include "server.h"
 
 using android::net::wifi::IWificond;
+using android::wificond::ipc_constants::kDevModePropertyKey;
+using android::wificond::ipc_constants::kDevModeServiceName;
+using android::wificond::ipc_constants::kServiceName;
 
 namespace {
 
@@ -79,7 +84,10 @@ int SetupBinderOrCrash() {
 void RegisterServiceOrCrash(const android::sp<android::IBinder>& service) {
   android::sp<android::IServiceManager> sm = android::defaultServiceManager();
   CHECK_EQ(sm != NULL, true) << "Could not obtain IServiceManager";
-  CHECK_EQ(sm->addService(android::String16("wificond"), service),
+
+  const int8_t dev_mode_on = property_get_bool(kDevModePropertyKey, 0);
+  const char* service_name = (dev_mode_on) ? kDevModeServiceName : kServiceName;
+  CHECK_EQ(sm->addService(android::String16(service_name), service),
            android::NO_ERROR);
 }
 

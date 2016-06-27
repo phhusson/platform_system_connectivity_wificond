@@ -28,6 +28,7 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES := \
     libbinder \
     libbase \
+    libcutils \
     libutils
 LOCAL_STATIC_LIBRARIES := \
     libwificond
@@ -60,6 +61,7 @@ LOCAL_MODULE := libwificond_ipc
 LOCAL_AIDL_INCLUDES += $(LOCAL_PATH)/aidl
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
+    ipc_constants.cpp \
     aidl/android/net/wifi/IApInterface.aidl \
     aidl/android/net/wifi/IClientInterface.aidl \
     aidl/android/net/wifi/IWificond.aidl
@@ -110,6 +112,7 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES := \
     libbase \
     libbinder \
+    libcutils \
     libutils
 LOCAL_STATIC_LIBRARIES := \
     libwificond_ipc \

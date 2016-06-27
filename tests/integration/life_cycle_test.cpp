@@ -18,20 +18,27 @@
 
 #include <ctime>
 
+#include <android-base/logging.h>
 #include <android-base/strings.h>
 #include <binder/IServiceManager.h>
+#include <cutils/properties.h>
 #include <utils/Errors.h>
 #include <utils/String16.h>
 #include <utils/StrongPointer.h>
 
 #include "android/net/wifi/IApInterface.h"
 #include "android/net/wifi/IWificond.h"
+#include "ipc_constants.h"
+#include "server.h"
 #include "tests/shell_utils.h"
 
 using android::String16;
 using android::base::Trim;
 using android::net::wifi::IApInterface;
 using android::net::wifi::IWificond;
+using android::wificond::ipc_constants::kDevModePropertyKey;
+using android::wificond::ipc_constants::kDevModeServiceName;
+using android::wificond::ipc_constants::kServiceName;
 using android::wificond::tests::integration::RunShellCommand;
 
 namespace android {
@@ -40,8 +47,6 @@ namespace {
 
 const uint32_t kWificondDeathTimeoutSeconds = 10;
 const uint32_t kWificondStartTimeoutSeconds = 10;
-
-const char kWificondServiceName[] = "wificond";
 
 bool WificondIsRunning() {
   std::string output;
@@ -66,11 +71,32 @@ bool WaitForTrue(std::function<bool()> condition, time_t timeout_seconds) {
   return false;
 }
 
-bool IsRegistered() {
+bool IsRegisteredAs(const char* service_name) {
   sp<IBinder> service =
-      defaultServiceManager()->checkService(String16(kWificondServiceName));
+      defaultServiceManager()->checkService(String16(service_name));
   return service.get() != nullptr;
 }
+
+bool SetDevMode(bool is_on) {
+  return property_set(kDevModePropertyKey, (is_on) ? "1" : "0") == 0;
+}
+
+class SandboxedTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    RunShellCommand("stop wificond");
+    EXPECT_TRUE(SetDevMode(true));
+    RunShellCommand("start wificond");
+    auto in_dev_mode = std::bind(IsRegisteredAs, kDevModeServiceName);
+    EXPECT_TRUE(WaitForTrue(in_dev_mode, kWificondStartTimeoutSeconds));
+  }
+
+  void TearDown() override {
+    RunShellCommand("stop wificond");
+    SetDevMode(false);
+    RunShellCommand("start wificond");
+  }
+};  // class SandboxedTest
 
 }  // namespace
 
@@ -81,24 +107,22 @@ TEST(LifeCycleTest, ProcessStartsUp) {
   EXPECT_TRUE(WaitForTrue(WificondIsDead, kWificondDeathTimeoutSeconds));
 
   // Confirm that the service manager has no binder for wificond.
-  EXPECT_FALSE(IsRegistered());
+  EXPECT_FALSE(IsRegisteredAs(kServiceName));
+  EXPECT_FALSE(IsRegisteredAs(kDevModeServiceName));
+  EXPECT_TRUE(SetDevMode(false));  // Clear dev mode
 
   // Start wificond.
   RunShellCommand("start wificond");
   EXPECT_TRUE(WaitForTrue(WificondIsRunning, kWificondStartTimeoutSeconds));
 
   // wificond should eventually register with the service manager.
-  EXPECT_TRUE(WaitForTrue(IsRegistered, kWificondStartTimeoutSeconds));
+  EXPECT_TRUE(WaitForTrue(std::bind(IsRegisteredAs, kServiceName),
+                          kWificondStartTimeoutSeconds));
 }
 
-TEST(LifeCycleTest, CanCreateApInterfaces) {
-  // Restart wificond and wait for it to come back.
-  RunShellCommand("stop wificond");
-  RunShellCommand("start wificond");
-  EXPECT_TRUE(WaitForTrue(IsRegistered, kWificondStartTimeoutSeconds));
-
+TEST_F(SandboxedTest, CanCreateApInterfaces) {
   sp<IWificond> service;
-  ASSERT_EQ(getService(String16(kWificondServiceName), &service), NO_ERROR);
+  ASSERT_EQ(NO_ERROR, getService(String16(kDevModeServiceName), &service));
 
   // We should be able to create an AP interface.
   sp<IApInterface> ap_interface;
