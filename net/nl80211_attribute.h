@@ -18,6 +18,8 @@
 #define WIFICOND_NL80211_ATTRIBUTE_H_
 
 #include <memory>
+#include <string>
+#include <type_traits>
 #include <vector>
 
 #include <linux/netlink.h>
@@ -29,19 +31,17 @@ namespace wificond {
 
 class BaseNL80211Attr {
  public:
-  enum AttributeType {
-    kNested,
-    kUInt32
-  };
-
   virtual ~BaseNL80211Attr() = default;
 
   const std::vector<uint8_t>& GetConstData() const;
   int GetAttributeId() const;
+  // This is used when we initialize a NL80211 attribute from an existing
+  // buffer.
+  virtual bool IsValid() const;
 
  protected:
   BaseNL80211Attr() = default;
-  void InitAttributeHeader(int attribute_id, int payload_length);
+  void InitHeaderAndResize(int attribute_id, int payload_length);
 
   std::vector<uint8_t> data_;
 };
@@ -49,26 +49,75 @@ class BaseNL80211Attr {
 template <typename T>
 class NL80211Attr : public BaseNL80211Attr {
  public:
-  explicit NL80211Attr(int id, T value) {
-    InitAttributeHeader(id, sizeof(T));
-    data_.resize(data_.size() + sizeof(T));
-    T* storage = reinterpret_cast<T*>(data_.data() + data_.size() - sizeof(T));
+  NL80211Attr(int id, T value) {
+    static_assert(
+        std::is_integral<T>::value,
+        "Failed to create NL80211Attr class with non-integral type");
+    InitHeaderAndResize(id, sizeof(T));
+    T* storage = reinterpret_cast<T*>(data_.data() + NLA_HDRLEN);
     *storage = value;
   }
   // Caller is a responsible for ensuring that |data| is:
-  //   1) Is at least NLA_HDRLEN long
-  //   2) That *data when interpreted as a nlattr is internally consistent
-  // (e.g. data.size() == NLA_HDLLEN + nlattr.nla_len)
+  //   1) Is at least NLA_HDRLEN long.
+  //   2) That *data when interpreted as a nlattr is internally consistent.
+  // (e.g. data.size() == NLA_ALIGN(nlattr.nla_len)
+  // and nla_len == NLA_HDRLEN + payload size
   explicit NL80211Attr(const std::vector<uint8_t>& data) {
     data_ = data;
   }
 
   ~NL80211Attr() override = default;
 
+  bool IsValid() const override {
+    if (!BaseNL80211Attr::IsValid()) {
+      return false;
+    }
+    // If BaseNL80211Attr::IsValid() == true, at least we have enough valid
+    // buffer for header.
+    const nlattr* header = reinterpret_cast<const nlattr*>(data_.data());
+    // Buffer size = header size +  payload size + padding size
+    // nla_len  =  header size + payload size
+    if (NLA_ALIGN(sizeof(T)) + NLA_HDRLEN != data_.size() ||
+        sizeof(T) + NLA_HDRLEN != header->nla_len ) {
+      return false;
+    }
+    return true;
+  }
+
   T GetValue() const {
     return *reinterpret_cast<const T*>(data_.data() + NLA_HDRLEN);
   }
-};  // class NL80211Attr
+};  // class NL80211Attr for POD-types
+
+template <>
+class NL80211Attr<std::vector<uint8_t>> : public BaseNL80211Attr {
+ public:
+  NL80211Attr(int id, const std::vector<uint8_t>& raw_buffer);
+  explicit NL80211Attr(const std::vector<uint8_t>& data);
+  ~NL80211Attr() override = default;
+  std::vector<uint8_t> GetValue() const;
+}; // class NL80211Attr for raw data
+
+template <>
+class NL80211Attr<std::string> : public BaseNL80211Attr {
+ public:
+  NL80211Attr(int id, const std::string& str);
+  // We parse string attribute buffer in the same way kernel does.
+  // All trailing zeros are trimmed when retrieving a std::string from
+  // byte array.
+  explicit NL80211Attr(const std::vector<uint8_t>& data);
+  ~NL80211Attr() override = default;
+  std::string GetValue() const;
+};  // class NL80211Attr for string
+
+// Force the compiler not to instantiate these templates because
+// they will be instantiated in nl80211_attribute.cpp file. This helps
+// reduce compile time as well as object file size.
+extern template class NL80211Attr<uint8_t>;
+extern template class NL80211Attr<uint16_t>;
+extern template class NL80211Attr<uint32_t>;
+extern template class NL80211Attr<std::vector<uint8_t>>;
+extern template class NL80211Attr<std::string>;
 
 class NL80211NestedAttr : public BaseNL80211Attr {
  public:
@@ -77,16 +126,55 @@ class NL80211NestedAttr : public BaseNL80211Attr {
   ~NL80211NestedAttr() override = default;
 
   void AddAttribute(const BaseNL80211Attr& attribute);
-  bool HasAttribute(int id, AttributeType type) const;
+  // For NLA_FLAG attribute
+  void AddFlagAttribute(int attribute_id);
+  bool HasAttribute(int id) const;
+
   // Access an attribute nested within |this|.
   // The result is returned by writing the attribute object to |*attribute|.
   // Deeper nested attributes are not included. This means if A is nested within
   // |this|, and B is nested within A, this function can't be used to access B.
   // The reason is that we may have multiple attributes having the same
   // attribute id, nested within different level of |this|.
-  bool GetAttribute(int id,
-                    AttributeType type,
-                    BaseNL80211Attr* attribute) const;
+  bool GetAttribute(int id, NL80211NestedAttr* attribute) const;
+
+  template <typename T>
+  bool GetAttributeValue(int id, T* value) const {
+    std::vector<uint8_t> empty_vec;
+    // All data in |attribute| created here will be overwritten by
+    // GetAttribute(). So we use an empty vector to initialize it,
+    // regardless of the fact that an empty buffer is not qualified
+    // for creating a valid attribute.
+    NL80211Attr<T> attribute(empty_vec);
+    if (!GetAttribute(id, &attribute)) {
+      return false;
+    }
+    *value = attribute.GetValue();
+    return true;
+  }
+
+  template <typename T>
+  bool GetAttribute(int id, NL80211Attr<T>* attribute) const {
+    uint8_t* start = nullptr;
+    uint8_t* end = nullptr;
+    if (!GetAttributeInternal(id, &start, &end) ||
+        start == nullptr ||
+        end == nullptr) {
+      return false;
+    }
+    *attribute = NL80211Attr<T>(std::vector<uint8_t>(start, end));
+    if (!attribute->IsValid()) {
+      return false;
+    }
+    return true;
+  }
+
+ private:
+  // |*start| and |*end| are the start and end pointers of buffer where
+  // |id| atrribute locates.
+  bool GetAttributeInternal(int id,
+                            uint8_t** start,
+                            uint8_t** end) const;
 };
 
 }  // namespace wificond
