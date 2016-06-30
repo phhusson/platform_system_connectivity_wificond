@@ -45,13 +45,26 @@ LOCAL_SRC_FILES := \
     ap_interface_impl.cpp \
     client_interface.cpp \
     looper_backed_event_loop.cpp \
-    net/nl80211_attribute.cpp \
     server.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
     libutils
+LOCAL_STATIC_LIBRARIES := \
+    libwificond_nl
 LOCAL_WHOLE_STATIC_LIBRARIES := \
     libwificond_ipc
+include $(BUILD_STATIC_LIBRARY)
+
+###
+### wificond netlink library
+###
+include $(CLEAR_VARS)
+LOCAL_MODULE := libwificond_nl
+LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_SRC_FILES := \
+    net/nl80211_attribute.cpp
+LOCAL_SHARED_LIBRARIES := \
+    libbase
 include $(BUILD_STATIC_LIBRARY)
 
 ###
@@ -96,6 +109,7 @@ LOCAL_SRC_FILES := \
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
     libwificond \
+    libwificond_nl \
     libwificond_test_utils \
     libbase \
     libutils \
