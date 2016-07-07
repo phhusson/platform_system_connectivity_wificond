@@ -148,3 +148,27 @@ LOCAL_STATIC_LIBRARIES := \
     libwificond_ipc \
     libwificond_test_utils
 include $(BUILD_NATIVE_TEST)
+
+###
+### wpa_supplicant binder integration tests.
+### (Compiled only when wpa_supplicant's binder interface is enabled)
+###
+ifeq ($(WPA_SUPPLICANT_USE_BINDER), y)
+include $(CLEAR_VARS)
+LOCAL_MODULE := wpa_supplicant_binder_test
+LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_SRC_FILES := \
+    tests/main.cpp \
+    tests/integration/wpa_supplicant_binder/tests.cpp
+LOCAL_SHARED_LIBRARIES := \
+    libbase \
+    libbinder \
+    libcutils \
+    libutils \
+    libwifi-hal \
+    libwifi-system
+LOCAL_STATIC_LIBRARIES := \
+    libwificond_test_utils \
+    libwpa_binder_interface
+include $(BUILD_NATIVE_TEST)
+endif # WPA_SUPPLICANT_USE_BINDER == y
