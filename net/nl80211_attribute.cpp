@@ -57,6 +57,33 @@ const vector<uint8_t>& BaseNL80211Attr::GetConstData() const {
   return data_;
 }
 
+bool BaseNL80211Attr::GetAttributeImpl(const uint8_t* buf,
+                                       size_t len,
+                                       int attr_id,
+                                       uint8_t** attr_start,
+                                       uint8_t** attr_end) {
+  // Skip the top level attribute header.
+  const uint8_t* ptr = buf;
+  const uint8_t* end_ptr = buf + len;
+  while (ptr + NLA_HDRLEN <= end_ptr) {
+    const nlattr* header = reinterpret_cast<const nlattr*>(ptr);
+    if (header->nla_type == attr_id) {
+      if (ptr + NLA_ALIGN(header->nla_len) > end_ptr) {
+        LOG(ERROR) << "Failed to get attribute: broken nl80211 atrribute.";
+        return false;
+      }
+      if (attr_start != nullptr && attr_end != nullptr) {
+        *attr_start = const_cast<uint8_t*>(ptr);
+        *attr_end = const_cast<uint8_t*>(ptr + NLA_ALIGN(header->nla_len));
+      }
+      return true;
+    }
+    ptr += NLA_ALIGN(header->nla_len);
+  }
+  return false;
+}
+
+
 // For NL80211Attr<std::vector<uint8_t>>
 NL80211Attr<vector<uint8_t>>::NL80211Attr(int id,
     const vector<uint8_t>& raw_buffer) {
@@ -125,29 +152,29 @@ void NL80211NestedAttr::AddAttribute(const BaseNL80211Attr& attribute) {
 
 void NL80211NestedAttr::AddFlagAttribute(int attribute_id) {
   // We only need to append a header for flag attribute.
-  nlattr flag_header;
-  flag_header.nla_type = attribute_id;
-  flag_header.nla_len = NLA_HDRLEN;
-  vector<uint8_t> append_data(
-      reinterpret_cast<uint8_t*>(&flag_header),
-      reinterpret_cast<uint8_t*>(&flag_header) + sizeof(nlattr));
-  append_data.resize(NLA_HDRLEN, 0);
-  // Append the data of |attribute| to |this|.
-  data_.insert(data_.end(), append_data.begin(), append_data.end());
-
-  nlattr* header = reinterpret_cast<nlattr*>(data_.data());
-  header->nla_len += NLA_HDRLEN;
+  // Make space for the new attribute.
+  data_.resize(data_.size() + NLA_HDRLEN, 0);
+  nlattr* flag_header =
+      reinterpret_cast<nlattr*>(data_.data() + data_.size() - NLA_HDRLEN);
+  flag_header->nla_type = attribute_id;
+  flag_header->nla_len = NLA_HDRLEN;
+  nlattr* nl_header = reinterpret_cast<nlattr*>(data_.data());
+  nl_header->nla_len += NLA_HDRLEN;
 }
 
 bool NL80211NestedAttr::HasAttribute(int id) const {
-  return GetAttributeInternal(id, nullptr, nullptr);
+  return BaseNL80211Attr::GetAttributeImpl(data_.data() + NLA_HDRLEN,
+                                           data_.size() - NLA_HDRLEN,
+                                           id, nullptr, nullptr);
 }
 
 bool NL80211NestedAttr::GetAttribute(int id,
     NL80211NestedAttr* attribute) const {
   uint8_t* start = nullptr;
   uint8_t* end = nullptr;
-  if (!GetAttributeInternal(id, &start, &end) ||
+  if (!BaseNL80211Attr::GetAttributeImpl(data_.data() + NLA_HDRLEN,
+                                         data_.size() - NLA_HDRLEN,
+                                         id, &start, &end) ||
       start == nullptr ||
       end == nullptr) {
     return false;
@@ -157,30 +184,6 @@ bool NL80211NestedAttr::GetAttribute(int id,
     return false;
   }
   return true;
-}
-
-bool NL80211NestedAttr::GetAttributeInternal(int id,
-                                             uint8_t** start,
-                                             uint8_t** end) const {
-  // Skip the top level attribute header.
-  const uint8_t* ptr = data_.data() + NLA_HDRLEN;
-  const uint8_t* end_ptr = data_.data() + data_.size();
-  while (ptr + NLA_HDRLEN <= end_ptr) {
-    const nlattr* header = reinterpret_cast<const nlattr*>(ptr);
-    if (header->nla_type == id) {
-      if (ptr + NLA_ALIGN(header->nla_len) > end_ptr) {
-        LOG(ERROR) << "Failed to get attribute: broken nl80211 atrribute.";
-        return false;
-      }
-      if (start != nullptr && end != nullptr) {
-        *start = const_cast<uint8_t*>(ptr);
-        *end = const_cast<uint8_t*>(ptr + NLA_ALIGN(header->nla_len));
-      }
-      return true;
-    }
-    ptr += NLA_ALIGN(header->nla_len);
-  }
-  return false;
 }
 
 }  // namespace wificond
