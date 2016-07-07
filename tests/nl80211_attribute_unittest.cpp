@@ -22,78 +22,181 @@
 
 #include "net/nl80211_attribute.h"
 
-using std::string;
-
 namespace android {
 namespace wificond {
 
 namespace {
 
-const uint32_t kScanFrequency1 = 2500;
-const uint32_t kScanFrequency2 = 5000;
-const uint32_t kRSSIThreshold = 80;
-const uint32_t kRSSIHysteresis = 10;
+const uint32_t kU8Value1 = 200;
+const uint32_t kU16Value1 = 5000;
+const uint32_t kU32Value1 = 250000;
+const uint32_t kU32Value2 = 500000;
+const std::string kIFName = "wlan0";
+const uint8_t kMacAddress[] = {
+    0xc0, 0x3f, 0x0e, 0x77, 0xe8, 0x7f
+};
+
+// This header contains invalid buffer length
+const uint8_t kBrokenBuffer[] = {
+    0xff, 0xff, // nla_len = 0xffff
+    0x01, 0x11, // nla_type
+    0x15, 0x12, // payload
+    0x00, 0x00  // padding
+};
+const uint8_t kValidU32AttrBuffer[] = {
+    0x08, 0x00, // nla_len = 8
+    0x01, 0x00, // nla_type
+    0xf1, 0x12, 0x12, 0x2a // payload
+};
+const uint8_t kBufferContainsStringWithTrailingZero[] = {
+    0x0a, 0x00, // nla_len = 10
+    0x01, 0x00, // nla_type
+    'w', 'l', 'a', 'n', '0', '\0',
+    0x00, 0x00  // padding
+};
+const uint8_t kBufferContainsStringWithTrailingZeros[] = {
+    0x0c, 0x00, // nla_len = 12
+    0x01, 0x00, // nla_type
+    'w', 'l', 'a', 'n', '0', '\0', '\0', '\0'
+};
+const uint8_t kBufferContainsStringWithoutTrailingZero[] = {
+    0x09, 0x00, // nla_len = 9
+    0x01, 0x00, // nla_type
+    'w', 'l', 'a', 'n', '0',
+    0x00, 0x00, 0x00  // padding
+};
 
 }  // namespace
 
-TEST(NL80211AttributeTest, AttributeScanFrequenciesListTest) {
-  NL80211NestedAttr scan_freq(NL80211_ATTR_SCAN_FREQUENCIES);
-
-  // Use 1,2,3 .. for anonymous attributes.
-  NL80211Attr<uint32_t> freq1(1, kScanFrequency1);
-  NL80211Attr<uint32_t> freq2(2, kScanFrequency2);
-  scan_freq.AddAttribute(freq1);
-  scan_freq.AddAttribute(freq2);
-
-  EXPECT_EQ(scan_freq.GetAttributeId(), NL80211_ATTR_SCAN_FREQUENCIES);
-  EXPECT_TRUE(scan_freq.HasAttribute(1, BaseNL80211Attr::kUInt32));
-  EXPECT_TRUE(scan_freq.HasAttribute(2, BaseNL80211Attr::kUInt32));
-
-  NL80211Attr<uint32_t> attr_u32(0, 0);
-  EXPECT_TRUE(scan_freq.GetAttribute(1, BaseNL80211Attr::kUInt32, &attr_u32));
-  EXPECT_EQ(attr_u32.GetValue(), kScanFrequency1);
-  EXPECT_TRUE(scan_freq.GetAttribute(2, BaseNL80211Attr::kUInt32, &attr_u32));
-  EXPECT_EQ(attr_u32.GetValue(), kScanFrequency2);
+TEST(NL80211AttributeTest,U8AttributesSeriallizeCorrectly) {
+  NL80211Attr<uint8_t> u8_attr(1, kU8Value1);
+  EXPECT_EQ(u8_attr.GetValue(), kU8Value1);
 }
 
-TEST(NL80211AttributeTest, AttributeCQMTest) {
-  NL80211NestedAttr cqm(NL80211_ATTR_CQM);
+TEST(NL80211AttributeTest,U16AttributesSeriallizeCorrectly) {
+  NL80211Attr<uint16_t> u16_attr(1, kU16Value1);
+  EXPECT_EQ(u16_attr.GetValue(), kU16Value1);
+}
 
-  NL80211Attr<uint32_t> rssi_thold(NL80211_ATTR_CQM_RSSI_THOLD,
-                                         kRSSIThreshold);
-  NL80211Attr<uint32_t> rssi_hyst(NL80211_ATTR_CQM_RSSI_HYST,
-                                        kRSSIHysteresis);
-  NL80211Attr<uint32_t> rssi_threshold_event(
-      NL80211_ATTR_CQM_RSSI_THRESHOLD_EVENT,
-      NL80211_CQM_RSSI_THRESHOLD_EVENT_LOW);
-  cqm.AddAttribute(rssi_thold);
-  cqm.AddAttribute(rssi_hyst);
-  cqm.AddAttribute(rssi_threshold_event);
+TEST(NL80211AttributeTest,U32AttributesSeriallizeCorrectly) {
+  NL80211Attr<uint32_t> u32_attr(1, kU32Value1);
+  EXPECT_EQ(u32_attr.GetValue(), kU32Value1);
+}
 
-  EXPECT_EQ(cqm.GetAttributeId(), NL80211_ATTR_CQM);
-  EXPECT_TRUE(cqm.HasAttribute(NL80211_ATTR_CQM_RSSI_THOLD,
-                               BaseNL80211Attr::kUInt32));
-  EXPECT_TRUE(cqm.HasAttribute(NL80211_ATTR_CQM_RSSI_HYST,
-                               BaseNL80211Attr::kUInt32));
-  EXPECT_TRUE(cqm.HasAttribute(NL80211_ATTR_CQM_RSSI_THRESHOLD_EVENT,
-                               BaseNL80211Attr::kUInt32));
+TEST(NL80211AttributeTest,StringAttributesSeriallizeCorrectly) {
+  NL80211Attr<std::string> str_attr(1, kIFName);
+  EXPECT_EQ(str_attr.GetValue(), kIFName);
+}
 
-  NL80211Attr<uint32_t> attr_u32(0, 0);
-  EXPECT_TRUE(cqm.GetAttribute(NL80211_ATTR_CQM_RSSI_THOLD,
-                               BaseNL80211Attr::kUInt32,
-                               &attr_u32));
-  EXPECT_EQ(attr_u32.GetValue(), kRSSIThreshold);
+TEST(NL80211AttributeTest, ByteVectorsSeriallizeCorrectly) {
+  std::vector<uint8_t> mac_address(
+      kMacAddress,
+      kMacAddress + sizeof(kMacAddress));
+  NL80211Attr<std::vector<uint8_t>> byte_vector_attr(1, mac_address);
+  EXPECT_EQ(byte_vector_attr.GetValue(), mac_address);
+}
 
-  EXPECT_TRUE(cqm.GetAttribute(NL80211_ATTR_CQM_RSSI_HYST,
-                               BaseNL80211Attr::kUInt32,
-                               &attr_u32));
-  EXPECT_EQ(attr_u32.GetValue(), kRSSIHysteresis);
+TEST(NL80211AttributeTest, CanGetNestedAttributes) {
+  NL80211NestedAttr nested_attr(1);
+  NL80211Attr<uint32_t> u32_attr_1(1, kU32Value1);
+  NL80211Attr<uint32_t> u32_attr_2(2, kU32Value2);
 
-  EXPECT_TRUE(cqm.GetAttribute(NL80211_ATTR_CQM_RSSI_THRESHOLD_EVENT,
-                               BaseNL80211Attr::kUInt32,
-                               &attr_u32));
-  EXPECT_EQ(attr_u32.GetValue(), NL80211_CQM_RSSI_THRESHOLD_EVENT_LOW);
+  nested_attr.AddAttribute(u32_attr_1);
+  nested_attr.AddAttribute(u32_attr_2);
 
+  EXPECT_TRUE(nested_attr.HasAttribute(1));
+  EXPECT_TRUE(nested_attr.HasAttribute(2));
+
+  uint32_t attr_value;
+  EXPECT_TRUE(nested_attr.GetAttributeValue(1, &attr_value));
+  EXPECT_EQ(attr_value, kU32Value1);
+  EXPECT_TRUE(nested_attr.GetAttributeValue(2, &attr_value));
+  EXPECT_EQ(attr_value, kU32Value2);
+}
+
+TEST(NL80211AttributeTest, CannotGetDoubleNestedAttributes) {
+  NL80211NestedAttr nested_attr(1);
+  NL80211NestedAttr deeper_nested_attr(2);
+  NL80211Attr<uint32_t> u32_attr_1(3, kU32Value1);
+
+  deeper_nested_attr.AddAttribute(u32_attr_1);
+  nested_attr.AddAttribute(deeper_nested_attr);
+
+  EXPECT_FALSE(nested_attr.HasAttribute(3));
+}
+
+TEST(NL80211AttributeTest, CannotGetMissingAttribute) {
+  NL80211NestedAttr nested_attr(1);
+  NL80211Attr<uint32_t> u32_attr_1(1, kU32Value1);
+
+  nested_attr.AddAttribute(u32_attr_1);
+
+  uint32_t attr_value;
+  EXPECT_FALSE(nested_attr.HasAttribute(2));
+  EXPECT_FALSE(nested_attr.GetAttributeValue(2, &attr_value));
+}
+
+TEST(NL80211AttributeTest, CannotGetAttributeWithWrongType) {
+  NL80211NestedAttr nested_attr(1);
+  NL80211Attr<uint32_t> u32_attr_1(1, kU32Value1);
+
+  nested_attr.AddAttribute(u32_attr_1);
+
+  uint16_t attr_value;
+  EXPECT_TRUE(nested_attr.HasAttribute(1));
+  EXPECT_FALSE(nested_attr.GetAttributeValue(1, &attr_value));
+}
+
+
+TEST(NL80211AttributeTest, InvalidU32AttributeWithEmptyBuffer) {
+  std::vector<uint8_t> buffer;
+  NL80211Attr<uint32_t> invalid_attr(buffer);
+  EXPECT_FALSE(invalid_attr.IsValid());
+}
+
+TEST(NL80211AttributeTest, InvalidU32AttributeWithBrokenBuffer) {
+  std::vector<uint8_t> buffer(
+      kBrokenBuffer,
+      kBrokenBuffer + sizeof(kBrokenBuffer));
+  NL80211Attr<uint32_t> invalid_attr(buffer);
+  EXPECT_FALSE(invalid_attr.IsValid());
+}
+
+TEST(NL80211AttributeTest, InvalidU16AttributeWithU32Buffer) {
+  std::vector<uint8_t> buffer(
+      kValidU32AttrBuffer,
+      kValidU32AttrBuffer + sizeof(kValidU32AttrBuffer));
+  NL80211Attr<uint32_t> valid_attr(buffer);
+  NL80211Attr<uint16_t> invalid_attr(buffer);
+  EXPECT_TRUE(valid_attr.IsValid());
+  EXPECT_FALSE(invalid_attr.IsValid());
+}
+
+TEST(NL80211AttributeTest, InitStringAttributeWithTrailingZeroFromBuffer) {
+  std::vector<uint8_t> buffer(
+      kBufferContainsStringWithTrailingZero,
+      kBufferContainsStringWithTrailingZero +
+          sizeof(kBufferContainsStringWithTrailingZero));
+  NL80211Attr<std::string> str_attr(buffer);
+  EXPECT_EQ("wlan0", str_attr.GetValue());
+}
+
+TEST(NL80211AttributeTest, InitStringAttributeWithTrailingZerosFromBuffer) {
+  std::vector<uint8_t> buffer(
+      kBufferContainsStringWithTrailingZeros,
+      kBufferContainsStringWithTrailingZeros +
+          sizeof(kBufferContainsStringWithTrailingZeros));
+  NL80211Attr<std::string> str_attr(buffer);
+  EXPECT_EQ("wlan0", str_attr.GetValue());
+}
+
+TEST(NL80211AttributeTest, InitStringAttributeWithoutTrailingZeroFromBuffer) {
+  std::vector<uint8_t> buffer(
+      kBufferContainsStringWithoutTrailingZero,
+      kBufferContainsStringWithoutTrailingZero +
+          sizeof(kBufferContainsStringWithoutTrailingZero));
+  NL80211Attr<std::string> str_attr(buffer);
+  EXPECT_EQ("wlan0", str_attr.GetValue());
 }
 
 }  // namespace wificond
