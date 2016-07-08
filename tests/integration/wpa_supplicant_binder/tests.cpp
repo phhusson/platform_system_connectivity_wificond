@@ -231,4 +231,33 @@ TEST_F(WpaSupplicantBinderTest, RemoveInterface) {
   EXPECT_TRUE(status.serviceSpecificErrorCode() ==
               ISupplicant::ERROR_IFACE_UNKNOWN);
 }
+
+/**
+ * Verifies the |IIface.GetName| binder call.
+ */
+TEST_F(WpaSupplicantBinderTest, GetNameOnInterface) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+  std::string ifaceName;
+  android::binder::Status status = iface->GetName(&ifaceName);
+  EXPECT_TRUE(ifaceName == kWlan0IfaceName);
+}
+
+/**
+ * Verifies the |IIface.GetName| binder call on an interface
+ * which has been removed.
+ */
+TEST_F(WpaSupplicantBinderTest, GetNameOnRemovedInterface) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+  std::string ifaceName;
+  android::binder::Status status = iface->GetName(&ifaceName);
+  EXPECT_TRUE(ifaceName == kWlan0IfaceName);
+
+  // Now remove the interface.
+  RemoveInterfaceForTest();
+
+  // Any method call on the iface object should return failure.
+  status = iface->GetName(&ifaceName);
+  EXPECT_TRUE(status.serviceSpecificErrorCode() == IIface::ERROR_IFACE_INVALID);
+}
+
 }  // namespace wpa_supplicant_binder
