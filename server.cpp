@@ -73,9 +73,6 @@ bool Server::SetupInterfaceForMode(int mode) {
 
   // TODO: Confirm the ap interface is ready for use by checking its
   //       nl80211 published capabilities.
-  if (!if_tool_->SetWifiUpState(false)) {
-    return false;
-  }
 
   return true;
 }
