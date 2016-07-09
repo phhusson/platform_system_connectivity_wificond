@@ -29,6 +29,7 @@
 
 #include <fi/w1/wpa_supplicant/IIface.h>
 #include <fi/w1/wpa_supplicant/ISupplicant.h>
+#include "fi/w1/wpa_supplicant/INetwork.h"
 
 #include "tests/shell_utils.h"
 
@@ -37,6 +38,7 @@ using android::wifi_system::InterfaceTool;
 using android::wificond::tests::integration::RunShellCommand;
 
 using fi::w1::wpa_supplicant::IIface;
+using fi::w1::wpa_supplicant::INetwork;
 using fi::w1::wpa_supplicant::ISupplicant;
 
 namespace wpa_supplicant_binder {
@@ -154,6 +156,24 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     EXPECT_TRUE(status.isOk());
   }
 
+  /**
+   * Add a network to the |iface|.
+   */
+  android::sp<INetwork> AddNetworkForTest(const android::sp<IIface>& iface) {
+    android::sp<INetwork> network;
+    android::binder::Status status = iface->AddNetwork(&network);
+    EXPECT_TRUE((status.isOk()) && (network.get() != nullptr));
+    return network;
+  }
+
+  /**
+   * Removes a network with provided |network_id| from |iface|.
+   */
+  void RemoveNetworkForTest(const android::sp<IIface>& iface, int network_id) {
+    android::binder::Status status = iface->RemoveNetwork(network_id);
+    EXPECT_TRUE((status.isOk()));
+  }
+
   android::sp<ISupplicant> service_;
 
  private:
@@ -239,7 +259,7 @@ TEST_F(WpaSupplicantBinderTest, GetNameOnInterface) {
   android::sp<IIface> iface = CreateInterfaceForTest();
   std::string ifaceName;
   android::binder::Status status = iface->GetName(&ifaceName);
-  EXPECT_TRUE(ifaceName == kWlan0IfaceName);
+  EXPECT_TRUE((status.isOk()) && (ifaceName == kWlan0IfaceName));
 }
 
 /**
@@ -260,4 +280,77 @@ TEST_F(WpaSupplicantBinderTest, GetNameOnRemovedInterface) {
   EXPECT_TRUE(status.serviceSpecificErrorCode() == IIface::ERROR_IFACE_INVALID);
 }
 
+/**
+ * Verifies the |IIface.AddNetwork| binder call.
+ */
+TEST_F(WpaSupplicantBinderTest, AddNetworkOnInterface) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+  AddNetworkForTest(iface);
+}
+
+/**
+ * Verifies the |IIface.RemoveNetwork| binder call.
+ */
+TEST_F(WpaSupplicantBinderTest, RemoveNetworkOnInterface) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  // Retrieve the network ID of the network added.
+  int network_id;
+  android::binder::Status status = network->GetId(&network_id);
+  EXPECT_TRUE(status.isOk());
+
+  // Now remove the network.
+  RemoveNetworkForTest(iface, network_id);
+
+  // The network should no longer be present now.
+  status = iface->GetNetwork(network_id, &network);
+  EXPECT_TRUE(status.serviceSpecificErrorCode() ==
+              IIface::ERROR_NETWORK_UNKNOWN);
+}
+
+/**
+ * Verifies the |INetwork.GetId| binder call.
+ */
+TEST_F(WpaSupplicantBinderTest, GetIdOnNetwork) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  int network_id;
+  android::binder::Status status = network->GetId(&network_id);
+  EXPECT_TRUE((status.isOk()) && (network_id == 0));
+}
+
+/**
+ * Verifies the |INetwork.GetInterfaceName| binder call.
+ */
+TEST_F(WpaSupplicantBinderTest, GetInterfaceNameOnNetwork) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  std::string ifaceName;
+  android::binder::Status status = network->GetInterfaceName(&ifaceName);
+  EXPECT_TRUE((status.isOk()) && (ifaceName == kWlan0IfaceName));
+}
+
+/**
+ * Verifies the |INetwork.GetId| binder call on a network
+ * which has been removed.
+ */
+TEST_F(WpaSupplicantBinderTest, GetIdOnRemovedNetwork) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  int network_id;
+  android::binder::Status status = network->GetId(&network_id);
+  EXPECT_TRUE((status.isOk()) && (network_id == 0));
+
+  // Now remove the network.
+  RemoveNetworkForTest(iface, network_id);
+
+  // Any method call on the network object should return failure.
+  status = network->GetId(&network_id);
+  EXPECT_TRUE(status.serviceSpecificErrorCode() ==
+              INetwork::ERROR_NETWORK_INVALID);
+}
 }  // namespace wpa_supplicant_binder
