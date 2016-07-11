@@ -77,6 +77,7 @@ class WpaSupplicantBinderTest : public ::testing::Test {
    * 8. Start wpa_supplicant.
    * 9. Wait for wpa_supplicant binder service to be registered.
    * 10. Remove the |wlan0| & |p2p0| interface from wpa_supplicant.
+   * 11. Increase |wpa_supplicant| debug level.
    *
    * TODO: We can't fully nuke the existing wpa_supplicant.conf file because
    * there are some device specific parameters stored there needed for
@@ -93,6 +94,7 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     EXPECT_TRUE(android::wifi_system::wifi_start_supplicant(false) == 0);
     waitForBinderServiceRegistration();
     removeAllInterfaces();
+    setDebugLevelToExcessive();
   }
 
   /**
@@ -215,6 +217,15 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     }
   }
 
+  /**
+   * Increase wpa_supplicant debug level to |DEBUG_LEVEL_EXCESSIVE|.
+   */
+  void setDebugLevelToExcessive() {
+    android::binder::Status status = service_->SetDebugParams(
+        ISupplicant::DEBUG_LEVEL_EXCESSIVE, true, true);
+    EXPECT_TRUE(status.isOk());
+  }
+
   std::unique_ptr<InterfaceTool> iface_tool_;
   std::unique_ptr<DriverTool> driver_tool_;
 
@@ -250,6 +261,26 @@ TEST_F(WpaSupplicantBinderTest, RemoveInterface) {
       service_->GetInterface(kWlan0IfaceName, &iface);
   EXPECT_TRUE(status.serviceSpecificErrorCode() ==
               ISupplicant::ERROR_IFACE_UNKNOWN);
+}
+
+/**
+ * Verifies the |ISupplicant.GetDebugLevel|,
+ * |ISupplicant.GetDebugShowTimestamp|, |ISupplicant.GetDebugShowKeys| binder
+ * calls.
+ */
+TEST_F(WpaSupplicantBinderTest, GetDebugParams) {
+  int debug_level;
+  android::binder::Status status = service_->GetDebugLevel(&debug_level);
+  EXPECT_TRUE((status.isOk()) &&
+              (debug_level == ISupplicant::DEBUG_LEVEL_EXCESSIVE));
+
+  bool debug_show_timestamp;
+  status = service_->GetDebugShowTimestamp(&debug_show_timestamp);
+  EXPECT_TRUE((status.isOk()) && (debug_show_timestamp));
+
+  bool debug_show_keys;
+  status = service_->GetDebugShowKeys(&debug_show_keys);
+  EXPECT_TRUE((status.isOk()) && (debug_show_keys));
 }
 
 /**
