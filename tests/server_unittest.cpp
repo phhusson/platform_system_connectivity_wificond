@@ -70,28 +70,28 @@ TEST_F(ServerTest, CanSetUpApInterface) {
   EXPECT_CALL(*driver_tool_, ChangeFirmwareMode(DriverTool::kFirmwareModeAp))
       .InSequence(sequence)
       .WillOnce(Return(true));
-  EXPECT_TRUE(server_.CreateApInterface(&ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
   EXPECT_NE(nullptr, ap_if.get());
 }
 
 TEST_F(ServerTest, DoesNotSupportMultipleInterfaces) {
   sp<IApInterface> ap_if;
-  EXPECT_TRUE(server_.CreateApInterface(&ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
   EXPECT_NE(nullptr, ap_if.get());
   ap_if = nullptr;
-  EXPECT_FALSE(server_.CreateApInterface(&ap_if).isOk());
+  EXPECT_FALSE(server_.createApInterface(&ap_if).isOk());
   EXPECT_EQ(nullptr, ap_if.get());
 }
 
 TEST_F(ServerTest, CanDestroyInterfaces) {
   EXPECT_CALL(*driver_tool_, UnloadDriver()).Times(0);
   sp<IApInterface> ap_if;
-  EXPECT_TRUE(server_.CreateApInterface(&ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
   // When we tear down the interface, we expect the driver to be unloaded.
   EXPECT_CALL(*driver_tool_, UnloadDriver()).Times(1).WillOnce(Return(true));
-  EXPECT_TRUE(server_.TearDownInterfaces().isOk());
+  EXPECT_TRUE(server_.tearDownInterfaces().isOk());
   // After a teardown, we should be able to create another interface.
-  EXPECT_TRUE(server_.CreateApInterface(&ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
 }
 
 }  // namespace wificond

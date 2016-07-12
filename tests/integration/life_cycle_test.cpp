@@ -125,14 +125,14 @@ TEST_F(SandboxedTest, CanCreateApInterfaces) {
 
   // We should be able to create an AP interface.
   sp<IApInterface> ap_interface;
-  ASSERT_TRUE(service->CreateApInterface(&ap_interface).isOk());
+  ASSERT_TRUE(service->createApInterface(&ap_interface).isOk());
 
   // We should not be able to create two AP interfaces.
   sp<IApInterface> ap_interface2;
-  ASSERT_FALSE(service->CreateApInterface(&ap_interface2).isOk());
+  ASSERT_FALSE(service->createApInterface(&ap_interface2).isOk());
 
   // We can tear down the created interface.
-  ASSERT_TRUE(service->TearDownInterfaces().isOk());
+  ASSERT_TRUE(service->tearDownInterfaces().isOk());
 }
 
 }  // namespace wificond

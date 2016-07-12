@@ -38,7 +38,7 @@ Server::Server(unique_ptr<HalTool> hal_tool,
 }
 
 
-Status Server::CreateApInterface(sp<IApInterface>* created_interface) {
+Status Server::createApInterface(sp<IApInterface>* created_interface) {
   if (!ap_interfaces_.empty()) {
     // In the future we may support multiple interfaces at once.  However,
     // today, we support just one.
@@ -55,7 +55,7 @@ Status Server::CreateApInterface(sp<IApInterface>* created_interface) {
   return Status::ok();
 }
 
-Status Server::TearDownInterfaces() {
+Status Server::tearDownInterfaces() {
   if (!ap_interfaces_.empty()) {
     ap_interfaces_.clear();
     if (!driver_tool_->UnloadDriver()) {

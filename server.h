@@ -39,10 +39,10 @@ class Server : public android::net::wifi::BnWificond {
          std::unique_ptr<wifi_hal::DriverTool> driver_tool);
   ~Server() override = default;
 
-  android::binder::Status CreateApInterface(
+  android::binder::Status createApInterface(
       android::sp<android::net::wifi::IApInterface>* created_interface) override;
 
-  android::binder::Status TearDownInterfaces() override;
+  android::binder::Status tearDownInterfaces() override;
 
  private:
   // Does the actual work of setting up an interface for a particular mode.
