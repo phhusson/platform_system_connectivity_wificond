@@ -70,9 +70,6 @@ TEST_F(ServerTest, CanSetUpApInterface) {
   EXPECT_CALL(*driver_tool_, ChangeFirmwareMode(DriverTool::kFirmwareModeAp))
       .InSequence(sequence)
       .WillOnce(Return(true));
-  EXPECT_CALL(*if_tool_, SetWifiUpState(false))
-      .InSequence(sequence)
-      .WillOnce(Return(true));
   EXPECT_TRUE(server_.CreateApInterface(&ap_if).isOk());
   EXPECT_NE(nullptr, ap_if.get());
 }
