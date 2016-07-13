@@ -66,7 +66,8 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libwificond_nl
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
-    net/nl80211_attribute.cpp
+    net/nl80211_attribute.cpp \
+    net/nl80211_packet.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase
 include $(BUILD_STATIC_LIBRARY)
@@ -109,6 +110,7 @@ LOCAL_SRC_FILES := \
     tests/main.cpp \
     tests/looper_backed_event_loop_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \
+    tests/nl80211_packet_unittest.cpp \
     tests/server_unittest.cpp \
     tests/shell_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef WIFICOND_NL80211_ATTRIBUTE_H_
-#define WIFICOND_NL80211_ATTRIBUTE_H_
+#ifndef WIFICOND_NET_NL80211_ATTRIBUTE_H_
+#define WIFICOND_NET_NL80211_ATTRIBUTE_H_
 
 #include <memory>
 #include <string>
@@ -38,6 +38,15 @@ class BaseNL80211Attr {
   // This is used when we initialize a NL80211 attribute from an existing
   // buffer.
   virtual bool IsValid() const;
+  // A util helper function to find a specific sub attribute from a buffer.
+  // This buffer is supposed to be from a nested attribute or a nl80211 packet.
+  // |*start| and |*end| are the start and end pointers of buffer where
+  // |id| atrribute locates.
+  static bool GetAttributeImpl(const uint8_t* buf,
+                              size_t len,
+                              int attr_id,
+                              uint8_t** attr_start,
+                              uint8_t** attr_end);
 
  protected:
   BaseNL80211Attr() = default;
@@ -157,7 +166,9 @@ class NL80211NestedAttr : public BaseNL80211Attr {
   bool GetAttribute(int id, NL80211Attr<T>* attribute) const {
     uint8_t* start = nullptr;
     uint8_t* end = nullptr;
-    if (!GetAttributeInternal(id, &start, &end) ||
+    if (!BaseNL80211Attr::GetAttributeImpl(data_.data() + NLA_HDRLEN,
+                                           data_.size() - NLA_HDRLEN,
+                                           id, &start, &end) ||
         start == nullptr ||
         end == nullptr) {
       return false;
@@ -169,15 +180,9 @@ class NL80211NestedAttr : public BaseNL80211Attr {
     return true;
   }
 
- private:
-  // |*start| and |*end| are the start and end pointers of buffer where
-  // |id| atrribute locates.
-  bool GetAttributeInternal(int id,
-                            uint8_t** start,
-                            uint8_t** end) const;
 };
 
 }  // namespace wificond
 }  // namespace android
 
-#endif  // WIFICOND_NL80211_ATTRIBUTE_H_
+#endif  // WIFICOND_NET_NL80211_ATTRIBUTE_H_
