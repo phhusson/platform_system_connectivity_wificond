@@ -17,7 +17,6 @@
 #include <android-base/logging.h>
 #include <binder/IBinder.h>
 #include <binder/IServiceManager.h>
-#include <binder/PersistableBundle.h>
 #include <gtest/gtest.h>
 #include <utils/Errors.h>
 #include <utils/String16.h>
@@ -26,10 +25,11 @@
 #include <wifi_system/interface_tool.h>
 #include <wifi_system/wifi.h>
 #include <wpa_supplicant_binder/binder_constants.h>
+#include <wpa_supplicant_binder/parcelable_iface_params.h>
 
 #include <fi/w1/wpa_supplicant/IIface.h>
+#include <fi/w1/wpa_supplicant/INetwork.h>
 #include <fi/w1/wpa_supplicant/ISupplicant.h>
-#include "fi/w1/wpa_supplicant/INetwork.h"
 
 #include "tests/shell_utils.h"
 
@@ -40,6 +40,7 @@ using android::wificond::tests::integration::RunShellCommand;
 using fi::w1::wpa_supplicant::IIface;
 using fi::w1::wpa_supplicant::INetwork;
 using fi::w1::wpa_supplicant::ISupplicant;
+using fi::w1::wpa_supplicant::ParcelableIfaceParams;
 
 namespace wpa_supplicant_binder {
 namespace {
@@ -136,13 +137,10 @@ class WpaSupplicantBinderTest : public ::testing::Test {
    * |kWlan0IfaceName|, |kIfaceDriver|, |kIfaceConfigFile|.
    */
   android::sp<IIface> CreateInterfaceForTest() {
-    android::os::PersistableBundle params;
-    params.putString(android::String16("Ifname"),
-                     android::String16(kWlan0IfaceName));
-    params.putString(android::String16("Driver"),
-                     android::String16(kIfaceDriver));
-    params.putString(android::String16("ConfigFile"),
-                     android::String16(kIfaceConfigFile));
+    ParcelableIfaceParams params;
+    params.ifname_ = kWlan0IfaceName;
+    params.driver_ = kIfaceDriver;
+    params.config_file_ = kIfaceConfigFile;
 
     android::sp<IIface> iface;
     android::binder::Status status = service_->CreateInterface(params, &iface);
