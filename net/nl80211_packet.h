@@ -42,7 +42,14 @@ class NL80211Packet {
   // This is used for creating a NL80211Packet from buffer.
   explicit NL80211Packet(const std::vector<uint8_t>& data);
   // This is used for creating an empty NL80211Packet to be filled later.
-  NL80211Packet();
+  // See comment of SetMessageType() for |type|.
+  // See comment of SetCommand() for |command|.
+  // See comment of SetMessageSequence() for |sequence|.
+  // See comment of SetPortId() for |pid|.
+  NL80211Packet(uint16_t type,
+                uint8_t command,
+                uint32_t sequence,
+                uint32_t pid);
   ~NL80211Packet() = default;
 
   // Returns whether a packet has consistent header fields.
@@ -64,6 +71,7 @@ class NL80211Packet {
   uint16_t GetMessageType() const;
   uint32_t GetMessageSequence() const;
   uint32_t GetPortId() const;
+  const std::vector<uint8_t>& GetConstData() const;
 
   // Setter functions.
 
@@ -77,6 +85,9 @@ class NL80211Packet {
   // If this is a control message, it could be one of the following value:
   // NLMSG_NOOP, NLMSG_ERROR, NLMSG_DONE, NLMSG_OVERRUN
   void SetMessageType(uint16_t message_type);
+  // Requests should carry a sequence number incremented for each request sent.
+  // For reply message, the sequence number is used to allow referring to a
+  // previous message with the same sequence number.
   void SetMessageSequence(uint32_t message_sequemce);
   // Set nlmsg_pid in netlink header.
   // nlmsg_pid is the sender process port ID.

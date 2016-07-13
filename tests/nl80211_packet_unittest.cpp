@@ -90,17 +90,19 @@ const unsigned char kNL80211_CMD_NEW_STATION[] = {
 }  // namespace
 
 TEST(NL80211PacketTest, CanConstructValidNL80211Packet) {
-  NL80211Packet netlink_packet;
+  NL80211Packet netlink_packet(kNLMsgType,
+                               kGenNLCommand,
+                               kNLMsgSequenceNumber,
+                               kPortId);
   EXPECT_TRUE(netlink_packet.IsValid());
 }
 
 TEST(NL80211PacketTest, SetAndGetNL80211PacketHeaderFields) {
-  NL80211Packet netlink_packet;
-  netlink_packet.SetCommand(kGenNLCommand);
-  netlink_packet.SetMessageType(kNLMsgType);
-  netlink_packet.SetMessageSequence(kNLMsgSequenceNumber);
+  NL80211Packet netlink_packet(kNLMsgType,
+                               kGenNLCommand,
+                               kNLMsgSequenceNumber,
+                               kPortId);
   netlink_packet.SetFlags(NLM_F_MULTI);
-  netlink_packet.SetPortId(kPortId);
   EXPECT_EQ(kGenNLCommand, netlink_packet.GetCommand());
   EXPECT_EQ(kNLMsgType, netlink_packet.GetMessageType());
   EXPECT_EQ(kNLMsgSequenceNumber, netlink_packet.GetMessageSequence());
@@ -109,7 +111,10 @@ TEST(NL80211PacketTest, SetAndGetNL80211PacketHeaderFields) {
 }
 
 TEST(NL80211PacketTest, AddAttributeToNL80211Packet) {
-  NL80211Packet netlink_packet;
+  NL80211Packet netlink_packet(kNLMsgType,
+                               kGenNLCommand,
+                               kNLMsgSequenceNumber,
+                               kPortId);
   NL80211Attr<uint8_t> u8_attr(1, kU8Value1);
   netlink_packet.AddAttribute(u8_attr);
   EXPECT_TRUE(netlink_packet.IsValid());
@@ -120,7 +125,10 @@ TEST(NL80211PacketTest, AddAttributeToNL80211Packet) {
 }
 
 TEST(NL80211PacketTest, AddMultipleAttributesToNL80211Packet) {
-  NL80211Packet netlink_packet;
+  NL80211Packet netlink_packet(kNLMsgType,
+                               kGenNLCommand,
+                               kNLMsgSequenceNumber,
+                               kPortId);
   NL80211Attr<uint8_t> u8_attr(1, kU8Value1);
   NL80211Attr<uint32_t> u32_attr(2, kU32Value1);
   NL80211Attr<uint16_t> u16_attr(3, kU16Value1);
@@ -143,7 +151,10 @@ TEST(NL80211PacketTest, AddMultipleAttributesToNL80211Packet) {
 }
 
 TEST(NL80211PacketTest, AddNestedAttributesToNL80211Packet) {
-  NL80211Packet netlink_packet;
+  NL80211Packet netlink_packet(kNLMsgType,
+                               kGenNLCommand,
+                               kNLMsgSequenceNumber,
+                               kPortId);
   NL80211NestedAttr nested_attr(1);
   NL80211Attr<uint16_t> u16_attr(2, kU16Value1);
   NL80211Attr<uint32_t> u32_attr_1(3, kU32Value1);
@@ -161,7 +172,10 @@ TEST(NL80211PacketTest, AddNestedAttributesToNL80211Packet) {
 }
 
 TEST(NL80211PacketTest, CanbotGetMissingAttributeFromNL80211Packet) {
-  NL80211Packet netlink_packet;
+  NL80211Packet netlink_packet(kNLMsgType,
+                               kGenNLCommand,
+                               kNLMsgSequenceNumber,
+                               kPortId);
   NL80211Attr<uint8_t> u8_attr(1, kU8Value1);
   netlink_packet.AddAttribute(u8_attr);
   EXPECT_TRUE(netlink_packet.IsValid());

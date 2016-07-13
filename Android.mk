@@ -67,6 +67,7 @@ LOCAL_MODULE := libwificond_nl
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
     net/nl80211_attribute.cpp \
+    net/netlink_manager.cpp \
     net/nl80211_packet.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase
