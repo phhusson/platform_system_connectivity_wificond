@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "client_interface.h"
+#include "wificond/client_interface.h"
 
 namespace android {
 namespace wificond {

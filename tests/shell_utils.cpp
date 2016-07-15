@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "tests/shell_utils.h"
+#include "wificond/tests/shell_utils.h"
 
 #include <fcntl.h>
 #include <poll.h>

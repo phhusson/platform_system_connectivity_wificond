@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include "ap_interface_impl.h"
+#include "wificond/ap_interface_impl.h"
 
-#include "ap_interface_binder.h"
+#include "wificond/ap_interface_binder.h"
 
 using android::net::wifi::IApInterface;
 

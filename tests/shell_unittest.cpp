@@ -16,7 +16,7 @@
 
 #include <gtest/gtest.h>
 
-#include "tests/shell_utils.h"
+#include "wificond/tests/shell_utils.h"
 
 using android::wificond::tests::integration::RunShellCommand;
 using std::string;
