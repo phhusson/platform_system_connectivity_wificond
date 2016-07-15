@@ -16,6 +16,8 @@
 
 #include "server.h"
 
+#include <android-base/logging.h>
+
 using android::binder::Status;
 using android::sp;
 using android::IBinder;
@@ -42,11 +44,12 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
   if (!ap_interfaces_.empty()) {
     // In the future we may support multiple interfaces at once.  However,
     // today, we support just one.
-    return Status::fromExceptionCode(Status::EX_UNSUPPORTED_OPERATION);
+    LOG(ERROR) << "Cannot create AP interface when other interfaces exist";
+    return Status::ok();
   }
 
   if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp)) {
-    return Status::fromExceptionCode(Status::EX_ILLEGAL_STATE);
+    return Status::ok();  // Logging was done internally
   }
 
   unique_ptr<ApInterfaceImpl> ap_interface(new ApInterfaceImpl);
@@ -59,15 +62,20 @@ Status Server::tearDownInterfaces() {
   if (!ap_interfaces_.empty()) {
     ap_interfaces_.clear();
     if (!driver_tool_->UnloadDriver()) {
-      return Status::fromExceptionCode(Status::EX_ILLEGAL_STATE);
+      LOG(ERROR) << "Failed to unload WiFi driver!";
+      return Status::ok();
     }
   }
   return Status::ok();
 }
 
 bool Server::SetupInterfaceForMode(int mode) {
-  if (!driver_tool_->LoadDriver() ||
-      !driver_tool_->ChangeFirmwareMode(mode)) {
+  if (!driver_tool_->LoadDriver()) {
+    LOG(ERROR) << "Failed to load WiFi driver!";
+    return false;
+  }
+  if (!driver_tool_->ChangeFirmwareMode(mode)) {
+    LOG(ERROR) << "Failed to change WiFi firmware mode!";
     return false;
   }
 
