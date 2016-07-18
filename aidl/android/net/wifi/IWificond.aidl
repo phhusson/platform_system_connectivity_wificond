@@ -23,7 +23,7 @@ import android.net.wifi.IApInterface;
 interface IWificond {
 
     // Create a network interface suitable for use as an AP.
-    IApInterface createApInterface();
+    @nullable IApInterface createApInterface();
 
     // Tear down all existing interfaces.  This should enable clients to create
     // future interfaces immediately after this method returns.
