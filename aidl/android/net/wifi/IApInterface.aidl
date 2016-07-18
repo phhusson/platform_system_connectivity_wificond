@@ -20,4 +20,29 @@ package android.net.wifi;
 // WiFi access point.
 interface IApInterface {
 
+  const int ENCRYPTION_TYPE_NONE = 0;
+  const int ENCRYPTION_TYPE_WPA = 1;
+  const int ENCRYPTION_TYPE_WPA2 = 2;
+
+  // Start up an instance of hostapd associated with this interface.
+  // @return true on success.
+  boolean startHostapd();
+
+  // Stop a previously started instance of hostapd.
+  // @return true on success.
+  boolean stopHostapd();
+
+  // Write out a configuration file for hostapd.  This will be used on the next
+  // successful call to StartHostapd().  Returns true on success.
+  //
+  // @param ssid string of <=32 bytes to use as the SSID for this AP.
+  // @param isHidden True iff the AP should not broadcast its SSID.
+  // @param channel WiFi channel to expose the AP on.
+  // @param encryptionType one of ENCRYPTION_TYPE* above.
+  // @param passphrase string of bytes to use as the passphrase for this AP.
+  //        Ignored if encryptionType is None.
+  // @return true on success.
+  boolean writeHostapdConfig(in byte[] ssid, boolean isHidden, int channel,
+                             int encryptionType, in byte[] passphrase);
+
 }

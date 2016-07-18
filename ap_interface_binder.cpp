@@ -16,6 +16,13 @@
 
 #include "wificond/ap_interface_binder.h"
 
+#include <android-base/logging.h>
+#include <wifi_system/hostapd_manager.h>
+
+#include "wificond/ap_interface_impl.h"
+
+using android::wifi_system::HostapdManager;
+
 namespace android {
 namespace wificond {
 
@@ -23,6 +30,61 @@ ApInterfaceBinder::ApInterfaceBinder(ApInterfaceImpl* impl) : impl_{impl} {
 }
 
 ApInterfaceBinder::~ApInterfaceBinder() {
+}
+
+binder::Status ApInterfaceBinder::startHostapd(bool* out_success) {
+  *out_success = false;
+  if (!impl_) {
+    LOG(WARNING) << "Cannot start hostapd on dead ApInterface.";
+    return binder::Status::ok();
+  }
+  *out_success = impl_->StartHostapd();
+  return binder::Status::ok();
+}
+
+binder::Status ApInterfaceBinder::stopHostapd(bool* out_success) {
+  *out_success = false;
+  if (!impl_) {
+    LOG(WARNING) << "Cannot stop hostapd on dead ApInterface.";
+    return binder::Status::ok();
+  }
+  *out_success = impl_->StopHostapd();
+  return binder::Status::ok();
+}
+
+binder::Status ApInterfaceBinder::writeHostapdConfig(
+    const std::vector<uint8_t>& ssid,
+    bool is_hidden,
+    int32_t channel,
+    int32_t binder_encryption_type,
+    const std::vector<uint8_t>& passphrase,
+    bool* out_success) {
+  *out_success = false;
+  if (!impl_) {
+    LOG(WARNING) << "Cannot set config on dead ApInterface.";
+    return binder::Status::ok();
+  }
+
+  HostapdManager::EncryptionType encryption_type;
+  switch (binder_encryption_type) {
+    case IApInterface::ENCRYPTION_TYPE_NONE:
+      encryption_type = HostapdManager::EncryptionType::kOpen;
+      break;
+    case IApInterface::ENCRYPTION_TYPE_WPA:
+      encryption_type = HostapdManager::EncryptionType::kWpa;
+      break;
+    case IApInterface::ENCRYPTION_TYPE_WPA2:
+      encryption_type = HostapdManager::EncryptionType::kWpa2;
+      break;
+    default:
+      LOG(ERROR) << "Unknown encryption type: " << binder_encryption_type;
+      return binder::Status::ok();
+  }
+
+  *out_success = impl_->WriteHostapdConfig(
+      ssid, is_hidden, channel, encryption_type, passphrase);
+
+  return binder::Status::ok();
 }
 
 }  // namespace wificond

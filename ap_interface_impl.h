@@ -17,7 +17,12 @@
 #ifndef WIFICOND_AP_INTERFACE_IMPL_H_
 #define WIFICOND_AP_INTERFACE_IMPL_H_
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <android-base/macros.h>
+#include <wifi_system/hostapd_manager.h>
 
 #include "android/net/wifi/IApInterface.h"
 
@@ -32,13 +37,25 @@ class ApInterfaceBinder;
 // keep this object separate from the binder representation of itself.
 class ApInterfaceImpl {
  public:
-  ApInterfaceImpl();
+  ApInterfaceImpl(const std::string& interface_name,
+                  std::unique_ptr<wifi_system::HostapdManager> hostapd_manager);
   ~ApInterfaceImpl();
 
   // Get a pointer to the binder representing this ApInterfaceImpl.
   android::sp<android::net::wifi::IApInterface> GetBinder() const;
 
+  bool StartHostapd();
+  bool StopHostapd();
+  bool WriteHostapdConfig(
+      const std::vector<uint8_t>& ssid,
+      bool is_hidden,
+      int32_t channel,
+      wifi_system::HostapdManager::EncryptionType encryption_type,
+      const std::vector<uint8_t>& passphrase);
+
  private:
+  const std::string interface_name_;
+  const std::unique_ptr<wifi_system::HostapdManager> hostapd_manager_;
   android::sp<ApInterfaceBinder> binder_;
 
   DISALLOW_COPY_AND_ASSIGN(ApInterfaceImpl);

@@ -119,8 +119,9 @@ LOCAL_MODULE := wificond_unit_test
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
-    tests/main.cpp \
+    tests/ap_interface_impl_unittest.cpp \
     tests/looper_backed_event_loop_unittest.cpp \
+    tests/main.cpp \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \
     tests/server_unittest.cpp

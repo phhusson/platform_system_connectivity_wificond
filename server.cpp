@@ -21,15 +21,22 @@
 using android::binder::Status;
 using android::sp;
 using android::IBinder;
+using std::string;
 using std::vector;
 using std::unique_ptr;
 using android::net::wifi::IApInterface;
 using android::wifi_hal::DriverTool;
 using android::wifi_system::HalTool;
+using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
 
 namespace android {
 namespace wificond {
+namespace {
+
+const char kNetworkInterfaceName[] = "wlan0";
+
+}  // namespace
 
 Server::Server(unique_ptr<HalTool> hal_tool,
                unique_ptr<InterfaceTool> if_tool,
@@ -48,11 +55,14 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
     return Status::ok();
   }
 
-  if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp)) {
+  string interface_name;
+  if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp, &interface_name)) {
     return Status::ok();  // Logging was done internally
   }
 
-  unique_ptr<ApInterfaceImpl> ap_interface(new ApInterfaceImpl);
+  unique_ptr<ApInterfaceImpl> ap_interface(new ApInterfaceImpl(
+      interface_name,
+      unique_ptr<HostapdManager>(new HostapdManager)));
   *created_interface = ap_interface->GetBinder();
   ap_interfaces_.push_back(std::move(ap_interface));
   return Status::ok();
@@ -69,7 +79,8 @@ Status Server::tearDownInterfaces() {
   return Status::ok();
 }
 
-bool Server::SetupInterfaceForMode(int mode) {
+bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
+  string result;
   if (!driver_tool_->LoadDriver()) {
     LOG(ERROR) << "Failed to load WiFi driver!";
     return false;
@@ -81,6 +92,7 @@ bool Server::SetupInterfaceForMode(int mode) {
 
   // TODO: Confirm the ap interface is ready for use by checking its
   //       nl80211 published capabilities.
+  *interface_name = kNetworkInterfaceName;
 
   return true;
 }

@@ -19,11 +19,20 @@
 #include "wificond/ap_interface_binder.h"
 
 using android::net::wifi::IApInterface;
+using android::wifi_system::HostapdManager;
+using std::string;
+using std::unique_ptr;
+using std::vector;
+
+using EncryptionType = android::wifi_system::HostapdManager::EncryptionType;
 
 namespace android {
 namespace wificond {
 
-ApInterfaceImpl::ApInterfaceImpl() {
+ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
+                                 unique_ptr<HostapdManager> hostapd_manager)
+    : interface_name_(interface_name),
+      hostapd_manager_(std::move(hostapd_manager)) {
   binder_ = new ApInterfaceBinder(this);
 }
 
@@ -33,6 +42,29 @@ ApInterfaceImpl::~ApInterfaceImpl() {
 
 sp<IApInterface> ApInterfaceImpl::GetBinder() const {
   return binder_;
+}
+
+bool ApInterfaceImpl::StartHostapd() {
+  return hostapd_manager_->StartHostapd();
+}
+
+bool ApInterfaceImpl::StopHostapd() {
+  return hostapd_manager_->StopHostapd();
+}
+
+bool ApInterfaceImpl::WriteHostapdConfig(const vector<uint8_t>& ssid,
+                                         bool is_hidden,
+                                         int32_t channel,
+                                         EncryptionType encryption_type,
+                                         const vector<uint8_t>& passphrase) {
+  string config = hostapd_manager_->CreateHostapdConfig(
+      interface_name_, ssid, is_hidden, channel, encryption_type, passphrase);
+
+  if (config.empty()) {
+    return false;
+  }
+
+  return hostapd_manager_->WriteHostapdConfig(config);
 }
 
 }  // namespace wificond

@@ -18,6 +18,7 @@
 #define WIFICOND_SERVER_H_
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <android-base/macros.h>
@@ -46,9 +47,13 @@ class Server : public android::net::wifi::BnWificond {
 
  private:
   // Does the actual work of setting up an interface for a particular mode.
+  //
   // |mode| is one of WIFI_GET_FW_PATH_* defined in hardware_legacy/wifi.h.
+  // |interface_name| is a pointer to a string to store the name of Linux
+  //     network interface that has been setup.
+  //
   // Returns true on success, false otherwise.
-  bool SetupInterfaceForMode(int mode);
+  bool SetupInterfaceForMode(int mode, std::string* interface_name);
 
   const std::unique_ptr<wifi_system::HalTool> hal_tool_;
   const std::unique_ptr<wifi_system::InterfaceTool> if_tool_;
