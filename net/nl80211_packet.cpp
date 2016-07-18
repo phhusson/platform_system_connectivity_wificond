@@ -28,7 +28,10 @@ NL80211Packet::NL80211Packet(const vector<uint8_t>& data)
   data_ = data;
 }
 
-NL80211Packet::NL80211Packet() {
+NL80211Packet::NL80211Packet(uint16_t type,
+                             uint8_t command,
+                             uint32_t sequence,
+                             uint32_t pid) {
   // Initialize the netlink header and generic netlink header.
   // NLMSG_HDRLEN and GENL_HDRLEN already include the padding size.
   data_.resize(NLMSG_HDRLEN + GENL_HDRLEN, 0);
@@ -37,12 +40,15 @@ NL80211Packet::NL80211Packet() {
   nl_header->nlmsg_len = data_.size();
   // Add NLM_F_REQUEST flag.
   nl_header->nlmsg_flags = nl_header->nlmsg_flags | NLM_F_REQUEST;
+  nl_header->nlmsg_type = type;
+  nl_header->nlmsg_seq = sequence;
+  nl_header->nlmsg_pid = pid;
 
   genlmsghdr* genl_header =
       reinterpret_cast<genlmsghdr*>(data_.data() + NLMSG_HDRLEN);
   genl_header->version = 1;
+  genl_header->cmd = command;
   // genl_header->reserved is aready 0.
-  // genl_header->cmd will be set by SetCommand().
 }
 
 bool NL80211Packet::IsValid() const {
@@ -102,6 +108,10 @@ uint32_t NL80211Packet::GetMessageSequence() const {
 uint32_t NL80211Packet::GetPortId() const {
   const nlmsghdr* nl_header = reinterpret_cast<const nlmsghdr*>(data_.data());
   return nl_header->nlmsg_pid;
+}
+
+const vector<uint8_t>& NL80211Packet::GetConstData() const {
+  return data_;
 }
 
 void NL80211Packet::SetCommand(uint8_t command) {

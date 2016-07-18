@@ -73,6 +73,7 @@ LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     net/nl80211_attribute.cpp \
+    net/netlink_manager.cpp \
     net/nl80211_packet.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase
