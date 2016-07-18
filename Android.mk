@@ -13,8 +13,11 @@
 # limitations under the License.
 
 LOCAL_PATH := $(call my-dir)
-
 wificond_cpp_flags := -std=c++11 -Wall -Werror -Wno-unused-parameter
+wificond_parent_dir := $(LOCAL_PATH)/../
+wificond_includes := \
+    $(wificond_parent_dir)
+
 
 ###
 ### wificond daemon.
@@ -23,6 +26,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := wificond
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_INIT_RC := wificond.rc
+LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     main.cpp
 LOCAL_SHARED_LIBRARIES := \
@@ -42,6 +46,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 LOCAL_MODULE := libwificond
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     ap_interface_binder.cpp \
     ap_interface_impl.cpp \
@@ -65,6 +70,7 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_MODULE := libwificond_nl
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     net/nl80211_attribute.cpp \
     net/nl80211_packet.cpp
@@ -78,6 +84,7 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_MODULE := libwificond_ipc
 LOCAL_AIDL_INCLUDES += $(LOCAL_PATH)/aidl
+LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
     ipc_constants.cpp \
@@ -94,6 +101,7 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_MODULE := libwificond_test_utils
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     tests/shell_utils.cpp
 LOCAL_SHARED_LIBRARIES := \
@@ -106,6 +114,7 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_MODULE := wificond_unit_test
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     tests/main.cpp \
     tests/looper_backed_event_loop_unittest.cpp \
@@ -136,6 +145,7 @@ include $(BUILD_NATIVE_TEST)
 include $(CLEAR_VARS)
 LOCAL_MODULE := wificond_integration_test
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     tests/main.cpp \
     tests/integration/life_cycle_test.cpp

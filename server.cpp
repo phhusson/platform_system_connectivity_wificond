@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "server.h"
+#include "wificond/server.h"
 
 #include <android-base/logging.h>
 

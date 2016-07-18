@@ -30,9 +30,9 @@
 #include <wifi_system/hal_tool.h>
 #include <wifi_system/interface_tool.h>
 
-#include "ipc_constants.h"
-#include "looper_backed_event_loop.h"
-#include "server.h"
+#include "wificond/ipc_constants.h"
+#include "wificond/looper_backed_event_loop.h"
+#include "wificond/server.h"
 
 using android::net::wifi::IWificond;
 using android::wifi_hal::DriverTool;

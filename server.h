@@ -27,7 +27,7 @@
 
 #include "android/net/wifi/BnWificond.h"
 
-#include "ap_interface_impl.h"
+#include "wificond/ap_interface_impl.h"
 
 namespace android {
 namespace wificond {

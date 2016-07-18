@@ -25,7 +25,7 @@
 
 #include <android-base/macros.h>
 
-#include "net/nl80211_attribute.h"
+#include "wificond/net/nl80211_attribute.h"
 
 namespace android {
 namespace wificond {
