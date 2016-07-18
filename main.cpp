@@ -32,6 +32,7 @@
 
 #include "wificond/ipc_constants.h"
 #include "wificond/looper_backed_event_loop.h"
+#include "wificond/net/netlink_manager.h"
 #include "wificond/server.h"
 
 using android::net::wifi::IWificond;
@@ -124,6 +125,8 @@ int main(int argc, char** argv) {
       unique_ptr<InterfaceTool>(new InterfaceTool),
       unique_ptr<DriverTool>(new DriverTool));
   RegisterServiceOrCrash(server);
+  android::wificond::NetlinkManager netlink_manager(event_dispatcher.get());
+  netlink_manager.Start();
 
   event_dispatcher->Poll();
   LOG(INFO) << "wificond is about to exit";

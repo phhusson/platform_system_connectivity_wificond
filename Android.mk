@@ -58,10 +58,9 @@ LOCAL_SHARED_LIBRARIES := \
     libutils \
     libwifi-hal \
     libwifi-system
-LOCAL_STATIC_LIBRARIES := \
-    libwificond_nl
 LOCAL_WHOLE_STATIC_LIBRARIES := \
-    libwificond_ipc
+    libwificond_ipc \
+    libwificond_nl
 include $(BUILD_STATIC_LIBRARY)
 
 ###
