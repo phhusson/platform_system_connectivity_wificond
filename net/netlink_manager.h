@@ -55,23 +55,36 @@ class NetlinkManager {
   // Send |packet| to kernel.
   // This works in an asynchronous way.
   // |handler| will be run when we receive a valid reply from kernel.
+  // Do not use this asynchronous interface to send a dump request.
   // Returns true on success.
   bool RegisterHandlerAndSendMessage(const NL80211Packet& packet,
                                      std::function<void(NL80211Packet)> handler);
+  // Synchronous version of |RegisterHandlerAndSendMessage|.
+  // Returns true on successfully receiving an valid reply.
+  // In this case |handler| will be run before this function returns.
+  // |handler| will not be run on failure.
+  bool SendMessageAndRunHandler(const NL80211Packet& packet,
+                                std::function<void(NL80211Packet)> handler);
 
  private:
-  bool SetupSocket();
-  bool WatchSocket();
-  void ReceivePacket(int fd);
+  bool SetupSocket(android::base::unique_fd* netlink_fd);
+  bool WatchSocket(android::base::unique_fd* netlink_fd);
+  void ReceivePacketAndRunHandler(int fd);
   bool DiscoverFamilyId();
-  bool SendMessageInternal(const NL80211Packet& packet);
+  bool SendMessageInternal(const NL80211Packet& packet, int fd);
 
   // This handler revceives mapping from NL80211 family name to family id,
   // as well as mapping from group name to group id.
   // These mappings are allocated by kernel.
   void OnNewFamily(NL80211Packet packet);
 
-  android::base::unique_fd netlink_fd_;
+  // We use different sockets for synchronous and asynchronous interfaces.
+  // Kernel will reply error message when we start a new request in the
+  // middle of a dump request.
+  // Using different sockets help us avoid the complexity of message
+  // rescheduling.
+  android::base::unique_fd sync_netlink_fd_;
+  android::base::unique_fd async_netlink_fd_;
   EventLoop* event_loop_;
 
   // This is a collection of message handlers, for each sequence number.

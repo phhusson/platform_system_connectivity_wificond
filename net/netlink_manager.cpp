@@ -29,6 +29,7 @@
 #include "net/nl80211_attribute.h"
 #include "net/nl80211_packet.h"
 
+using android::base::unique_fd;
 using std::placeholders::_1;
 using std::string;
 using std::vector;
@@ -41,7 +42,8 @@ namespace {
 // netlink.h suggests NLMSG_GOODSIZE to be at most 8192 bytes.
 constexpr int kReceiveBufferSize = 8 * 1024;
 constexpr uint32_t kBroadcastSequenceNumber = 0;
-constexpr int kMaximumNewFamilyWaitSeconds = 1 * 1000;
+// TODO(nywang): Find a better timeout value.
+constexpr int kMaximumNetlinkMessageWaitMilliSeconds = 1 * 1000;
 uint8_t ReceiveBuffer[kReceiveBufferSize];
 
 }
@@ -58,7 +60,7 @@ uint32_t NetlinkManager::GetSequenceNumber() {
   return sequence_number_;
 }
 
-void NetlinkManager::ReceivePacket(int fd) {
+void NetlinkManager::ReceivePacketAndRunHandler(int fd) {
   ssize_t len = read(fd, ReceiveBuffer, kReceiveBufferSize);
   if (len == -1) {
     LOG(ERROR) << "Failed to read packet from buffer";
@@ -137,29 +139,63 @@ void NetlinkManager::OnNewFamily(NL80211Packet packet) {
 }
 
 void NetlinkManager::Start() {
-  bool setup_rt = SetupSocket();
-  CHECK(setup_rt) << "Failed to setup netlink socket";
+  bool setup_rt = SetupSocket(&sync_netlink_fd_);
+  CHECK(setup_rt) << "Failed to setup synchronous netlink socket";
+  setup_rt = SetupSocket(&async_netlink_fd_);
+  CHECK(setup_rt) << "Failed to setup asynchrouns netlink socket";
   // Request family id for nl80211 messages.
   CHECK(DiscoverFamilyId());
-  // Watch socket after family id is set.
-  CHECK(WatchSocket());
+  // Watch socket.
+  CHECK(WatchSocket(&async_netlink_fd_));
 }
 
 bool NetlinkManager::RegisterHandlerAndSendMessage(
     const NL80211Packet& packet,
     std::function<void(NL80211Packet)> handler) {
-  if (!SendMessageInternal(packet)) {
+  if (packet.IsDump()) {
+    LOG(ERROR) << "Do not use asynchronous interface for dump request !";
+    return false;
+  }
+  if (!SendMessageInternal(packet, async_netlink_fd_.get())) {
     return false;
   }
   message_handlers_[packet.GetMessageSequence()] = handler;
   return true;
 }
 
+bool NetlinkManager::SendMessageAndRunHandler(
+    const NL80211Packet& packet,
+    std::function<void(NL80211Packet)> handler) {
+  if (!SendMessageInternal(packet, sync_netlink_fd_.get())) {
+    return false;
+  }
+  // Polling netlink socket, waiting for GetFamily reply.
+  struct pollfd netlink_output;
+  memset(&netlink_output, 0, sizeof(netlink_output));
+  netlink_output.fd = sync_netlink_fd_.get();
+  netlink_output.events = POLLIN;
 
-bool NetlinkManager::SendMessageInternal(const NL80211Packet& packet) {
+  int poll_return = poll(&netlink_output,
+                         1,
+                         kMaximumNetlinkMessageWaitMilliSeconds);
+
+  if (poll_return == 0) {
+    LOG(ERROR) << "Failed to poll netlink fd: time out ";
+    return false;
+  } else if (poll_return == -1) {
+    LOG(ERROR) << "Failed to poll netlink fd: " << strerror(errno);
+    return false;
+  }
+  message_handlers_[packet.GetMessageSequence()] = handler;
+  ReceivePacketAndRunHandler(sync_netlink_fd_.get());
+  return true;
+}
+
+
+bool NetlinkManager::SendMessageInternal(const NL80211Packet& packet, int fd) {
   const vector<uint8_t>& data = packet.GetConstData();
   ssize_t bytes_sent =
-      TEMP_FAILURE_RETRY(send(netlink_fd_.get(), data.data(), data.size(), 0));
+      TEMP_FAILURE_RETRY(send(fd, data.data(), data.size(), 0));
   if (bytes_sent == -1) {
     LOG(ERROR) << "Failed to send netlink message: " << strerror(errno);
     return false;
@@ -167,21 +203,21 @@ bool NetlinkManager::SendMessageInternal(const NL80211Packet& packet) {
   return true;
 }
 
-bool NetlinkManager::SetupSocket() {
+bool NetlinkManager::SetupSocket(unique_fd* netlink_fd) {
   struct sockaddr_nl nladdr;
 
   memset(&nladdr, 0, sizeof(nladdr));
   nladdr.nl_family = AF_NETLINK;
 
-  netlink_fd_ = android::base::unique_fd(
+  netlink_fd->reset(
       socket(PF_NETLINK, SOCK_DGRAM | SOCK_CLOEXEC, NETLINK_GENERIC));
-  if (netlink_fd_.get() < 0) {
+  if (netlink_fd->get() < 0) {
     LOG(ERROR) << "Failed to create netlink socket: " << strerror(errno);
     return false;
   }
   // Set maximum receive buffer size.
   // Datagram which is larger than this size will be discarded.
-  if (setsockopt(netlink_fd_.get(),
+  if (setsockopt(netlink_fd->get(),
                  SOL_SOCKET,
                  SO_RCVBUFFORCE,
                  &kReceiveBufferSize,
@@ -189,7 +225,7 @@ bool NetlinkManager::SetupSocket() {
     LOG(ERROR) << "Failed to set uevent socket SO_RCVBUFFORCE option: " << strerror(errno);
     return false;
   }
-  if (bind(netlink_fd_.get(),
+  if (bind(netlink_fd->get(),
            reinterpret_cast<struct sockaddr*>(&nladdr),
            sizeof(nladdr)) < 0) {
     LOG(ERROR) << "Failed to bind netlink socket: " << strerror(errno);
@@ -198,14 +234,14 @@ bool NetlinkManager::SetupSocket() {
   return true;
 }
 
-bool NetlinkManager::WatchSocket() {
+bool NetlinkManager::WatchSocket(unique_fd* netlink_fd) {
   // Watch socket
   bool watch_fd_rt = event_loop_->WatchFileDescriptor(
-      netlink_fd_.get(),
+      netlink_fd->get(),
       EventLoop::kModeInput,
-      std::bind(&NetlinkManager::ReceivePacket, this, _1));
+      std::bind(&NetlinkManager::ReceivePacketAndRunHandler, this, _1));
   if (!watch_fd_rt) {
-    LOG(ERROR) << "Failed to watch fd: " << netlink_fd_.get();
+    LOG(ERROR) << "Failed to watch fd: " << netlink_fd->get();
     return false;
   }
   return true;
@@ -219,26 +255,10 @@ bool NetlinkManager::DiscoverFamilyId() {
   NL80211Attr<string> family_name(CTRL_ATTR_FAMILY_NAME, "nl80211");
   get_family_request.AddAttribute(family_name);
   auto handler = std::bind(&NetlinkManager::OnNewFamily, this, _1);
-  if (!RegisterHandlerAndSendMessage(get_family_request, handler)) {
+  if (!SendMessageAndRunHandler(get_family_request, handler)) {
     LOG(ERROR) << "Failed to send GetFamily message for NL80211";
     return false;
   }
-  // Polling netlink socket, waiting for GetFamily reply.
-  struct pollfd netlink_output;
-  memset(&netlink_output, 0, sizeof(netlink_output));
-  netlink_output.fd = netlink_fd_.get();
-  netlink_output.events = POLLIN;
-
-  int poll_return = poll(&netlink_output, 1, kMaximumNewFamilyWaitSeconds);
-
-  if (poll_return == 0) {
-    LOG(ERROR) << "Failed to poll netlink fd: time out ";
-    return false;
-  } else if (poll_return == -1) {
-    LOG(ERROR) << "Failed to poll netlink fd: " << strerror(errno);
-    return false;
-  }
-  ReceivePacket(netlink_fd_.get());
   if (!message_types_.count("nl80211")) {
     LOG(ERROR) << "Failed to get NL80211 family id";
     return false;
