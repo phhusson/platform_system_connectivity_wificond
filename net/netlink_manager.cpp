@@ -38,8 +38,8 @@ namespace wificond {
 
 namespace {
 
-// TODO(nywang): Investigate the buffer size we need for netlink.
-constexpr int kReceiveBufferSize = 512 * 1024;
+// netlink.h suggests NLMSG_GOODSIZE to be at most 8192 bytes.
+constexpr int kReceiveBufferSize = 8 * 1024;
 constexpr uint32_t kBroadcastSequenceNumber = 0;
 constexpr int kMaximumNewFamilyWaitSeconds = 1 * 1000;
 uint8_t ReceiveBuffer[kReceiveBufferSize];
