@@ -78,9 +78,12 @@ TEST_F(ServerTest, DoesNotSupportMultipleInterfaces) {
   sp<IApInterface> ap_if;
   EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
   EXPECT_NE(nullptr, ap_if.get());
-  ap_if = nullptr;
-  EXPECT_FALSE(server_.createApInterface(&ap_if).isOk());
-  EXPECT_EQ(nullptr, ap_if.get());
+
+  sp<IApInterface> second_ap_if;
+  // We won't throw on a second interface request.
+  EXPECT_TRUE(server_.createApInterface(&second_ap_if).isOk());
+  // But this time we won't get an interface back.
+  EXPECT_EQ(nullptr, second_ap_if.get());
 }
 
 TEST_F(ServerTest, CanDestroyInterfaces) {
