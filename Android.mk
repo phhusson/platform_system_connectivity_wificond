@@ -103,9 +103,12 @@ LOCAL_MODULE := libwificond_test_utils
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
+    tests/integration/process_utils.cpp \
     tests/shell_utils.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase
+LOCAL_WHOLE_STATIC_LIBRARIES := \
+    libwificond_ipc
 include $(BUILD_STATIC_LIBRARY)
 
 ###
@@ -120,16 +123,14 @@ LOCAL_SRC_FILES := \
     tests/looper_backed_event_loop_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \
-    tests/server_unittest.cpp \
-    tests/shell_unittest.cpp
+    tests/server_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
     libgtest \
     libwifi-hal-test \
     libwifi-system-test \
     libwificond \
-    libwificond_nl \
-    libwificond_test_utils
+    libwificond_nl
 LOCAL_SHARED_LIBRARIES := \
     libbase \
     libbinder \
@@ -148,7 +149,8 @@ LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     tests/main.cpp \
-    tests/integration/life_cycle_test.cpp
+    tests/integration/life_cycle_test.cpp \
+    tests/shell_unittest.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
     libbinder \
