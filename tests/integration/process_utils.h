@@ -87,6 +87,12 @@ bool WificondIsDead();
 // developer mode.  See wificond's main() for what this entails.
 bool WificondSetDevMode(bool is_on);
 
+// Returns true iff the hostapd process is running on the system.
+bool HostapdIsRunning();
+
+// Convenient alias for !HostapdIsRunning
+bool HostapdIsDead();
+
 }  // namespace integration
 }  // namespace tests
 }  // namespace android
