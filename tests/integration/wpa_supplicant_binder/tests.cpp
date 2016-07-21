@@ -17,6 +17,7 @@
 #include <android-base/logging.h>
 #include <binder/IBinder.h>
 #include <binder/IServiceManager.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <utils/Errors.h>
 #include <utils/String16.h>
@@ -27,63 +28,91 @@
 #include <wpa_supplicant_binder/binder_constants.h>
 #include <wpa_supplicant_binder/parcelable_iface_params.h>
 
+#include <fi/w1/wpa_supplicant/BnIfaceCallback.h>
+#include <fi/w1/wpa_supplicant/BnSupplicantCallback.h>
 #include <fi/w1/wpa_supplicant/IIface.h>
 #include <fi/w1/wpa_supplicant/INetwork.h>
 #include <fi/w1/wpa_supplicant/ISupplicant.h>
 
+#include "tests/integration/binder_dispatcher.h"
 #include "tests/shell_utils.h"
 
 using android::wifi_hal::DriverTool;
 using android::wifi_system::InterfaceTool;
 using android::wificond::tests::integration::RunShellCommand;
+using android::wificond::tests::integration::BinderDispatcher;
 
+using fi::w1::wpa_supplicant::BnIfaceCallback;
+using fi::w1::wpa_supplicant::BnSupplicantCallback;
 using fi::w1::wpa_supplicant::IIface;
 using fi::w1::wpa_supplicant::INetwork;
 using fi::w1::wpa_supplicant::ISupplicant;
 using fi::w1::wpa_supplicant::ParcelableIfaceParams;
 
+using testing::_;
+using testing::DoAll;
+using testing::Return;
+
 namespace wpa_supplicant_binder {
 namespace {
 
-// Hardcoded values for test.
+// Hardcoded values for Android wpa_supplicant testing.
+// These interfaces may not exist on non-Android devices!
 const char kWlan0IfaceName[] = "wlan0";
 const char kP2p0IfaceName[] = "p2p0";
 const char kIfaceDriver[] = "nl80211";
 const char kIfaceConfigFile[] = "/data/misc/wifi/wpa_supplicant.conf";
+const int kCallbackTimeoutMillis = 5;
 
-/**
- * Base class for all wpa_supplicant binder interface testing.
- * All the test classes should inherit from this class and invoke this base
- * class |Setup| & |TearDown|.
- *
- * The |SetUp| method prepares the device for wpa_supplicant binder testing by
- * stopping framework, reloading driver, restarting wpa_supplicant, etc.
- */
+// Used to get callbacks defined in |BnSupplicantCallback|.
+class MockSupplicantCallback : public BnSupplicantCallback {
+ public:
+  MOCK_METHOD1(OnInterfaceCreated,
+               android::binder::Status(const std::string& ifname));
+  MOCK_METHOD1(OnInterfaceRemoved,
+               android::binder::Status(const std::string& ifname));
+};
+
+// Used to get callbacks defined in |BnIfaceCallback|.
+class MockIfaceCallback : public BnIfaceCallback {
+ public:
+  MOCK_METHOD1(OnNetworkAdded, android::binder::Status(int id));
+  MOCK_METHOD1(OnNetworkRemoved, android::binder::Status(int id));
+};
+
+// Interrupt the binder callback tracker once the desired callback is invoked.
+ACTION_P(InterrupBinderDispatcher, binder_dispatcher) {
+  binder_dispatcher->InterruptDispatch();
+}
+
+// Base class for all wpa_supplicant binder interface testing.
+// All the test classes should inherit from this class and invoke this base
+// class |Setup| & |TearDown|.
+// The |SetUp| method prepares the device for wpa_supplicant binder testing by
+// stopping framework, reloading driver, restarting wpa_supplicant, etc.
 class WpaSupplicantBinderTest : public ::testing::Test {
  protected:
   WpaSupplicantBinderTest()
       : ::testing::Test(),
+        binder_dispatcher_(),
         iface_tool_(new InterfaceTool()),
         driver_tool_(new DriverTool()) {}
 
-  /**
-   * Steps performed before each test:
-   * 1. Stop android framework.
-   * 2. Stop |wificond|.
-   * 3. Stop |wpa_supplicant|.
-   * 4. Unload the driver.
-   * 5. Load the driver.
-   * 6. Set the firmware in Sta mode. (TODO: Ap mode for some tests).
-   * 7. Set the wlan0 interface up.
-   * 8. Start wpa_supplicant.
-   * 9. Wait for wpa_supplicant binder service to be registered.
-   * 10. Remove the |wlan0| & |p2p0| interface from wpa_supplicant.
-   * 11. Increase |wpa_supplicant| debug level.
-   *
-   * TODO: We can't fully nuke the existing wpa_supplicant.conf file because
-   * there are some device specific parameters stored there needed for
-   * wpa_supplicant to work properly.
-   */
+  // Steps performed before each test:
+  // 1. Stop android framework.
+  // 2. Stop |wificond|.
+  // 3. Stop |wpa_supplicant|.
+  // 4. Unload the driver.
+  // 5. Load the driver.
+  // 6. Set the firmware in Sta mode. (TODO: Ap mode for some tests).
+  // 7. Set the wlan0 interface up.
+  // 8. Start wpa_supplicant.
+  // 9. Wait for wpa_supplicant binder service to be registered.
+  // 10. Remove the |wlan0| & |p2p0| interface from wpa_supplicant.
+  // 11. Increase |wpa_supplicant| debug level.
+  // TODO: We can't fully nuke the existing wpa_supplicant.conf file because
+  // there are some device specific parameters stored there needed for
+  // wpa_supplicant to work properly.
   void SetUp() override {
     RunShellCommand("stop");
     RunShellCommand("stop wificond");
@@ -98,16 +127,14 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     setDebugLevelToExcessive();
   }
 
-  /**
-   * Steps performed after each test:
-   * 1. Stop |wpa_supplicant|.
-   * 2. Unload the driver.
-   * 3. Start |wificond|.
-   * 4. Start android framework.
-   *
-   * Assuming that android framework will perform the necessary steps after
-   * this to put the device in working state.
-   */
+  // Steps performed after each test:
+  // 1. Stop |wpa_supplicant|.
+  // 2. Unload the driver.
+  // 3. Start |wificond|.
+  // 4. Start android framework.
+  // Assuming that android framework will perform the necessary steps after
+  // this to put the device in working state.
+
   void TearDown() override {
     EXPECT_TRUE(android::wifi_system::wifi_stop_supplicant(false) == 0);
     EXPECT_TRUE(driver_tool_->UnloadDriver());
@@ -115,9 +142,7 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     RunShellCommand("start");
   }
 
-  /**
-   * Retrieve reference to wpa_supplicant's binder service.
-   */
+  // Retrieve reference to wpa_supplicant's binder service.
   android::sp<ISupplicant> getBinderService() {
     android::sp<android::IBinder> service =
         android::defaultServiceManager()->checkService(
@@ -125,17 +150,13 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     return android::interface_cast<ISupplicant>(service);
   }
 
-  /**
-   * Checks if wpa_supplicant's binder service is registered and visible.
-   */
+  // Checks if wpa_supplicant's binder service is registered and visible.
   bool IsBinderServiceRegistered() {
     return getBinderService().get() != nullptr;
   }
 
-  /**
-   * Creates a network interface for test using the hardcoded params:
-   * |kWlan0IfaceName|, |kIfaceDriver|, |kIfaceConfigFile|.
-   */
+  // Creates a network interface for test using the hardcoded params:
+  // |kWlan0IfaceName|, |kIfaceDriver|, |kIfaceConfigFile|.
   android::sp<IIface> CreateInterfaceForTest() {
     ParcelableIfaceParams params;
     params.ifname_ = kWlan0IfaceName;
@@ -148,17 +169,13 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     return iface;
   }
 
-  /**
-   * Removes the network interface created using |CreateInterfaceForTest|.
-   */
+  // Removes the network interface created using |CreateInterfaceForTest|.
   void RemoveInterfaceForTest() {
     android::binder::Status status = service_->RemoveInterface(kWlan0IfaceName);
     EXPECT_TRUE(status.isOk());
   }
 
-  /**
-   * Add a network to the |iface|.
-   */
+  // Add a network to the |iface|.
   android::sp<INetwork> AddNetworkForTest(const android::sp<IIface>& iface) {
     android::sp<INetwork> network;
     android::binder::Status status = iface->AddNetwork(&network);
@@ -166,21 +183,18 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     return network;
   }
 
-  /**
-   * Removes a network with provided |network_id| from |iface|.
-   */
+  // Removes a network with provided |network_id| from |iface|.
   void RemoveNetworkForTest(const android::sp<IIface>& iface, int network_id) {
     android::binder::Status status = iface->RemoveNetwork(network_id);
     EXPECT_TRUE((status.isOk()));
   }
 
   android::sp<ISupplicant> service_;
+  BinderDispatcher binder_dispatcher_;
 
  private:
-  /**
-   * Waits in a loop for a maximum of 10 milliseconds for the binder service to
-   * be registered.
-   */
+  // Waits in a loop for a maximum of 10 milliseconds for the binder service to
+  // be registered.
   void waitForBinderServiceRegistration() {
     for (int tries = 0; tries < 10; tries++) {
       if (IsBinderServiceRegistered()) {
@@ -193,11 +207,11 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     EXPECT_TRUE(service_.get() != nullptr);
   }
 
-  /**
-   * Removes all the interfaces (|wlan0| & |p2p0|) controlled by
-   * |wpa_supplicant|.
-   * wpa_supplicant is started with |wlan0| and |p2p0| assigned in init.rc.
-   */
+  //
+  // Removes all the interfaces (|wlan0| & |p2p0|) controlled by
+  // |wpa_supplicant|.
+  // wpa_supplicant is started with |wlan0| and |p2p0| assigned in init.rc.
+
   void removeAllInterfaces() {
     android::sp<IIface> iface;
     // TODO: Add a service->ListInterfaces() to retrieve all the available
@@ -215,9 +229,7 @@ class WpaSupplicantBinderTest : public ::testing::Test {
     }
   }
 
-  /**
-   * Increase wpa_supplicant debug level to |DEBUG_LEVEL_EXCESSIVE|.
-   */
+  // Increase wpa_supplicant debug level to |DEBUG_LEVEL_EXCESSIVE|.
   void setDebugLevelToExcessive() {
     android::binder::Status status = service_->SetDebugParams(
         ISupplicant::DEBUG_LEVEL_EXCESSIVE, true, true);
@@ -230,9 +242,7 @@ class WpaSupplicantBinderTest : public ::testing::Test {
 };  // class WpaSupplicantBinderTest
 }  // namespace
 
-/**
- * Verifies the |ISupplicant.CreateInterface| binder call.
- */
+// Verifies the |ISupplicant.CreateInterface| binder call.
 TEST_F(WpaSupplicantBinderTest, CreateInterface) {
   // Create the interface.
   CreateInterfaceForTest();
@@ -243,14 +253,10 @@ TEST_F(WpaSupplicantBinderTest, CreateInterface) {
   EXPECT_TRUE((status.isOk()) && (iface.get() != nullptr));
 }
 
-/**
- * Verifies the |ISupplicant.RemoveInterface| binder call.
- */
+// Verifies the |ISupplicant.RemoveInterface| binder call.
 TEST_F(WpaSupplicantBinderTest, RemoveInterface) {
-  // Create the interface first.
   CreateInterfaceForTest();
 
-  // Now remove the interface.
   RemoveInterfaceForTest();
 
   // The interface should no longer be present now.
@@ -261,11 +267,9 @@ TEST_F(WpaSupplicantBinderTest, RemoveInterface) {
               ISupplicant::ERROR_IFACE_UNKNOWN);
 }
 
-/**
- * Verifies the |ISupplicant.GetDebugLevel|,
- * |ISupplicant.GetDebugShowTimestamp|, |ISupplicant.GetDebugShowKeys| binder
- * calls.
- */
+// Verifies the |ISupplicant.GetDebugLevel|,
+// |ISupplicant.GetDebugShowTimestamp|, |ISupplicant.GetDebugShowKeys| binder
+// calls.
 TEST_F(WpaSupplicantBinderTest, GetDebugParams) {
   int debug_level;
   android::binder::Status status = service_->GetDebugLevel(&debug_level);
@@ -281,9 +285,7 @@ TEST_F(WpaSupplicantBinderTest, GetDebugParams) {
   EXPECT_TRUE((status.isOk()) && (debug_show_keys));
 }
 
-/**
- * Verifies the |IIface.GetName| binder call.
- */
+// Verifies the |IIface.GetName| binder call.
 TEST_F(WpaSupplicantBinderTest, GetNameOnInterface) {
   android::sp<IIface> iface = CreateInterfaceForTest();
   std::string ifaceName;
@@ -291,17 +293,14 @@ TEST_F(WpaSupplicantBinderTest, GetNameOnInterface) {
   EXPECT_TRUE((status.isOk()) && (ifaceName == kWlan0IfaceName));
 }
 
-/**
- * Verifies the |IIface.GetName| binder call on an interface
- * which has been removed.
- */
+// Verifies the |IIface.GetName| binder call on an interface
+// which has been removed.
 TEST_F(WpaSupplicantBinderTest, GetNameOnRemovedInterface) {
   android::sp<IIface> iface = CreateInterfaceForTest();
   std::string ifaceName;
   android::binder::Status status = iface->GetName(&ifaceName);
   EXPECT_TRUE(ifaceName == kWlan0IfaceName);
 
-  // Now remove the interface.
   RemoveInterfaceForTest();
 
   // Any method call on the iface object should return failure.
@@ -309,27 +308,21 @@ TEST_F(WpaSupplicantBinderTest, GetNameOnRemovedInterface) {
   EXPECT_TRUE(status.serviceSpecificErrorCode() == IIface::ERROR_IFACE_INVALID);
 }
 
-/**
- * Verifies the |IIface.AddNetwork| binder call.
- */
+// Verifies the |IIface.AddNetwork| binder call.
 TEST_F(WpaSupplicantBinderTest, AddNetworkOnInterface) {
   android::sp<IIface> iface = CreateInterfaceForTest();
   AddNetworkForTest(iface);
 }
 
-/**
- * Verifies the |IIface.RemoveNetwork| binder call.
- */
+// Verifies the |IIface.RemoveNetwork| binder call.
 TEST_F(WpaSupplicantBinderTest, RemoveNetworkOnInterface) {
   android::sp<IIface> iface = CreateInterfaceForTest();
   android::sp<INetwork> network = AddNetworkForTest(iface);
 
-  // Retrieve the network ID of the network added.
   int network_id;
   android::binder::Status status = network->GetId(&network_id);
   EXPECT_TRUE(status.isOk());
 
-  // Now remove the network.
   RemoveNetworkForTest(iface, network_id);
 
   // The network should no longer be present now.
@@ -338,9 +331,7 @@ TEST_F(WpaSupplicantBinderTest, RemoveNetworkOnInterface) {
               IIface::ERROR_NETWORK_UNKNOWN);
 }
 
-/**
- * Verifies the |INetwork.GetId| binder call.
- */
+// Verifies the |INetwork.GetId| binder call.
 TEST_F(WpaSupplicantBinderTest, GetIdOnNetwork) {
   android::sp<IIface> iface = CreateInterfaceForTest();
   android::sp<INetwork> network = AddNetworkForTest(iface);
@@ -350,9 +341,7 @@ TEST_F(WpaSupplicantBinderTest, GetIdOnNetwork) {
   EXPECT_TRUE((status.isOk()) && (network_id == 0));
 }
 
-/**
- * Verifies the |INetwork.GetInterfaceName| binder call.
- */
+// Verifies the |INetwork.GetInterfaceName| binder call.
 TEST_F(WpaSupplicantBinderTest, GetInterfaceNameOnNetwork) {
   android::sp<IIface> iface = CreateInterfaceForTest();
   android::sp<INetwork> network = AddNetworkForTest(iface);
@@ -362,10 +351,8 @@ TEST_F(WpaSupplicantBinderTest, GetInterfaceNameOnNetwork) {
   EXPECT_TRUE((status.isOk()) && (ifaceName == kWlan0IfaceName));
 }
 
-/**
- * Verifies the |INetwork.GetId| binder call on a network
- * which has been removed.
- */
+// Verifies the |INetwork.GetId| binder call on a network
+// which has been removed.
 TEST_F(WpaSupplicantBinderTest, GetIdOnRemovedNetwork) {
   android::sp<IIface> iface = CreateInterfaceForTest();
   android::sp<INetwork> network = AddNetworkForTest(iface);
@@ -374,12 +361,112 @@ TEST_F(WpaSupplicantBinderTest, GetIdOnRemovedNetwork) {
   android::binder::Status status = network->GetId(&network_id);
   EXPECT_TRUE((status.isOk()) && (network_id == 0));
 
-  // Now remove the network.
   RemoveNetworkForTest(iface, network_id);
 
   // Any method call on the network object should return failure.
   status = network->GetId(&network_id);
   EXPECT_TRUE(status.serviceSpecificErrorCode() ==
               INetwork::ERROR_NETWORK_INVALID);
+}
+
+// Verifies the |ISupplicantCallback.OnInterfaceCreated| callback is
+// invoked by wpa_supplicant.
+TEST_F(WpaSupplicantBinderTest, OnInterfaceCreated) {
+  // Register for supplicant service level state changes
+  // (e.g. interface creation)
+  android::sp<MockSupplicantCallback> callback(new MockSupplicantCallback);
+  android::binder::Status status = service_->RegisterCallback(callback);
+  EXPECT_TRUE(status.isOk());
+
+  CreateInterfaceForTest();
+
+  // All registered |ISupplicantCallback| listeners should be notified
+  // of any interface adddition.
+  EXPECT_CALL(*callback, OnInterfaceCreated(kWlan0IfaceName))
+      .WillOnce(DoAll(InterrupBinderDispatcher(&binder_dispatcher_),
+                      Return(android::binder::Status::ok())));
+
+  // Wait for callback.
+  EXPECT_TRUE(binder_dispatcher_.DispatchFor(kCallbackTimeoutMillis));
+}
+
+// Verifies the |ISupplicantCallback.OnInterfaceRemoved| callback is
+// invoked by wpa_supplicant.
+TEST_F(WpaSupplicantBinderTest, OnInterfaceRemoved) {
+  // Register for supplicant service level state changes
+  // (e.g. interface creation)
+  android::sp<MockSupplicantCallback> callback(new MockSupplicantCallback);
+  android::binder::Status status = service_->RegisterCallback(callback);
+  EXPECT_TRUE(status.isOk());
+
+  CreateInterfaceForTest();
+
+  RemoveInterfaceForTest();
+
+  // All registered |ISupplicantCallback| listeners should be notified
+  // of any interface adddition followed by interface removal.
+  EXPECT_CALL(*callback, OnInterfaceCreated(kWlan0IfaceName))
+      .WillOnce(Return(android::binder::Status::ok()));
+  EXPECT_CALL(*callback, OnInterfaceRemoved(kWlan0IfaceName))
+      .WillOnce(DoAll(InterrupBinderDispatcher(&binder_dispatcher_),
+                      Return(android::binder::Status::ok())));
+
+  // Wait for callback.
+  EXPECT_TRUE(binder_dispatcher_.DispatchFor(kCallbackTimeoutMillis));
+}
+
+// Verifies the |IIfaceCallback.OnNetworkAdded| callback is
+// invoked by wpa_supplicant.
+TEST_F(WpaSupplicantBinderTest, OnNetworkAdded) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  // First Register for |IIfaceCallback| using the corresponding |IIface|
+  // object.
+  android::sp<MockIfaceCallback> callback(new MockIfaceCallback);
+  android::binder::Status status = iface->RegisterCallback(callback);
+  EXPECT_TRUE(status.isOk());
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+  int network_id;
+  status = network->GetId(&network_id);
+  EXPECT_TRUE(status.isOk());
+
+  // All registered |IIfaceCallback| listeners should be notified
+  // of any network adddition.
+  EXPECT_CALL(*callback, OnNetworkAdded(network_id))
+      .WillOnce(DoAll(InterrupBinderDispatcher(&binder_dispatcher_),
+                      Return(android::binder::Status::ok())));
+
+  // Wait for callback.
+  EXPECT_TRUE(binder_dispatcher_.DispatchFor(kCallbackTimeoutMillis));
+}
+
+// Verifies the |IIfaceCallback.OnNetworkRemoved| callback is
+// invoked by wpa_supplicant.
+TEST_F(WpaSupplicantBinderTest, OnNetworkRemoved) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  // First Register for |IIfaceCallback| using the corresponding |IIface|
+  // object.
+  android::sp<MockIfaceCallback> callback(new MockIfaceCallback);
+  android::binder::Status status = iface->RegisterCallback(callback);
+  EXPECT_TRUE(status.isOk());
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+  int network_id;
+  status = network->GetId(&network_id);
+  EXPECT_TRUE(status.isOk());
+
+  RemoveNetworkForTest(iface, network_id);
+
+  // All registered |IIfaceCallback| listeners should be notified
+  // of any network adddition folled by the network removal.
+  EXPECT_CALL(*callback, OnNetworkAdded(network_id))
+      .WillOnce(Return(android::binder::Status::ok()));
+  EXPECT_CALL(*callback, OnNetworkRemoved(network_id))
+      .WillOnce(DoAll(InterrupBinderDispatcher(&binder_dispatcher_),
+                      Return(android::binder::Status::ok())));
+  // Wait for callback.
+  EXPECT_TRUE(binder_dispatcher_.DispatchFor(kCallbackTimeoutMillis));
 }
 }  // namespace wpa_supplicant_binder
