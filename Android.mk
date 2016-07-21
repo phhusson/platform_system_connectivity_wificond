@@ -103,6 +103,8 @@ LOCAL_MODULE := libwificond_test_utils
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
+    looper_backed_event_loop.cpp \
+    tests/integration/binder_dispatcher.cpp \
     tests/integration/process_utils.cpp \
     tests/shell_utils.cpp
 LOCAL_SHARED_LIBRARIES := \
@@ -149,8 +151,8 @@ LOCAL_MODULE := wificond_integration_test
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
-    tests/main.cpp \
     tests/integration/life_cycle_test.cpp \
+    tests/main.cpp \
     tests/shell_unittest.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
@@ -158,6 +160,7 @@ LOCAL_SHARED_LIBRARIES := \
     libcutils \
     libutils
 LOCAL_STATIC_LIBRARIES := \
+    libgmock \
     libwificond_ipc \
     libwificond_test_utils
 include $(BUILD_NATIVE_TEST)
@@ -171,8 +174,8 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := wpa_supplicant_binder_test
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
-    tests/main.cpp \
-    tests/integration/wpa_supplicant_binder/tests.cpp
+    tests/integration/wpa_supplicant_binder/tests.cpp \
+    tests/main.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
     libbinder \
@@ -181,6 +184,7 @@ LOCAL_SHARED_LIBRARIES := \
     libwifi-hal \
     libwifi-system
 LOCAL_STATIC_LIBRARIES := \
+    libgmock \
     libwificond_test_utils \
     libwpa_binder_interface
 include $(BUILD_NATIVE_TEST)
