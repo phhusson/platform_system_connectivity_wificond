@@ -120,6 +120,11 @@ void NL80211Packet::SetCommand(uint8_t command) {
   genl_header->cmd = command;
 }
 
+void NL80211Packet::AddFlag(uint16_t flag) {
+  nlmsghdr* nl_header = reinterpret_cast<nlmsghdr*>(data_.data());
+  nl_header->nlmsg_flags |= flag;
+}
+
 void NL80211Packet::SetFlags(uint16_t flags) {
   nlmsghdr* nl_header = reinterpret_cast<nlmsghdr*>(data_.data());
   nl_header->nlmsg_flags = flags;

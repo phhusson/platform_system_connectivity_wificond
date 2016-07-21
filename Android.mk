@@ -124,6 +124,8 @@ LOCAL_SRC_FILES := \
     tests/ap_interface_impl_unittest.cpp \
     tests/looper_backed_event_loop_unittest.cpp \
     tests/main.cpp \
+    tests/mock_netlink_manager.cpp \
+    tests/netlink_manager_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \
     tests/server_unittest.cpp

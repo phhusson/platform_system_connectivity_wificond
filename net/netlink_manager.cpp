@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 
 #include <android-base/logging.h>
+#include <utils/Timers.h>
 
 #include "net/nl80211_attribute.h"
 #include "net/nl80211_packet.h"
@@ -52,6 +53,9 @@ NetlinkManager::NetlinkManager(EventLoop* event_loop)
       sequence_number_(0) {
 }
 
+NetlinkManager::~NetlinkManager() {
+}
+
 uint32_t NetlinkManager::GetSequenceNumber() {
   if (++sequence_number_ == kBroadcastSequenceNumber) {
     ++sequence_number_;
@@ -68,30 +72,48 @@ void NetlinkManager::ReceivePacketAndRunHandler(int fd) {
   if (len == 0) {
     return;
   }
-  NL80211Packet packet(vector<uint8_t>(ReceiveBuffer, ReceiveBuffer + len));
-  if (!packet.IsValid()) {
-    LOG(ERROR) << "Receive invalid packet";
-    return;
-  }
-  // Some document says message from kernel should have port id equal 0.
-  // However in practice this is not always true so we don't check that.
+  // There might be multiple message in one datagram payload.
+  uint8_t* ptr = ReceiveBuffer;
+  while (ptr < ReceiveBuffer + len) {
+    // peek at the header.
+    if (ptr + sizeof(nlmsghdr) > ReceiveBuffer + len) {
+      LOG(ERROR) << "payload is broken.";
+      return;
+    }
+    const nlmsghdr* nl_header = reinterpret_cast<const nlmsghdr*>(ptr);
+    NL80211Packet packet(vector<uint8_t>(ptr, ptr + nl_header->nlmsg_len));
+    ptr += nl_header->nlmsg_len;
+    if (!packet.IsValid()) {
+      LOG(ERROR) << "Receive invalid packet";
+      return;
+    }
+    // Some document says message from kernel should have port id equal 0.
+    // However in practice this is not always true so we don't check that.
 
-  uint32_t sequence_number = packet.GetMessageSequence();
-  // TODO(nywang): Handle control messages.
+    uint32_t sequence_number = packet.GetMessageSequence();
 
-  // TODO(nywang): Handle multicasts, which have sequence number 0.
+    // TODO(nywang): Handle multicasts, which have sequence number 0.
 
-  auto itr = message_handlers_.find(sequence_number);
-  // There is no handler for this sequence number.
-  if (itr == message_handlers_.end()) {
-    LOG(WARNING) << "No handler for message: " << sequence_number;
-    return;
-  }
-  // Run the handler.
-  itr->second(packet);
-  // Remove handler after processing.
-  if (!packet.IsMulti()) {
-    message_handlers_.erase(itr);
+    auto itr = message_handlers_.find(sequence_number);
+    // There is no handler for this sequence number.
+    if (itr == message_handlers_.end()) {
+      LOG(WARNING) << "No handler for message: " << sequence_number;
+      return;
+    }
+    // TODO(nywang): Handle other control messages.
+    // A multipart message is terminated by NLMSG_DONE.
+    // In this case we don't need to run the handler.
+    if (packet.GetMessageType() == NLMSG_DONE) {
+      message_handlers_.erase(itr);
+      return;
+    }
+
+    // Run the handler.
+    itr->second(packet);
+    // Remove handler after processing.
+    if (!packet.IsMulti()) {
+      message_handlers_.erase(itr);
+    }
   }
 }
 
@@ -137,15 +159,28 @@ void NetlinkManager::OnNewFamily(NL80211Packet packet) {
   }
 }
 
-void NetlinkManager::Start() {
+bool NetlinkManager::Start() {
   bool setup_rt = SetupSocket(&sync_netlink_fd_);
-  CHECK(setup_rt) << "Failed to setup synchronous netlink socket";
+  if (!setup_rt) {
+    LOG(ERROR) << "Failed to setup synchronous netlink socket";
+    return false;
+  }
+
   setup_rt = SetupSocket(&async_netlink_fd_);
-  CHECK(setup_rt) << "Failed to setup asynchronous netlink socket";
+  if (!setup_rt) {
+    LOG(ERROR) << "Failed to setup asynchronous netlink socket";
+    return false;
+  }
+
   // Request family id for nl80211 messages.
-  CHECK(DiscoverFamilyId());
+  if (!DiscoverFamilyId()) {
+    return false;
+  }
   // Watch socket.
-  CHECK(WatchSocket(&async_netlink_fd_));
+  if (!WatchSocket(&async_netlink_fd_)) {
+    return false;
+  }
+  return true;
 }
 
 bool NetlinkManager::RegisterHandlerAndSendMessage(
@@ -174,19 +209,39 @@ bool NetlinkManager::SendMessageAndRunHandler(
   netlink_output.fd = sync_netlink_fd_.get();
   netlink_output.events = POLLIN;
 
-  int poll_return = poll(&netlink_output,
-                         1,
-                         kMaximumNetlinkMessageWaitMilliSeconds);
+  uint32_t sequence = packet.GetMessageSequence();
 
-  if (poll_return == 0) {
-    LOG(ERROR) << "Failed to poll netlink fd: time out ";
-    return false;
-  } else if (poll_return == -1) {
-    LOG(ERROR) << "Failed to poll netlink fd: " << strerror(errno);
+  int time_remaining = kMaximumNetlinkMessageWaitMilliSeconds;
+  // Multipart messages may come with seperated datagrams, ending with a
+  // NLMSG_DONE message.
+  // ReceivePacketAndRunHandler() will remove the handler after receiving a
+  // NLMSG_DONE message.
+  message_handlers_[sequence] = handler;
+  while (time_remaining > 0 &&
+      message_handlers_.find(sequence) != message_handlers_.end()) {
+    nsecs_t interval = systemTime(SYSTEM_TIME_MONOTONIC);
+    int poll_return = poll(&netlink_output,
+                           1,
+                           time_remaining);
+
+    if (poll_return == 0) {
+      LOG(ERROR) << "Failed to poll netlink fd: time out ";
+      message_handlers_.erase(sequence);
+      return false;
+    } else if (poll_return == -1) {
+      LOG(ERROR) << "Failed to poll netlink fd: " << strerror(errno);
+      message_handlers_.erase(sequence);
+      return false;
+    }
+    ReceivePacketAndRunHandler(sync_netlink_fd_.get());
+    interval = systemTime(SYSTEM_TIME_MONOTONIC) - interval;
+    time_remaining -= static_cast<int>(ns2ms(interval));
+  }
+  if (time_remaining <= 0) {
+    LOG(ERROR) << "Timeout waiting for netlink reply messages";
+      message_handlers_.erase(sequence);
     return false;
   }
-  message_handlers_[packet.GetMessageSequence()] = handler;
-  ReceivePacketAndRunHandler(sync_netlink_fd_.get());
   return true;
 }
 
@@ -246,6 +301,10 @@ bool NetlinkManager::WatchSocket(unique_fd* netlink_fd) {
   return true;
 }
 
+uint16_t NetlinkManager::GetFamilyId() {
+  return message_types_["nl80211"].family_id;
+}
+
 bool NetlinkManager::DiscoverFamilyId() {
   NL80211Packet get_family_request(GENL_ID_CTRL,
                                    CTRL_CMD_GETFAMILY,
@@ -258,11 +317,43 @@ bool NetlinkManager::DiscoverFamilyId() {
     LOG(ERROR) << "Failed to send GetFamily message for NL80211";
     return false;
   }
-  if (!message_types_.count("nl80211")) {
+  if (message_types_.find("nl80211") == message_types_.end()) {
     LOG(ERROR) << "Failed to get NL80211 family id";
     return false;
   }
   return true;
+}
+
+bool NetlinkManager::GetWiphyIndex(uint32_t* out_wiphy_index) {
+  NL80211Packet get_wiphy(
+      GetFamilyId(),
+      NL80211_CMD_GET_WIPHY,
+      GetSequenceNumber(),
+      getpid());
+  get_wiphy.AddFlag(NLM_F_DUMP);
+  uint32_t wiphy_index = UINT32_MAX;
+  auto handler = std::bind(&NetlinkManager::OnNewWiphy,
+                           this,
+                           _1,
+                           &wiphy_index);
+  // wiphy_index should be modified by OnNewWiphy() on success.
+  if (!SendMessageAndRunHandler(get_wiphy, handler) || wiphy_index == UINT32_MAX) {
+    LOG(ERROR) << "Failed to get wiphy index";
+    return false;
+  }
+  *out_wiphy_index = wiphy_index;
+  return true;
+}
+
+void NetlinkManager::OnNewWiphy(NL80211Packet packet, uint32_t* out_wiphy_index) {
+  if (packet.GetCommand() != NL80211_CMD_NEW_WIPHY) {
+    LOG(ERROR) << "Wrong command for new wiphy message";
+    return;
+  }
+  if (!packet.GetAttributeValue(NL80211_ATTR_WIPHY, out_wiphy_index)) {
+    LOG(ERROR) << "Failed to get wiphy index from reply message";
+    return;
+  }
 }
 
 }  // namespace wificond

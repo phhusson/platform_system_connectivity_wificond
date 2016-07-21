@@ -46,12 +46,14 @@ struct MessageType {
 class NetlinkManager {
  public:
   explicit NetlinkManager(EventLoop* event_loop);
-  ~NetlinkManager() = default;
+  virtual ~NetlinkManager();
   // Initialize netlink manager.
   // This includes setting up socket and requesting nl80211 family id from kernel.
-  void Start();
+  bool Start();
   // Returns a sequence number available for use.
   uint32_t GetSequenceNumber();
+  // Get NL80211 netlink family id,
+  uint16_t GetFamilyId();
   // Send |packet| to kernel.
   // This works in an asynchronous way.
   // |handler| will be run when we receive a valid reply from kernel.
@@ -66,12 +68,18 @@ class NetlinkManager {
   bool SendMessageAndRunHandler(const NL80211Packet& packet,
                                 std::function<void(NL80211Packet)> handler);
 
+  // Get the wiphy index from kernel.
+  // |*out_wiphy_index| returns the wiphy index from kernel.
+  // Returns true on success.
+  virtual bool GetWiphyIndex(uint32_t* out_wiphy_index);
+
  private:
   bool SetupSocket(android::base::unique_fd* netlink_fd);
   bool WatchSocket(android::base::unique_fd* netlink_fd);
   void ReceivePacketAndRunHandler(int fd);
   bool DiscoverFamilyId();
   bool SendMessageInternal(const NL80211Packet& packet, int fd);
+  void OnNewWiphy(NL80211Packet packet, uint32_t* out_wiphy_index);
 
   // This handler revceives mapping from NL80211 family name to family id,
   // as well as mapping from group name to group id.

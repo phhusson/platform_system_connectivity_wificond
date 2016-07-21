@@ -18,6 +18,8 @@
 
 #include <android-base/logging.h>
 
+#include "wificond/net/netlink_manager.h"
+
 using android::binder::Status;
 using android::sp;
 using android::IBinder;
@@ -40,12 +42,13 @@ const char kNetworkInterfaceName[] = "wlan0";
 
 Server::Server(unique_ptr<HalTool> hal_tool,
                unique_ptr<InterfaceTool> if_tool,
-               unique_ptr<DriverTool> driver_tool)
+               unique_ptr<DriverTool> driver_tool,
+               NetlinkManager* netlink_manager)
     : hal_tool_(std::move(hal_tool)),
       if_tool_(std::move(if_tool)),
-      driver_tool_(std::move(driver_tool)) {
+      driver_tool_(std::move(driver_tool)),
+      netlink_manager_(netlink_manager) {
 }
-
 
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
   if (!ap_interfaces_.empty()) {
@@ -90,10 +93,22 @@ bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
     return false;
   }
 
+  if (!RefreshWiphyIndex()) {
+      return false;
+  }
+
   // TODO: Confirm the ap interface is ready for use by checking its
   //       nl80211 published capabilities.
   *interface_name = kNetworkInterfaceName;
 
+  return true;
+}
+
+bool Server::RefreshWiphyIndex() {
+  if (!netlink_manager_->GetWiphyIndex(&wiphy_index_)) {
+    LOG(ERROR) << "Failed to get wiphy index";
+    return false;
+  }
   return true;
 }
 

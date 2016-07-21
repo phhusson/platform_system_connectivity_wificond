@@ -119,14 +119,15 @@ int main(int argc, char** argv) {
       android::wificond::EventLoop::kModeInput,
       &OnBinderReadReady)) << "Failed to watch binder FD";
 
+  android::wificond::NetlinkManager netlink_manager(event_dispatcher.get());
+  CHECK(netlink_manager.Start()) << "Failed to start netlink manager";
 
-  android::sp<android::IBinder> server = new android::wificond::Server(
+  unique_ptr<android::wificond::Server> server(new android::wificond::Server(
       unique_ptr<HalTool>(new HalTool),
       unique_ptr<InterfaceTool>(new InterfaceTool),
-      unique_ptr<DriverTool>(new DriverTool));
-  RegisterServiceOrCrash(server);
-  android::wificond::NetlinkManager netlink_manager(event_dispatcher.get());
-  netlink_manager.Start();
+      unique_ptr<DriverTool>(new DriverTool),
+      &netlink_manager));
+  RegisterServiceOrCrash(server.get());
 
   event_dispatcher->Poll();
   LOG(INFO) << "wificond is about to exit";

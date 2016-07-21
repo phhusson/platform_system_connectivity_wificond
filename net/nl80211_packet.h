@@ -79,6 +79,7 @@ class NL80211Packet {
   // |command| is one of |enum nl80211_commands| in nl80211.h
   void SetCommand(uint8_t command);
   // |flags| is set of flag bits described by NLM_F_* macros in netlink.h
+  void AddFlag(uint16_t flag);
   void SetFlags(uint16_t flags);
   // In the context of nl80211 messages,
   // message type is a nl80211 message family id dynamiclly allocated by kernel.
