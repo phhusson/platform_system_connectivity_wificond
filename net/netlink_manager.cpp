@@ -42,8 +42,7 @@ namespace {
 // netlink.h suggests NLMSG_GOODSIZE to be at most 8192 bytes.
 constexpr int kReceiveBufferSize = 8 * 1024;
 constexpr uint32_t kBroadcastSequenceNumber = 0;
-// TODO(nywang): Find a better timeout value.
-constexpr int kMaximumNetlinkMessageWaitMilliSeconds = 1 * 1000;
+constexpr int kMaximumNetlinkMessageWaitMilliSeconds = 300;
 uint8_t ReceiveBuffer[kReceiveBufferSize];
 
 }
@@ -142,7 +141,7 @@ void NetlinkManager::Start() {
   bool setup_rt = SetupSocket(&sync_netlink_fd_);
   CHECK(setup_rt) << "Failed to setup synchronous netlink socket";
   setup_rt = SetupSocket(&async_netlink_fd_);
-  CHECK(setup_rt) << "Failed to setup asynchrouns netlink socket";
+  CHECK(setup_rt) << "Failed to setup asynchronous netlink socket";
   // Request family id for nl80211 messages.
   CHECK(DiscoverFamilyId());
   // Watch socket.
