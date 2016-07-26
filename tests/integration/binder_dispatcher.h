@@ -45,6 +45,7 @@ namespace integration {
 class BinderDispatcher {
  public:
   BinderDispatcher();
+  ~BinderDispatcher();
   // Dispatch binder events for |timeout_millis| or until interrupted by
   // a call to |InterruptDispatch|.
   // Returns true if interrupted, false otherwise.
@@ -56,9 +57,11 @@ class BinderDispatcher {
   // Prepare the thread for receiving binder events and setup the looper.
   void Init();
   void OnBinderEvent(int fd);
-  void StopDispatcher();
 
   std::unique_ptr<LooperBackedEventLoop> event_dispatcher_;
+  // This fd is reinitialized for every test, by tearing down the static
+  // |ProcessState| instance associated with this process after every test.
+  int binder_fd_;
   bool needs_init_;
   bool was_interrupted_;
 

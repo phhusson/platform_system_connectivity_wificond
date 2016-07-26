@@ -50,6 +50,10 @@ class LooperBackedEventLoop: public EventLoop {
   // This method can be called from any thread context.
   void Poll();
 
+  // Blocks for |timeout_millis| for the next event.
+  // This method can be called from any thread context.
+  void PollForOne(int timeout_millis);
+
   // Posts a task to stop event loop polling.
   // This method can be called from any thread context.
   void TriggerExit();
