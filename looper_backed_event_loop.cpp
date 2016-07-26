@@ -114,6 +114,13 @@ bool LooperBackedEventLoop::WatchFileDescriptor(
   return true;
 }
 
+bool LooperBackedEventLoop::StopWatchFileDescriptor(int fd) {
+  if (looper_->removeFd(fd) == 1) {
+    return true;
+  }
+  return false;
+}
+
 void LooperBackedEventLoop::Poll() {
   while (should_continue_) {
     looper_->pollOnce(-1);

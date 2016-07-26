@@ -51,6 +51,13 @@ class EventLoop {
       int fd,
       ReadyMode mode,
       const std::function<void(int)>& callback_) = 0;
+
+  // Stop monitoring file descriptor |fd|.
+  // This function can be called on any thread.
+  // This returns true upon success and returns false when it failed to
+  // remove the file descriptor, or this file descriptor was not registered
+  // for watching.
+  virtual bool StopWatchFileDescriptor(int fd);
 };
 
 }  // namespace wificond
