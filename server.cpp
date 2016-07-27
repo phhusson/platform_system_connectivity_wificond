@@ -27,6 +27,7 @@ using std::string;
 using std::vector;
 using std::unique_ptr;
 using android::net::wifi::IApInterface;
+using android::net::wifi::IClientInterface;
 using android::wifi_hal::DriverTool;
 using android::wifi_system::HalTool;
 using android::wifi_system::HostapdManager;
@@ -46,13 +47,6 @@ Server::Server(unique_ptr<HalTool> hal_tool,
 }
 
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
-  if (!ap_interfaces_.empty()) {
-    // In the future we may support multiple interfaces at once.  However,
-    // today, we support just one.
-    LOG(ERROR) << "Cannot create AP interface when other interfaces exist";
-    return Status::ok();
-  }
-
   string interface_name;
   if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp, &interface_name)) {
     return Status::ok();  // Logging was done internally
@@ -66,18 +60,37 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
   return Status::ok();
 }
 
+Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
+  string interface_name;
+  if (!SetupInterfaceForMode(DriverTool::kFirmwareModeSta,
+                             &interface_name)) {
+    return Status::ok();  // Logging was done internally
+  }
+
+  unique_ptr<ClientInterfaceImpl> client_interface(new ClientInterfaceImpl(
+      interface_name));
+  *created_interface = client_interface->GetBinder();
+  client_interfaces_.push_back(std::move(client_interface));
+  return Status::ok();
+}
+
 Status Server::tearDownInterfaces() {
-  if (!ap_interfaces_.empty()) {
-    ap_interfaces_.clear();
-    if (!driver_tool_->UnloadDriver()) {
-      LOG(ERROR) << "Failed to unload WiFi driver!";
-      return Status::ok();
-    }
+  ap_interfaces_.clear();
+  client_interfaces_.clear();
+  if (!driver_tool_->UnloadDriver()) {
+    LOG(ERROR) << "Failed to unload WiFi driver!";
   }
   return Status::ok();
 }
 
 bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
+  if (!ap_interfaces_.empty() || !client_interfaces_.empty()) {
+    // In the future we may support multiple interfaces at once.  However,
+    // today, we support just one.
+    LOG(ERROR) << "Cannot create AP interface when other interfaces exist";
+    return false;
+  }
+
   string result;
   if (!driver_tool_->LoadDriver()) {
     LOG(ERROR) << "Failed to load WiFi driver!";

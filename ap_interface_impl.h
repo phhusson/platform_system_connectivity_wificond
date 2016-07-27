@@ -56,7 +56,7 @@ class ApInterfaceImpl {
  private:
   const std::string interface_name_;
   const std::unique_ptr<wifi_system::HostapdManager> hostapd_manager_;
-  android::sp<ApInterfaceBinder> binder_;
+  const android::sp<ApInterfaceBinder> binder_;
 
   DISALLOW_COPY_AND_ASSIGN(ApInterfaceImpl);
 };

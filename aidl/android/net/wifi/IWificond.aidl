@@ -17,6 +17,7 @@
 package android.net.wifi;
 
 import android.net.wifi.IApInterface;
+import android.net.wifi.IClientInterface;
 
 // Service interface that exposes primitives for controlling the WiFi
 // subsystems of a device.
@@ -24,6 +25,9 @@ interface IWificond {
 
     // Create a network interface suitable for use as an AP.
     @nullable IApInterface createApInterface();
+
+    // Create a network interface suitable for use as a WiFi client.
+    @nullable IClientInterface createClientInterface();
 
     // Tear down all existing interfaces.  This should enable clients to create
     // future interfaces immediately after this method returns.

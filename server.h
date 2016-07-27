@@ -27,8 +27,11 @@
 #include <wifi_system/interface_tool.h>
 
 #include "android/net/wifi/BnWificond.h"
+#include "android/net/wifi/IApInterface.h"
+#include "android/net/wifi/IClientInterface.h"
 
 #include "wificond/ap_interface_impl.h"
+#include "wificond/client_interface_impl.h"
 
 namespace android {
 namespace wificond {
@@ -45,7 +48,12 @@ class Server : public android::net::wifi::BnWificond {
   ~Server() override = default;
 
   android::binder::Status createApInterface(
-      android::sp<android::net::wifi::IApInterface>* created_interface) override;
+      android::sp<android::net::wifi::IApInterface>*
+          created_interface) override;
+
+  android::binder::Status createClientInterface(
+      android::sp<android::net::wifi::IClientInterface>*
+          created_interface) override;
 
   android::binder::Status tearDownInterfaces() override;
 
@@ -63,10 +71,11 @@ class Server : public android::net::wifi::BnWificond {
   const std::unique_ptr<wifi_system::HalTool> hal_tool_;
   const std::unique_ptr<wifi_system::InterfaceTool> if_tool_;
   const std::unique_ptr<wifi_hal::DriverTool> driver_tool_;
-  std::vector<std::unique_ptr<ApInterfaceImpl>> ap_interfaces_;
   NetlinkManager* netlink_manager_;
 
   uint32_t wiphy_index_;
+  std::vector<std::unique_ptr<ApInterfaceImpl>> ap_interfaces_;
+  std::vector<std::unique_ptr<ClientInterfaceImpl>> client_interfaces_;
 
   DISALLOW_COPY_AND_ASSIGN(Server);
 };

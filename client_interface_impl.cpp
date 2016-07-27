@@ -14,10 +14,29 @@
  * limitations under the License.
  */
 
-#include "wificond/client_interface.h"
+#include "wificond/client_interface_impl.h"
+
+#include "wificond/client_interface_binder.h"
+
+using android::net::wifi::IClientInterface;
+using android::sp;
+using std::string;
 
 namespace android {
 namespace wificond {
+
+ClientInterfaceImpl::ClientInterfaceImpl(const std::string& interface_name)
+    : interface_name_(interface_name),
+      binder_(new ClientInterfaceBinder(this)) {
+}
+
+ClientInterfaceImpl::~ClientInterfaceImpl() {
+  binder_->NotifyImplDead();
+}
+
+sp<android::net::wifi::IClientInterface> ClientInterfaceImpl::GetBinder() const {
+  return binder_;
+}
 
 }  // namespace wificond
 }  // namespace android

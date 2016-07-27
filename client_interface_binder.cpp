@@ -14,29 +14,17 @@
  * limitations under the License.
  */
 
-#ifndef WIFICOND_CLIENT_INTERFACE_H_
-#define WIFICOND_CLIENT_INTERFACE_H_
-
-#include <android-base/macros.h>
-
-#include "android/net/wifi/BnClientInterface.h"
+#include "wificond/client_interface_binder.h"
 
 namespace android {
 namespace wificond {
 
-class ClientInterface : public android::net::wifi::BnClientInterface {
- public:
-  ClientInterface() = default;
-  ~ClientInterface() override = default;
-  // TODO: Add functions configuring an interface.
+ClientInterfaceBinder::ClientInterfaceBinder(ClientInterfaceImpl* impl)
+    : impl_(impl) {
+}
 
- private:
-  // TODO: Add fields decribing an interface.
-
-  DISALLOW_COPY_AND_ASSIGN(ClientInterface);
-};
+ClientInterfaceBinder::~ClientInterfaceBinder() {
+}
 
 }  // namespace wificond
 }  // namespace android
-
-#endif  // WIFICOND_CLIENT_INTERFACE_H_

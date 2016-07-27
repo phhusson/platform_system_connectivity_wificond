@@ -34,8 +34,8 @@ namespace wificond {
 ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
                                  unique_ptr<HostapdManager> hostapd_manager)
     : interface_name_(interface_name),
-      hostapd_manager_(std::move(hostapd_manager)) {
-  binder_ = new ApInterfaceBinder(this);
+      hostapd_manager_(std::move(hostapd_manager)),
+      binder_(new ApInterfaceBinder(this)) {
 }
 
 ApInterfaceImpl::~ApInterfaceImpl() {
