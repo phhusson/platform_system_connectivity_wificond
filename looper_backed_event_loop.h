@@ -42,6 +42,9 @@ class LooperBackedEventLoop: public EventLoop {
       ReadyMode mode,
       const std::function<void(int)>& callback) override;
 
+  // See event_loop.h
+  bool StopWatchFileDescriptor(int fd) override;
+
   // Performs all pending callbacks and waiting for new events until
   // TriggerExit() is called.
   // This method can be called from any thread context.
