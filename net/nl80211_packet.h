@@ -71,6 +71,10 @@ class NL80211Packet {
   uint16_t GetMessageType() const;
   uint32_t GetMessageSequence() const;
   uint32_t GetPortId() const;
+  // Caller is responsible for checking that this is a valid
+  // NLMSG_ERROR message before calling GetErrorCode().
+  // Returns an error number defined in errno.h
+  int GetErrorCode() const;
   const std::vector<uint8_t>& GetConstData() const;
 
   // Setter functions.

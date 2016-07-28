@@ -105,13 +105,27 @@ void NetlinkManager::ReceivePacketAndRunHandler(int fd) {
       LOG(WARNING) << "No handler for message: " << sequence_number;
       return;
     }
-    // TODO(nywang): Handle other control messages.
     // A multipart message is terminated by NLMSG_DONE.
     // In this case we don't need to run the handler.
-    if (packet.GetMessageType() == NLMSG_DONE) {
+    // NLMSG_NOOP means no operation, message must be discarded.
+    uint32_t message_type =  packet.GetMessageType();
+    if (message_type == NLMSG_DONE || message_type == NLMSG_NOOP) {
       message_handlers_.erase(itr);
       return;
     }
+    if (message_type == NLMSG_OVERRUN) {
+      LOG(ERROR) << "Get message overrun notification";
+      message_handlers_.erase(itr);
+      return;
+    }
+
+    // In case we receive a NLMSG_ERROR message:
+    // NLMSG_ERROR could be either an error or an ACK.
+    // It is an ACK message only when error code field is set to 0.
+    // An ACK could be return when we explicitly request that with NLM_F_ACK.
+    // An ERROR could be received on NLM_F_ACK or other failure cases.
+    // We should still run handler in this case, leaving it for the caller
+    // to decide what to do with the packet.
 
     // Run the handler.
     itr->second(packet);
@@ -254,7 +268,7 @@ bool NetlinkManager::SendMessageAndGetResponses(
   }
   if (time_remaining <= 0) {
     LOG(ERROR) << "Timeout waiting for netlink reply messages";
-      message_handlers_.erase(sequence);
+    message_handlers_.erase(sequence);
     return false;
   }
   return true;
@@ -333,7 +347,13 @@ bool NetlinkManager::DiscoverFamilyId() {
     LOG(ERROR) << "Failed to send and get response for NL80211 GetFamily message";
     return false;
   }
-  OnNewFamily(response[0]);
+  NL80211Packet& packet = response[0];
+  if (packet.GetMessageType() == NLMSG_ERROR) {
+      LOG(ERROR) << "Receive ERROR message: "
+                 << strerror(packet.GetErrorCode());
+      return false;
+  }
+  OnNewFamily(packet);
   if (message_types_.find("nl80211") == message_types_.end()) {
     LOG(ERROR) << "Failed to get NL80211 family id";
     return false;
@@ -354,6 +374,11 @@ bool NetlinkManager::GetWiphyIndex(uint32_t* out_wiphy_index) {
     return false;
   }
   for (NL80211Packet& packet : response) {
+    if (packet.GetMessageType() == NLMSG_ERROR) {
+      LOG(ERROR) << "Receive ERROR message: "
+                 << strerror(packet.GetErrorCode());
+      return false;
+    }
     if (packet.GetCommand() != NL80211_CMD_NEW_WIPHY) {
       LOG(ERROR) << "Wrong command for new wiphy message";
       return false;
@@ -382,6 +407,11 @@ bool NetlinkManager::GetInterfaceName(uint32_t wiphy_index,
     LOG(ERROR) << "Failed to send GetWiphy message";
   }
   for (NL80211Packet& packet : response) {
+    if (packet.GetMessageType() == NLMSG_ERROR) {
+      LOG(ERROR) << "Receive ERROR message: "
+                 << strerror(packet.GetErrorCode());
+      return false;
+    }
     if (packet.GetMessageType() != GetFamilyId()) {
       LOG(ERROR) << "Wrong message type for new interface message: "
                  << packet.GetMessageType();

@@ -58,15 +58,28 @@ bool NL80211Packet::IsValid() const {
     return false;
   }
 
+  const nlmsghdr* nl_header = reinterpret_cast<const nlmsghdr*>(data_.data());
+
   // If type < NLMSG_MIN_TYPE, this should be a reserved control message,
   // which doesn't carry a generic netlink header.
   if (GetMessageType() >= NLMSG_MIN_TYPE) {
-    if (data_.size() < NLMSG_HDRLEN + GENL_HDRLEN) {
+    if (data_.size() < NLMSG_HDRLEN + GENL_HDRLEN ||
+        nl_header->nlmsg_len < NLMSG_HDRLEN + GENL_HDRLEN) {
       LOG(ERROR) << "Cannot retrieve generic netlink header.";
       return false;
     }
   }
-  const nlmsghdr* nl_header = reinterpret_cast<const nlmsghdr*>(data_.data());
+  // If it is an ERROR message, it should be long enough to carry an extra error
+  // code field.
+  // Kernel uses int for this field.
+  if (GetMessageType() == NLMSG_ERROR) {
+    if (data_.size() < NLMSG_HDRLEN + sizeof(int) ||
+        nl_header->nlmsg_len < NLMSG_HDRLEN + sizeof(int)) {
+     LOG(ERROR) << "Broken error message.";
+     return false;
+    }
+  }
+
   // Verify the netlink header.
   if (data_.size() < nl_header->nlmsg_len ||
       nl_header->nlmsg_len < sizeof(nlmsghdr)) {
@@ -108,6 +121,10 @@ uint32_t NL80211Packet::GetMessageSequence() const {
 uint32_t NL80211Packet::GetPortId() const {
   const nlmsghdr* nl_header = reinterpret_cast<const nlmsghdr*>(data_.data());
   return nl_header->nlmsg_pid;
+}
+
+int NL80211Packet::GetErrorCode() const {
+  return *reinterpret_cast<const int*>(data_.data() + NLMSG_HDRLEN);
 }
 
 const vector<uint8_t>& NL80211Packet::GetConstData() const {
