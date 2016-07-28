@@ -16,6 +16,8 @@
 
 #include "wificond/ap_interface_impl.h"
 
+#include <android-base/logging.h>
+
 #include "wificond/ap_interface_binder.h"
 
 using android::net::wifi::IApInterface;
@@ -49,6 +51,24 @@ bool ApInterfaceImpl::StartHostapd() {
 }
 
 bool ApInterfaceImpl::StopHostapd() {
+  pid_t hostapd_pid;
+  if (hostapd_manager_->GetHostapdPid(&hostapd_pid)) {
+    // We do this because it was found that hostapd would leave the driver in a
+    // bad state if init killed it harshly with a SIGKILL. b/30311493
+    if (kill(hostapd_pid, SIGTERM) == -1) {
+      LOG(ERROR) << "Error delivering signal to hostapd: " << strerror(errno);
+    }
+    // This should really be asynchronous: b/30465379
+    for (int tries = 0; tries < 10; tries++) {
+      // Try to give hostapd some time to go down.
+      if (!hostapd_manager_->IsHostapdRunning()) {
+        break;
+      }
+      usleep(10 * 1000);  // Don't busy wait.
+    }
+  }
+
+  // Always drop a SIGKILL on hostapd on the way out, just in case.
   return hostapd_manager_->StopHostapd();
 }
 
