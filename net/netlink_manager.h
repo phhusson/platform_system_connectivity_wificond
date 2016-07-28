@@ -63,10 +63,9 @@ class NetlinkManager {
                                      std::function<void(NL80211Packet)> handler);
   // Synchronous version of |RegisterHandlerAndSendMessage|.
   // Returns true on successfully receiving an valid reply.
-  // In this case |handler| will be run before this function returns.
-  // |handler| will not be run on failure.
-  bool SendMessageAndRunHandler(const NL80211Packet& packet,
-                                std::function<void(NL80211Packet)> handler);
+  // Reply packets will be stored in |response|.
+  bool SendMessageAndGetResponses(const NL80211Packet& packet,
+                                  std::vector<NL80211Packet>* response);
 
   // Get the wiphy index from kernel.
   // |*out_wiphy_index| returns the wiphy index from kernel.
@@ -79,7 +78,6 @@ class NetlinkManager {
   void ReceivePacketAndRunHandler(int fd);
   bool DiscoverFamilyId();
   bool SendMessageInternal(const NL80211Packet& packet, int fd);
-  void OnNewWiphy(NL80211Packet packet, uint32_t* out_wiphy_index);
 
   // This handler revceives mapping from NL80211 family name to family id,
   // as well as mapping from group name to group id.

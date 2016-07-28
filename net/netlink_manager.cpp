@@ -46,6 +46,10 @@ constexpr uint32_t kBroadcastSequenceNumber = 0;
 constexpr int kMaximumNetlinkMessageWaitMilliSeconds = 300;
 uint8_t ReceiveBuffer[kReceiveBufferSize];
 
+void AppendPacket(vector<NL80211Packet>* vec, NL80211Packet packet) {
+  vec->push_back(packet);
+}
+
 }
 
 NetlinkManager::NetlinkManager(EventLoop* event_loop)
@@ -197,9 +201,9 @@ bool NetlinkManager::RegisterHandlerAndSendMessage(
   return true;
 }
 
-bool NetlinkManager::SendMessageAndRunHandler(
+bool NetlinkManager::SendMessageAndGetResponses(
     const NL80211Packet& packet,
-    std::function<void(NL80211Packet)> handler) {
+    vector<NL80211Packet>* response) {
   if (!SendMessageInternal(packet, sync_netlink_fd_.get())) {
     return false;
   }
@@ -216,7 +220,8 @@ bool NetlinkManager::SendMessageAndRunHandler(
   // NLMSG_DONE message.
   // ReceivePacketAndRunHandler() will remove the handler after receiving a
   // NLMSG_DONE message.
-  message_handlers_[sequence] = handler;
+  message_handlers_[sequence] = std::bind(AppendPacket, response, _1);
+
   while (time_remaining > 0 &&
       message_handlers_.find(sequence) != message_handlers_.end()) {
     nsecs_t interval = systemTime(SYSTEM_TIME_MONOTONIC);
@@ -312,11 +317,13 @@ bool NetlinkManager::DiscoverFamilyId() {
                                    getpid());
   NL80211Attr<string> family_name(CTRL_ATTR_FAMILY_NAME, "nl80211");
   get_family_request.AddAttribute(family_name);
-  auto handler = std::bind(&NetlinkManager::OnNewFamily, this, _1);
-  if (!SendMessageAndRunHandler(get_family_request, handler)) {
-    LOG(ERROR) << "Failed to send GetFamily message for NL80211";
+  vector<NL80211Packet> response;
+  if (!SendMessageAndGetResponses(get_family_request, &response) ||
+      response.size() != 1) {
+    LOG(ERROR) << "Failed to send and get response for NL80211 GetFamily message";
     return false;
   }
+  OnNewFamily(response[0]);
   if (message_types_.find("nl80211") == message_types_.end()) {
     LOG(ERROR) << "Failed to get NL80211 family id";
     return false;
@@ -331,29 +338,22 @@ bool NetlinkManager::GetWiphyIndex(uint32_t* out_wiphy_index) {
       GetSequenceNumber(),
       getpid());
   get_wiphy.AddFlag(NLM_F_DUMP);
-  uint32_t wiphy_index = UINT32_MAX;
-  auto handler = std::bind(&NetlinkManager::OnNewWiphy,
-                           this,
-                           _1,
-                           &wiphy_index);
-  // wiphy_index should be modified by OnNewWiphy() on success.
-  if (!SendMessageAndRunHandler(get_wiphy, handler) || wiphy_index == UINT32_MAX) {
+  vector<NL80211Packet> response;
+  if (!SendMessageAndGetResponses(get_wiphy, &response))  {
     LOG(ERROR) << "Failed to get wiphy index";
     return false;
   }
-  *out_wiphy_index = wiphy_index;
+  for (NL80211Packet& packet : response) {
+    if (packet.GetCommand() != NL80211_CMD_NEW_WIPHY) {
+      LOG(ERROR) << "Wrong command for new wiphy message";
+      return false;
+    }
+    if (!packet.GetAttributeValue(NL80211_ATTR_WIPHY, out_wiphy_index)) {
+      LOG(ERROR) << "Failed to get wiphy index from reply message";
+      return false;
+    }
+  }
   return true;
-}
-
-void NetlinkManager::OnNewWiphy(NL80211Packet packet, uint32_t* out_wiphy_index) {
-  if (packet.GetCommand() != NL80211_CMD_NEW_WIPHY) {
-    LOG(ERROR) << "Wrong command for new wiphy message";
-    return;
-  }
-  if (!packet.GetAttributeValue(NL80211_ATTR_WIPHY, out_wiphy_index)) {
-    LOG(ERROR) << "Failed to get wiphy index from reply message";
-    return;
-  }
 }
 
 }  // namespace wificond

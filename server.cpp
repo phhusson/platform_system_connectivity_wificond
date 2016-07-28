@@ -94,7 +94,7 @@ bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
   }
 
   if (!RefreshWiphyIndex()) {
-      return false;
+    return false;
   }
 
   // TODO: Confirm the ap interface is ready for use by checking its
