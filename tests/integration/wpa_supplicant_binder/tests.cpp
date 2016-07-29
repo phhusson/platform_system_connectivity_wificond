@@ -62,6 +62,9 @@ const char kWlan0IfaceName[] = "wlan0";
 const char kP2p0IfaceName[] = "p2p0";
 const char kIfaceDriver[] = "nl80211";
 const char kIfaceConfigFile[] = "/data/misc/wifi/wpa_supplicant.conf";
+const char kNetworkSSID[] = "SSID123";
+const char kNetworkPassphrase[] = "Psk123";
+const char kNetworkBSSID[] = {0xad, 0x76, 0x34, 0x87, 0x90, 0x0f};
 const int kCallbackTimeoutMillis = 5;
 
 // Used to get callbacks defined in |BnSupplicantCallback|.
@@ -469,4 +472,321 @@ TEST_F(WpaSupplicantBinderTest, OnNetworkRemoved) {
   // Wait for callback.
   EXPECT_TRUE(binder_dispatcher_.DispatchFor(kCallbackTimeoutMillis));
 }
+
+// Verifies the |INetwork.SetSSID| & |INetwork.GetSSID|
+// binder calls on a network.
+TEST_F(WpaSupplicantBinderTest, NetworkSetGetSSID) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  // Now set the ssid converting to a hex vector.
+  std::vector<uint8_t> set_ssid_vec;
+  set_ssid_vec.assign(kNetworkSSID, kNetworkSSID + strlen(kNetworkSSID));
+  android::binder::Status status = network->SetSSID(set_ssid_vec);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  std::vector<uint8_t> get_ssid_vec;
+  status = network->GetSSID(&get_ssid_vec);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(set_ssid_vec, get_ssid_vec);
+}
+
+// Verifies the |INetwork.SetBSSID| & |INetwork.GetBSSID|
+// binder calls on a network.
+TEST_F(WpaSupplicantBinderTest, NetworkSetGetBSSID) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  // Now set the bssid converting to a hex vector.
+  std::vector<uint8_t> set_bssid_vec;
+  set_bssid_vec.assign(kNetworkBSSID, kNetworkBSSID + sizeof(kNetworkBSSID));
+  android::binder::Status status = network->SetBSSID(set_bssid_vec);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  std::vector<uint8_t> get_bssid_vec;
+  status = network->GetBSSID(&get_bssid_vec);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(set_bssid_vec, get_bssid_vec);
+
+  // Clear the bssid now.
+  set_bssid_vec.clear();
+  status = network->SetBSSID(set_bssid_vec);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  status = network->GetBSSID(&get_bssid_vec);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're cleared.
+  EXPECT_TRUE(get_bssid_vec.empty());
+}
+
+// Verifies the |INetwork.SetScanSSID| & |INetwork.GetScanSSID|
+// binder calls on a network.
+TEST_F(WpaSupplicantBinderTest, NetworkSetGetScanSSID) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  bool set_scan_ssid = true;
+  android::binder::Status status = network->SetScanSSID(set_scan_ssid);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  bool get_scan_ssid;
+  status = network->GetScanSSID(&get_scan_ssid);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(set_scan_ssid, get_scan_ssid);
+}
+
+// Verifies the |INetwork.SetRequirePMF| & |INetwork.GetRequirePMF|
+// binder calls on a network.
+TEST_F(WpaSupplicantBinderTest, NetworkSetGetRequirePMF) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  bool set_require_pmf = true;
+  android::binder::Status status = network->SetRequirePMF(set_require_pmf);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  bool get_require_pmf;
+  status = network->GetRequirePMF(&get_require_pmf);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(set_require_pmf, get_require_pmf);
+}
+
+// Verifies the |INetwork.SetPskPassphrase| & |INetwork.GetPskPassphrase|
+// binder calls on a network.
+TEST_F(WpaSupplicantBinderTest, NetworkSetGetPskPassphrase) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  android::binder::Status status =
+      network->SetPskPassphrase(kNetworkPassphrase);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  std::string get_psk_passphrase;
+  status = network->GetPskPassphrase(&get_psk_passphrase);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(kNetworkPassphrase, get_psk_passphrase);
+}
+
+// Verifies the |INetwork.SetWepTxKeyIdx| & |INetwork.GetWepTxKeyIdx|
+// binder calls on a network.
+TEST_F(WpaSupplicantBinderTest, NetworkSetGetWepTxKeyIdx) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  // Add network now.
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  int set_idx = 1;
+  android::binder::Status status = network->SetWepTxKeyIdx(set_idx);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  int get_idx;
+  status = network->GetWepTxKeyIdx(&get_idx);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(set_idx, get_idx);
+}
+
+// Verifies the |INetwork.SetWepKey| & |INetwork.GetWepKey|
+// binder calls on a network.
+class NetworkWepKeyTest
+    : public WpaSupplicantBinderTest,
+      public ::testing::WithParamInterface<std::vector<uint8_t>> {};
+
+TEST_P(NetworkWepKeyTest, SetGet) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  std::vector<uint8_t> set_wep_key = GetParam();
+  android::binder::Status status;
+  for (int i = 0; i < fi::w1::wpa_supplicant::INetwork::WEP_KEYS_MAX_NUM; i++) {
+    status = network->SetWepKey(i, set_wep_key);
+    EXPECT_TRUE(status.isOk()) << status.toString8();
+  }
+
+  std::vector<uint8_t> get_wep_key;
+  for (int i = 0; i < fi::w1::wpa_supplicant::INetwork::WEP_KEYS_MAX_NUM; i++) {
+    status = network->GetWepKey(i, &get_wep_key);
+    EXPECT_TRUE(status.isOk()) << status.toString8();
+    // Ensure they're the same.
+    EXPECT_EQ(get_wep_key, set_wep_key);
+  }
+}
+
+INSTANTIATE_TEST_CASE_P(
+    NetworkSetGetWepKey,
+    NetworkWepKeyTest,
+    ::testing::Values(std::vector<uint8_t>({0x56, 0x67, 0x67, 0xf4, 0x56}),
+                      std::vector<uint8_t>({0x56, 0x67, 0x67, 0xf4, 0x56,
+                                            0x89, 0xad, 0x67, 0x78, 0x89,
+                                            0x97, 0xa5, 0xde})));
+
+// Verifies the |INetwork.SetKeyMgmt| & |INetwork.GetKeyMgmt|
+// binder calls on a network.
+class NetworkKeyMgmtTest : public WpaSupplicantBinderTest,
+                           public ::testing::WithParamInterface<int> {};
+
+TEST_P(NetworkKeyMgmtTest, SetGet) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  int set_mask = GetParam();
+  android::binder::Status status = network->SetKeyMgmt(set_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  int get_mask;
+  status = network->GetKeyMgmt(&get_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(get_mask, set_mask);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    NetworkSetGetKeyMgmt,
+    NetworkKeyMgmtTest,
+    ::testing::Values(
+        fi::w1::wpa_supplicant::INetwork::KEY_MGMT_MASK_NONE,
+        fi::w1::wpa_supplicant::INetwork::KEY_MGMT_MASK_WPA_PSK,
+        fi::w1::wpa_supplicant::INetwork::KEY_MGMT_MASK_WPA_PSK,
+        fi::w1::wpa_supplicant::INetwork::KEY_MGMT_MASK_IEEE8021X));
+
+// Verifies the |INetwork.SetProto| & |INetwork.GetProto|
+// binder calls on a network.
+class NetworkProtoTest : public WpaSupplicantBinderTest,
+                         public ::testing::WithParamInterface<int> {};
+
+TEST_P(NetworkProtoTest, SetGet) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  int set_mask = GetParam();
+  android::binder::Status status = network->SetProto(set_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  int get_mask;
+  status = network->GetProto(&get_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(get_mask, set_mask);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    NetworkSetGetProto,
+    NetworkProtoTest,
+    ::testing::Values(fi::w1::wpa_supplicant::INetwork::PROTO_MASK_WPA,
+                      fi::w1::wpa_supplicant::INetwork::PROTO_MASK_RSN,
+                      fi::w1::wpa_supplicant::INetwork::PROTO_MASK_OSEN));
+
+// Verifies the |INetwork.SetAuthAlg| & |INetwork.GetAuthAlg|
+// binder calls on a network.
+class NetworkAuthAlgTest : public WpaSupplicantBinderTest,
+                           public ::testing::WithParamInterface<int> {};
+
+TEST_P(NetworkAuthAlgTest, SetGet) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  int set_mask = GetParam();
+  android::binder::Status status = network->SetAuthAlg(set_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  int get_mask;
+  status = network->GetAuthAlg(&get_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(get_mask, set_mask);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    NetworkSetGetAuthAlg,
+    NetworkAuthAlgTest,
+    ::testing::Values(fi::w1::wpa_supplicant::INetwork::AUTH_ALG_MASK_OPEN,
+                      fi::w1::wpa_supplicant::INetwork::AUTH_ALG_MASK_SHARED,
+                      fi::w1::wpa_supplicant::INetwork::AUTH_ALG_MASK_LEAP));
+
+// Verifies the |INetwork.SetGroupCipher| & |INetwork.GetGroupCipher|
+// binder calls on a network.
+class NetworkGroupCipherTest : public WpaSupplicantBinderTest,
+                               public ::testing::WithParamInterface<int> {};
+
+TEST_P(NetworkGroupCipherTest, SetGet) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  int set_mask = GetParam();
+  android::binder::Status status = network->SetGroupCipher(set_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  int get_mask;
+  status = network->GetGroupCipher(&get_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(get_mask, set_mask);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    NetworkSetGetGroupCipher,
+    NetworkGroupCipherTest,
+    ::testing::Values(
+        fi::w1::wpa_supplicant::INetwork::GROUP_CIPHER_MASK_WEP40,
+        fi::w1::wpa_supplicant::INetwork::GROUP_CIPHER_MASK_WEP104,
+        fi::w1::wpa_supplicant::INetwork::GROUP_CIPHER_MASK_TKIP,
+        fi::w1::wpa_supplicant::INetwork::GROUP_CIPHER_MASK_CCMP));
+
+// Verifies the |INetwork.SetPairwiseCipher| & |INetwork.GetPairwiseCipher|
+// binder calls on a network.
+class NetworkPairwiseCipherTest : public WpaSupplicantBinderTest,
+                                  public ::testing::WithParamInterface<int> {};
+
+TEST_P(NetworkPairwiseCipherTest, SetGet) {
+  android::sp<IIface> iface = CreateInterfaceForTest();
+
+  // Add network now.
+  android::sp<INetwork> network = AddNetworkForTest(iface);
+
+  int set_mask = GetParam();
+  android::binder::Status status = network->SetPairwiseCipher(set_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  int get_mask;
+  status = network->GetPairwiseCipher(&get_mask);
+  EXPECT_TRUE(status.isOk()) << status.toString8();
+
+  // Ensure they're the same.
+  EXPECT_EQ(get_mask, set_mask);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    NetworkSetGetPairwiseCipher,
+    NetworkPairwiseCipherTest,
+    ::testing::Values(
+        fi::w1::wpa_supplicant::INetwork::PAIRWISE_CIPHER_MASK_NONE,
+        fi::w1::wpa_supplicant::INetwork::PAIRWISE_CIPHER_MASK_TKIP,
+        fi::w1::wpa_supplicant::INetwork::PAIRWISE_CIPHER_MASK_CCMP));
+
 }  // namespace wpa_supplicant_binder
