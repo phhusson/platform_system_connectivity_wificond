@@ -17,6 +17,8 @@
 #ifndef WIFICOND_TEST_MOCK_NETLINK_MANAGER_H_
 #define WIFICOND_TEST_MOCK_NETLINK_MANAGER_H_
 
+#include <string>
+
 #include <gmock/gmock.h>
 
 #include "wificond/net/netlink_manager.h"
@@ -29,7 +31,9 @@ class MockNetlinkManager : public NetlinkManager {
   MockNetlinkManager(EventLoop* event_loop);
   ~MockNetlinkManager() override = default;
 
-  MOCK_METHOD1(GetWiphyIndex, bool(uint32_t*));
+  MOCK_METHOD1(GetWiphyIndex, bool(uint32_t* out_wiphy_index));
+  MOCK_METHOD2(GetInterfaceName, bool(uint32_t wiphy_index,
+                                      std::string* interface_name));
 
 };  // class MockNetlinkManager
 

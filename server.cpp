@@ -34,11 +34,6 @@ using android::wifi_system::InterfaceTool;
 
 namespace android {
 namespace wificond {
-namespace {
-
-const char kNetworkInterfaceName[] = "wlan0";
-
-}  // namespace
 
 Server::Server(unique_ptr<HalTool> hal_tool,
                unique_ptr<InterfaceTool> if_tool,
@@ -97,9 +92,9 @@ bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
     return false;
   }
 
-  // TODO: Confirm the ap interface is ready for use by checking its
-  //       nl80211 published capabilities.
-  *interface_name = kNetworkInterfaceName;
+  if (!netlink_manager_->GetInterfaceName(wiphy_index_, interface_name)) {
+    return false;
+  }
 
   return true;
 }
