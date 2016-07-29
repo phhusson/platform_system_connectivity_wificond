@@ -53,7 +53,8 @@ void AppendPacket(vector<NL80211Packet>* vec, NL80211Packet packet) {
 }
 
 NetlinkManager::NetlinkManager(EventLoop* event_loop)
-    : event_loop_(event_loop),
+    : started_(false),
+      event_loop_(event_loop),
       sequence_number_(0) {
 }
 
@@ -164,6 +165,10 @@ void NetlinkManager::OnNewFamily(NL80211Packet packet) {
 }
 
 bool NetlinkManager::Start() {
+  if (started_) {
+    LOG(DEBUG) << "NetlinkManager is already started";
+    return true;
+  }
   bool setup_rt = SetupSocket(&sync_netlink_fd_);
   if (!setup_rt) {
     LOG(ERROR) << "Failed to setup synchronous netlink socket";
@@ -184,7 +189,12 @@ bool NetlinkManager::Start() {
   if (!WatchSocket(&async_netlink_fd_)) {
     return false;
   }
+  started_ = true;
   return true;
+}
+
+bool NetlinkManager::IsStarted() const {
+  return started_;
 }
 
 bool NetlinkManager::RegisterHandlerAndSendMessage(

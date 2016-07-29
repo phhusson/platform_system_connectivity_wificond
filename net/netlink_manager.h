@@ -49,7 +49,10 @@ class NetlinkManager {
   virtual ~NetlinkManager();
   // Initialize netlink manager.
   // This includes setting up socket and requesting nl80211 family id from kernel.
+  // Returns true on success.
   bool Start();
+  // Returns true if this netlink manager object is started.
+  bool IsStarted() const;
   // Returns a sequence number available for use.
   uint32_t GetSequenceNumber();
   // Get NL80211 netlink family id,
@@ -84,6 +87,7 @@ class NetlinkManager {
   // These mappings are allocated by kernel.
   void OnNewFamily(NL80211Packet packet);
 
+  bool started_;
   // We use different sockets for synchronous and asynchronous interfaces.
   // Kernel will reply error message when we start a new request in the
   // middle of a dump request.
