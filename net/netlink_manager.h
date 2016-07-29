@@ -20,6 +20,7 @@
 #include <functional>
 #include <map>
 
+#include <android-base/macros.h>
 #include <android-base/unique_fd.h>
 
 #include "event_loop.h"
@@ -110,6 +111,8 @@ class NetlinkManager {
   std::map<std::string, MessageType> message_types_;
 
   uint32_t sequence_number_;
+
+  DISALLOW_COPY_AND_ASSIGN(NetlinkManager);
 };
 
 }  // namespace wificond
