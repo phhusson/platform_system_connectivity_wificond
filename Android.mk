@@ -72,8 +72,9 @@ LOCAL_MODULE := libwificond_nl
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
-    net/nl80211_attribute.cpp \
     net/netlink_manager.cpp \
+    net/netlink_utils.cpp \
+    net/nl80211_attribute.cpp \
     net/nl80211_packet.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase
@@ -126,6 +127,7 @@ LOCAL_SRC_FILES := \
     tests/looper_backed_event_loop_unittest.cpp \
     tests/main.cpp \
     tests/mock_netlink_manager.cpp \
+    tests/mock_netlink_utils.cpp \
     tests/netlink_manager_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \

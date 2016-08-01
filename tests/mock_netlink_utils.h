@@ -14,26 +14,28 @@
  * limitations under the License.
  */
 
-#ifndef WIFICOND_TEST_MOCK_NETLINK_MANAGER_H_
-#define WIFICOND_TEST_MOCK_NETLINK_MANAGER_H_
-
-#include <string>
+#ifndef WIFICOND_TEST_MOCK_NETLINK_UTILS_H_
+#define WIFICOND_TEST_MOCK_NETLINK_UTILS_H_
 
 #include <gmock/gmock.h>
 
-#include "wificond/net/netlink_manager.h"
+#include "wificond/net/netlink_utils.h"
 
 namespace android {
 namespace wificond {
 
-class MockNetlinkManager : public NetlinkManager {
+class MockNetlinkUtils : public NetlinkUtils {
  public:
-  MockNetlinkManager(EventLoop* event_loop);
-  ~MockNetlinkManager() override = default;
+  MockNetlinkUtils(NetlinkManager* netlink_manager);
+  ~MockNetlinkUtils() override = default;
 
-};  // class MockNetlinkManager
+  MOCK_METHOD1(GetWiphyIndex, bool(uint32_t* out_wiphy_index));
+  MOCK_METHOD2(GetInterfaceName, bool(uint32_t wiphy_index,
+                                      std::string* interface_name));
+
+};  // class MockNetlinkUtils
 
 }  // namespace wificond
 }  // namespace android
 
-#endif  // WIFICOND_TEST_MOCK_NETLINK_MANAGER_H
+#endif  // WIFICOND_TEST_MOCK_NETLINK_UTILS_H

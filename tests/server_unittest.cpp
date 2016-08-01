@@ -25,6 +25,7 @@
 #include "android/net/wifi/IApInterface.h"
 #include "wificond/looper_backed_event_loop.h"
 #include "wificond/tests/mock_netlink_manager.h"
+#include "wificond/tests/mock_netlink_utils.h"
 #include "wificond/server.h"
 
 using android::net::wifi::IApInterface;
@@ -51,8 +52,8 @@ class ServerTest : public ::testing::Test {
     ON_CALL(*driver_tool_, UnloadDriver()).WillByDefault(Return(true));
     ON_CALL(*driver_tool_, ChangeFirmwareMode(_)).WillByDefault(Return(true));
     ON_CALL(*if_tool_, SetWifiUpState(_)).WillByDefault(Return(true));
-    ON_CALL(*netlink_manager_, GetWiphyIndex(_)).WillByDefault(Return(true));
-    ON_CALL(*netlink_manager_, GetInterfaceName(_, _)).WillByDefault(Return(true));
+    ON_CALL(*netlink_utils_, GetWiphyIndex(_)).WillByDefault(Return(true));
+    ON_CALL(*netlink_utils_, GetInterfaceName(_, _)).WillByDefault(Return(true));
   }
 
   NiceMock<LooperBackedEventLoop>* event_loop_ =
@@ -64,10 +65,14 @@ class ServerTest : public ::testing::Test {
   unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_{
       new NiceMock<MockNetlinkManager>(event_loop_)};
 
+  unique_ptr<NiceMock<MockNetlinkUtils>> netlink_utils_{
+      new NiceMock<MockNetlinkUtils>(netlink_manager_.get())};
+
+
   Server server_{unique_ptr<HalTool>(hal_tool_),
                  unique_ptr<InterfaceTool>(if_tool_),
                  unique_ptr<DriverTool>(driver_tool_),
-                 netlink_manager_.get()};
+                 netlink_utils_.get()};
 };  // class ServerTest
 
 }  // namespace
@@ -81,10 +86,10 @@ TEST_F(ServerTest, CanSetUpApInterface) {
   EXPECT_CALL(*driver_tool_, ChangeFirmwareMode(DriverTool::kFirmwareModeAp))
       .InSequence(sequence)
       .WillOnce(Return(true));
-  EXPECT_CALL(*netlink_manager_, GetWiphyIndex(_))
+  EXPECT_CALL(*netlink_utils_, GetWiphyIndex(_))
       .InSequence(sequence)
       .WillOnce(Return(true));
-  EXPECT_CALL(*netlink_manager_, GetInterfaceName(_, _))
+  EXPECT_CALL(*netlink_utils_, GetInterfaceName(_, _))
       .InSequence(sequence)
       .WillOnce(Return(true));
 
@@ -94,8 +99,8 @@ TEST_F(ServerTest, CanSetUpApInterface) {
 
 TEST_F(ServerTest, DoesNotSupportMultipleInterfaces) {
   sp<IApInterface> ap_if;
-  EXPECT_CALL(*netlink_manager_, GetWiphyIndex(_)).Times(1);
-  EXPECT_CALL(*netlink_manager_, GetInterfaceName(_, _)).Times(1);
+  EXPECT_CALL(*netlink_utils_, GetWiphyIndex(_)).Times(1);
+  EXPECT_CALL(*netlink_utils_, GetInterfaceName(_, _)).Times(1);
 
   EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
   EXPECT_NE(nullptr, ap_if.get());
@@ -109,8 +114,8 @@ TEST_F(ServerTest, DoesNotSupportMultipleInterfaces) {
 
 TEST_F(ServerTest, CanDestroyInterfaces) {
   sp<IApInterface> ap_if;
-  EXPECT_CALL(*netlink_manager_, GetWiphyIndex(_)).Times(2);
-  EXPECT_CALL(*netlink_manager_, GetInterfaceName(_, _)).Times(2);
+  EXPECT_CALL(*netlink_utils_, GetWiphyIndex(_)).Times(2);
+  EXPECT_CALL(*netlink_utils_, GetInterfaceName(_, _)).Times(2);
   EXPECT_CALL(*driver_tool_, UnloadDriver()).Times(0);
 
   EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());

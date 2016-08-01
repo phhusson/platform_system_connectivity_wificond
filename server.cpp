@@ -18,7 +18,7 @@
 
 #include <android-base/logging.h>
 
-#include "wificond/net/netlink_manager.h"
+#include "wificond/net/netlink_utils.h"
 
 using android::binder::Status;
 using android::sp;
@@ -39,11 +39,11 @@ namespace wificond {
 Server::Server(unique_ptr<HalTool> hal_tool,
                unique_ptr<InterfaceTool> if_tool,
                unique_ptr<DriverTool> driver_tool,
-               NetlinkManager* netlink_manager)
+               NetlinkUtils* netlink_utils)
     : hal_tool_(std::move(hal_tool)),
       if_tool_(std::move(if_tool)),
       driver_tool_(std::move(driver_tool)),
-      netlink_manager_(netlink_manager) {
+      netlink_utils_(netlink_utils) {
 }
 
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
@@ -105,7 +105,7 @@ bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
     return false;
   }
 
-  if (!netlink_manager_->GetInterfaceName(wiphy_index_, interface_name)) {
+  if (!netlink_utils_->GetInterfaceName(wiphy_index_, interface_name)) {
     return false;
   }
 
@@ -113,7 +113,7 @@ bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
 }
 
 bool Server::RefreshWiphyIndex() {
-  if (!netlink_manager_->GetWiphyIndex(&wiphy_index_)) {
+  if (!netlink_utils_->GetWiphyIndex(&wiphy_index_)) {
     LOG(ERROR) << "Failed to get wiphy index";
     return false;
   }

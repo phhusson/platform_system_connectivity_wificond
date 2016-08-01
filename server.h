@@ -37,14 +37,14 @@ namespace android {
 namespace wificond {
 
 class NL80211Packet;
-class NetlinkManager;
+class NetlinkUtils;
 
 class Server : public android::net::wifi::BnWificond {
  public:
   Server(std::unique_ptr<wifi_system::HalTool> hal_tool,
          std::unique_ptr<wifi_system::InterfaceTool> if_tool,
          std::unique_ptr<wifi_hal::DriverTool> driver_tool,
-         NetlinkManager* netlink_manager);
+         NetlinkUtils* netlink_utils);
   ~Server() override = default;
 
   android::binder::Status createApInterface(
@@ -71,7 +71,7 @@ class Server : public android::net::wifi::BnWificond {
   const std::unique_ptr<wifi_system::HalTool> hal_tool_;
   const std::unique_ptr<wifi_system::InterfaceTool> if_tool_;
   const std::unique_ptr<wifi_hal::DriverTool> driver_tool_;
-  NetlinkManager* netlink_manager_;
+  NetlinkUtils* netlink_utils_;
 
   uint32_t wiphy_index_;
   std::vector<std::unique_ptr<ApInterfaceImpl>> ap_interfaces_;

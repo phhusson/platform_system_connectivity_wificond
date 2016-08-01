@@ -71,17 +71,6 @@ class NetlinkManager {
   bool SendMessageAndGetResponses(const NL80211Packet& packet,
                                   std::vector<NL80211Packet>* response);
 
-  // Get the wiphy index from kernel.
-  // |*out_wiphy_index| returns the wiphy index from kernel.
-  // Returns true on success.
-  virtual bool GetWiphyIndex(uint32_t* out_wiphy_index);
-
-  // Get wifi interface name from kernel.
-  // |wiphy_index| is the wiphy index we get using GetWiphyIndex().
-  // Returns true on success.
-  virtual bool GetInterfaceName(uint32_t wiphy_index,
-                                std::string* interface_name);
-
  private:
   bool SetupSocket(android::base::unique_fd* netlink_fd);
   bool WatchSocket(android::base::unique_fd* netlink_fd);
