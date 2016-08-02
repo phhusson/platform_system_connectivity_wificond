@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #include <android-base/logging.h>
+#include <android-base/stringprintf.h>
 #include <android-base/strings.h>
 #include <binder/IBinder.h>
 #include <binder/IServiceManager.h>
@@ -30,6 +31,7 @@
 #include "wificond/tests/shell_utils.h"
 
 using android::String16;
+using android::base::StringPrintf;
 using android::base::Trim;
 using android::net::wifi::IWificond;
 using android::sp;
@@ -40,6 +42,19 @@ namespace android {
 namespace wificond {
 namespace tests {
 namespace integration {
+namespace {
+
+bool IsProcessRunning(const char* process_name) {
+  std::string output;
+  RunShellCommand(StringPrintf("pgrep -c ^%s$", process_name), &output);
+  output = Trim(output);
+  if (output == "0") {
+    return false;
+  }
+  return true;
+}
+
+}
 
 const uint32_t ScopedDevModeWificond::kWificondDeathTimeoutSeconds = 10;
 const uint32_t ScopedDevModeWificond::kWificondStartTimeoutSeconds = 10;
@@ -96,13 +111,7 @@ bool IsBinderServiceRegistered(const char* service_name) {
 }
 
 bool WificondIsRunning() {
-  std::string output;
-  RunShellCommand("pgrep -c ^wificond$", &output);
-  output = Trim(output);
-  if (output == "0") {
-    return false;
-  }
-  return true;
+  return IsProcessRunning("wificond");
 }
 
 bool WificondIsDead() { return !WificondIsRunning(); }
@@ -110,6 +119,12 @@ bool WificondIsDead() { return !WificondIsRunning(); }
 bool WificondSetDevMode(bool is_on) {
   return property_set(kDevModePropertyKey, (is_on) ? "1" : "0") == 0;
 }
+
+bool HostapdIsRunning() {
+  return IsProcessRunning("hostapd");
+}
+
+bool HostapdIsDead() { return !HostapdIsRunning(); }
 
 }  // namespace integration
 }  // namespace tests

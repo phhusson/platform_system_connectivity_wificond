@@ -16,16 +16,10 @@
 
 #include <gtest/gtest.h>
 
-#include <utils/StrongPointer.h>
-
-#include "android/net/wifi/IApInterface.h"
-#include "android/net/wifi/IWificond.h"
 #include "wificond/ipc_constants.h"
 #include "wificond/tests/shell_utils.h"
 #include "wificond/tests/integration/process_utils.h"
 
-using android::net::wifi::IApInterface;
-using android::net::wifi::IWificond;
 using android::wificond::ipc_constants::kDevModeServiceName;
 using android::wificond::ipc_constants::kServiceName;
 using android::wificond::tests::integration::RunShellCommand;
@@ -58,24 +52,6 @@ TEST(LifeCycleTest, ProcessStartsUp) {
   // wificond should eventually register with the service manager.
   EXPECT_TRUE(WaitForTrue(std::bind(IsBinderServiceRegistered, kServiceName),
                           ScopedDevModeWificond::kWificondStartTimeoutSeconds));
-}
-
-TEST(LifeCycleTest, CanCreateApInterfaces) {
-  ScopedDevModeWificond dev_mode;
-  sp<IWificond> service = dev_mode.EnterDevModeOrDie();
-
-  // We should be able to create an AP interface.
-  sp<IApInterface> ap_interface;
-  EXPECT_TRUE(service->createApInterface(&ap_interface).isOk());
-  EXPECT_NE(nullptr, ap_interface.get());
-
-  // We should not be able to create two AP interfaces.
-  sp<IApInterface> ap_interface2;
-  EXPECT_TRUE(service->createApInterface(&ap_interface2).isOk());
-  EXPECT_EQ(nullptr, ap_interface2.get());
-
-  // We can tear down the created interface.
-  EXPECT_TRUE(service->tearDownInterfaces().isOk());
 }
 
 }  // namespace wificond

@@ -153,6 +153,7 @@ LOCAL_MODULE := wificond_integration_test
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
+    tests/integration/ap_interface_test.cpp \
     tests/integration/life_cycle_test.cpp \
     tests/main.cpp \
     tests/shell_unittest.cpp
