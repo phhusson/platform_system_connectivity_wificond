@@ -129,6 +129,7 @@ LOCAL_SRC_FILES := \
     tests/mock_netlink_manager.cpp \
     tests/mock_netlink_utils.cpp \
     tests/netlink_manager_unittest.cpp \
+    tests/netlink_utils_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \
     tests/server_unittest.cpp

@@ -23,7 +23,6 @@
 #include <wifi_hal_test/mock_driver_tool.h>
 
 #include "android/net/wifi/IApInterface.h"
-#include "wificond/looper_backed_event_loop.h"
 #include "wificond/tests/mock_netlink_manager.h"
 #include "wificond/tests/mock_netlink_utils.h"
 #include "wificond/server.h"
@@ -56,14 +55,12 @@ class ServerTest : public ::testing::Test {
     ON_CALL(*netlink_utils_, GetInterfaceName(_, _)).WillByDefault(Return(true));
   }
 
-  NiceMock<LooperBackedEventLoop>* event_loop_ =
-      new NiceMock<LooperBackedEventLoop>;
   NiceMock<MockHalTool>* hal_tool_ = new NiceMock<MockHalTool>;
   NiceMock<MockInterfaceTool>* if_tool_ = new NiceMock<MockInterfaceTool>;
   NiceMock<MockDriverTool>* driver_tool_ = new NiceMock<MockDriverTool>;
 
   unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_{
-      new NiceMock<MockNetlinkManager>(event_loop_)};
+      new NiceMock<MockNetlinkManager>()};
 
   unique_ptr<NiceMock<MockNetlinkUtils>> netlink_utils_{
       new NiceMock<MockNetlinkUtils>(netlink_manager_.get())};
