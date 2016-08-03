@@ -127,6 +127,10 @@ void LooperBackedEventLoop::Poll() {
   }
 }
 
+void LooperBackedEventLoop::PollForOne(int timeout_millis) {
+  looper_->pollOnce(timeout_millis);
+}
+
 void LooperBackedEventLoop::TriggerExit() {
   PostTask([this](){ should_continue_ = false; });
 }
