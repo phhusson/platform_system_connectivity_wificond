@@ -181,6 +181,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := wpa_supplicant_binder_test
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_SRC_FILES := \
+    tests/integration/wpa_supplicant_binder/test_base.cpp \
     tests/integration/wpa_supplicant_binder/tests.cpp \
     tests/main.cpp
 LOCAL_SHARED_LIBRARIES := \
