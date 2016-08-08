@@ -124,7 +124,7 @@ uint32_t NL80211Packet::GetPortId() const {
 }
 
 int NL80211Packet::GetErrorCode() const {
-  return *reinterpret_cast<const int*>(data_.data() + NLMSG_HDRLEN);
+  return -*reinterpret_cast<const int*>(data_.data() + NLMSG_HDRLEN);
 }
 
 const vector<uint8_t>& NL80211Packet::GetConstData() const {
