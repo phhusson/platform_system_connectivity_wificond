@@ -54,6 +54,10 @@ bool NetlinkUtils::GetWiphyIndex(uint32_t* out_wiphy_index) {
     LOG(ERROR) << "Failed to get wiphy index";
     return false;
   }
+  if (response.empty()) {
+    LOG(ERROR) << "Unexpected empty response from kernel";
+    return false;
+  }
   for (NL80211Packet& packet : response) {
     if (packet.GetMessageType() == NLMSG_ERROR) {
       LOG(ERROR) << "Receive ERROR message: "
@@ -91,6 +95,10 @@ bool NetlinkUtils::GetInterfaceName(uint32_t wiphy_index,
   vector<NL80211Packet> response;
   if (!netlink_manager_->SendMessageAndGetResponses(get_interface, &response)) {
     LOG(ERROR) << "Failed to send GetWiphy message";
+  }
+  if (response.empty()) {
+    LOG(ERROR) << "Unexpected empty response from kernel";
+    return false;
   }
   for (NL80211Packet& packet : response) {
     if (packet.GetMessageType() == NLMSG_ERROR) {

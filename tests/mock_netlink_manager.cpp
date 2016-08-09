@@ -19,8 +19,8 @@
 namespace android {
 namespace wificond {
 
-MockNetlinkManager::MockNetlinkManager(EventLoop* event_loop)
-    : NetlinkManager(event_loop) {
+MockNetlinkManager::MockNetlinkManager()
+    : NetlinkManager(nullptr) {
 }
 
 }  // namespace wificond

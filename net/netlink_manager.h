@@ -51,25 +51,25 @@ class NetlinkManager {
   // Initialize netlink manager.
   // This includes setting up socket and requesting nl80211 family id from kernel.
   // Returns true on success.
-  bool Start();
+  virtual bool Start();
   // Returns true if this netlink manager object is started.
-  bool IsStarted() const;
+  virtual bool IsStarted() const;
   // Returns a sequence number available for use.
-  uint32_t GetSequenceNumber();
+  virtual uint32_t GetSequenceNumber();
   // Get NL80211 netlink family id,
-  uint16_t GetFamilyId();
+  virtual uint16_t GetFamilyId();
   // Send |packet| to kernel.
   // This works in an asynchronous way.
   // |handler| will be run when we receive a valid reply from kernel.
   // Do not use this asynchronous interface to send a dump request.
   // Returns true on success.
-  bool RegisterHandlerAndSendMessage(const NL80211Packet& packet,
-                                     std::function<void(NL80211Packet)> handler);
+  virtual bool RegisterHandlerAndSendMessage(const NL80211Packet& packet,
+      std::function<void(NL80211Packet)> handler);
   // Synchronous version of |RegisterHandlerAndSendMessage|.
   // Returns true on successfully receiving an valid reply.
   // Reply packets will be stored in |response|.
-  bool SendMessageAndGetResponses(const NL80211Packet& packet,
-                                  std::vector<NL80211Packet>* response);
+  virtual bool SendMessageAndGetResponses(const NL80211Packet& packet,
+                                          std::vector<NL80211Packet>* response);
 
  private:
   bool SetupSocket(android::base::unique_fd* netlink_fd);

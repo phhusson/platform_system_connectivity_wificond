@@ -17,20 +17,29 @@
 #ifndef WIFICOND_TEST_MOCK_NETLINK_MANAGER_H_
 #define WIFICOND_TEST_MOCK_NETLINK_MANAGER_H_
 
-#include <string>
+#include <vector>
 
 #include <gmock/gmock.h>
 
 #include "wificond/net/netlink_manager.h"
+#include "wificond/net/nl80211_packet.h"
 
 namespace android {
 namespace wificond {
 
 class MockNetlinkManager : public NetlinkManager {
  public:
-  MockNetlinkManager(EventLoop* event_loop);
+  MockNetlinkManager();
   ~MockNetlinkManager() override = default;
 
+  MOCK_METHOD0(GetSequenceNumber, uint32_t());
+  MOCK_METHOD0(GetFamilyId, uint16_t());
+  MOCK_METHOD0(Start, bool());
+  MOCK_CONST_METHOD0(IsStarted, bool());
+  MOCK_METHOD2(SendMessageAndGetResponses,
+      bool(const NL80211Packet&, std::vector<NL80211Packet>*));
+  MOCK_METHOD2(RegisterHandlerAndSendMessage,
+      bool(const NL80211Packet&, std::function<void(NL80211Packet)>));
 };  // class MockNetlinkManager
 
 }  // namespace wificond
