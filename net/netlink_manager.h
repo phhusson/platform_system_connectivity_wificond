@@ -71,12 +71,17 @@ class NetlinkManager {
   virtual bool SendMessageAndGetResponses(const NL80211Packet& packet,
                                           std::vector<NL80211Packet>* response);
 
+  // Sign-up to receive and log multicast events of a specific type.
+  // |group| is one of the string NL80211_MULTICAST_GROUP_* in nl80211.h.
+  virtual bool SubscribeToEvents(const std::string& group);
+
  private:
   bool SetupSocket(android::base::unique_fd* netlink_fd);
   bool WatchSocket(android::base::unique_fd* netlink_fd);
   void ReceivePacketAndRunHandler(int fd);
   bool DiscoverFamilyId();
   bool SendMessageInternal(const NL80211Packet& packet, int fd);
+  void BroadcastHandler(NL80211Packet& packet);
 
   // This handler revceives mapping from NL80211 family name to family id,
   // as well as mapping from group name to group id.

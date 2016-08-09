@@ -97,7 +97,11 @@ void NetlinkManager::ReceivePacketAndRunHandler(int fd) {
 
     uint32_t sequence_number = packet.GetMessageSequence();
 
-    // TODO(nywang): Handle multicasts, which have sequence number 0.
+    // Handle multicasts.
+    if (sequence_number == kBroadcastSequenceNumber) {
+      BroadcastHandler(packet);
+      continue;
+    }
 
     auto itr = message_handlers_.find(sequence_number);
     // There is no handler for this sequence number.
@@ -155,7 +159,7 @@ void NetlinkManager::OnNewFamily(NL80211Packet packet) {
     LOG(ERROR) << "Failed to get family name";
     return;
   }
-  if (family_name != "nl80211") {
+  if (family_name != NL80211_GENL_NAME) {
     LOG(WARNING) << "Ignoring none nl80211 netlink families";
   }
   MessageType nl80211_type(family_id);
@@ -203,6 +207,10 @@ bool NetlinkManager::Start() {
   if (!WatchSocket(&async_netlink_fd_)) {
     return false;
   }
+  if (!SubscribeToEvents(NL80211_MULTICAST_GROUP_SCAN)) {
+    return false;
+  }
+
   started_ = true;
   return true;
 }
@@ -331,7 +339,7 @@ bool NetlinkManager::WatchSocket(unique_fd* netlink_fd) {
 }
 
 uint16_t NetlinkManager::GetFamilyId() {
-  return message_types_["nl80211"].family_id;
+  return message_types_[NL80211_GENL_NAME].family_id;
 }
 
 bool NetlinkManager::DiscoverFamilyId() {
@@ -339,7 +347,7 @@ bool NetlinkManager::DiscoverFamilyId() {
                                    CTRL_CMD_GETFAMILY,
                                    GetSequenceNumber(),
                                    getpid());
-  NL80211Attr<string> family_name(CTRL_ATTR_FAMILY_NAME, "nl80211");
+  NL80211Attr<string> family_name(CTRL_ATTR_FAMILY_NAME, NL80211_GENL_NAME);
   get_family_request.AddAttribute(family_name);
   vector<NL80211Packet> response;
   if (!SendMessageAndGetResponses(get_family_request, &response) ||
@@ -354,11 +362,34 @@ bool NetlinkManager::DiscoverFamilyId() {
       return false;
   }
   OnNewFamily(packet);
-  if (message_types_.find("nl80211") == message_types_.end()) {
+  if (message_types_.find(NL80211_GENL_NAME) == message_types_.end()) {
     LOG(ERROR) << "Failed to get NL80211 family id";
     return false;
   }
   return true;
+}
+
+bool NetlinkManager::SubscribeToEvents(const string& group) {
+  auto groups = message_types_[NL80211_GENL_NAME].groups;
+  if (groups.find(group) == groups.end()) {
+    LOG(ERROR) << "Failed to subscribe: group " << group << " doesn't exist";
+    return false;
+  }
+  uint32_t group_id = groups[group];
+  int err = setsockopt(async_netlink_fd_.get(),
+                       SOL_NETLINK,
+                       NETLINK_ADD_MEMBERSHIP,
+                       &group_id,
+                       sizeof(group_id));
+  if (err < 0) {
+    LOG(ERROR) << "Failed to setsockopt: " << strerror(errno);
+    return false;
+  }
+  return true;
+}
+
+void NetlinkManager::BroadcastHandler(NL80211Packet& packet) {
+  //TODO(nywang): Handle broadcast packets.
 }
 
 }  // namespace wificond
