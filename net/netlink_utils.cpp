@@ -124,8 +124,12 @@ bool NetlinkUtils::GetInterfaceName(uint32_t wiphy_index,
 
     string if_name;
     if (!packet.GetAttributeValue(NL80211_ATTR_IFNAME, &if_name)) {
-      LOG(ERROR) << "Failed to get interface name";
-      return false;
+      // In some situations, it has been observed that the kernel tells us
+      // about a pseudo-device that does not have a real netdev.  In this
+      // case, responses will have a NL80211_ATTR_WDEV, and not the expected
+      // IFNAME.
+      LOG(DEBUG) << "Failed to get interface name";
+      continue;
     }
     if (if_name == "p2p0") {
       LOG(DEBUG) << "Driver may tell a lie that p2p0 is in STATION mode,"

@@ -139,6 +139,35 @@ TEST_F(NetlinkUtilsTest, CanGetInterfaceName) {
   EXPECT_EQ(string(kFakeInterfaceName), interface_name);
 }
 
+TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameQuery) {
+  // Some kernels will have extra responses ahead of the expected packet.
+  NL80211Packet psuedo_interface(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_INTERFACE,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  psuedo_interface.AddAttribute(NL80211Attr<uint64_t>(
+      NL80211_ATTR_WDEV, 0));
+  // This is the packet we're looking for
+  NL80211Packet expected_interface(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_INTERFACE,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  expected_interface.AddAttribute(NL80211Attr<string>(
+      NL80211_ATTR_IFNAME, string(kFakeInterfaceName)));
+  // Kernel can send us the pseduo interface packet first
+  vector<NL80211Packet> response = {psuedo_interface, expected_interface};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+
+  string interface_name;
+  EXPECT_TRUE(netlink_utils_->GetInterfaceName(kFakeWiphyIndex,
+                                               &interface_name));
+  EXPECT_EQ(string(kFakeInterfaceName), interface_name);
+}
+
 TEST_F(NetlinkUtilsTest, CanGetInterfaceNameAndBlacklistP2p0) {
   NL80211Packet new_interface(
       netlink_manager_->GetFamilyId(),

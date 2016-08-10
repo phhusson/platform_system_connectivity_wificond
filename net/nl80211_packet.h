@@ -143,6 +143,8 @@ class NL80211Packet {
     return true;
   }
 
+  void DebugLog() const;
+
   std::vector<uint8_t> data_;
 };
 
