@@ -126,6 +126,12 @@ bool HostapdIsRunning() {
 
 bool HostapdIsDead() { return !HostapdIsRunning(); }
 
+bool SupplicantIsRunning() {
+  return IsProcessRunning("wpa_supplicant");
+}
+
+bool SupplicantIsDead() { return !SupplicantIsRunning(); }
+
 }  // namespace integration
 }  // namespace tests
 }  // namespace android

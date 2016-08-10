@@ -17,6 +17,7 @@
 #include "wificond/client_interface_impl.h"
 
 #include <android-base/logging.h>
+#include <wifi_system/wifi.h>
 
 #include "wificond/client_interface_binder.h"
 #include "wificond/net/netlink_utils.h"
@@ -40,10 +41,19 @@ ClientInterfaceImpl::ClientInterfaceImpl(const std::string& interface_name,
 
 ClientInterfaceImpl::~ClientInterfaceImpl() {
   binder_->NotifyImplDead();
+  DisableSupplicant();
 }
 
 sp<android::net::wifi::IClientInterface> ClientInterfaceImpl::GetBinder() const {
   return binder_;
+}
+
+bool ClientInterfaceImpl::EnableSupplicant() {
+  return (wifi_system::wifi_start_supplicant() == 0);
+}
+
+bool ClientInterfaceImpl::DisableSupplicant() {
+  return (wifi_system::wifi_stop_supplicant() == 0);
 }
 
 }  // namespace wificond

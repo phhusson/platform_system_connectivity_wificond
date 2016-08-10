@@ -93,6 +93,12 @@ bool HostapdIsRunning();
 // Convenient alias for !HostapdIsRunning
 bool HostapdIsDead();
 
+// Returns true iff the wpa_supplicant process is running on the system.
+bool SupplicantIsRunning();
+
+// Convenient alias for !SupplicantIsRunning
+bool SupplicantIsDead();
+
 }  // namespace integration
 }  // namespace tests
 }  // namespace android

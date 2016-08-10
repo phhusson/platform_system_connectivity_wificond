@@ -20,4 +20,11 @@ package android.net.wifi;
 // to access points and obtain internet connectivity.
 interface IClientInterface {
 
+  // Enable a wpa_supplicant instance running against this interface.
+  // Returns true if supplicant was successfully enabled, or is already enabled.
+  boolean enableSupplicant();
+
+  // Remove this interface from wpa_supplicant's control.
+  // Returns true if removal was successful.
+  boolean disableSupplicant();
 }
