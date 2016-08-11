@@ -41,8 +41,9 @@ class NetlinkUtils {
   // Get wifi interface name from kernel.
   // |wiphy_index| is the wiphy index we get using GetWiphyIndex().
   // Returns true on success.
-  virtual bool GetInterfaceName(uint32_t wiphy_index,
-                                std::string* interface_name);
+  virtual bool GetInterfaceNameAndIndex(uint32_t wiphy_index,
+                                        std::string* interface_name,
+                                        uint32_t* interface_index);
 
  private:
   NetlinkManager* netlink_manager_;

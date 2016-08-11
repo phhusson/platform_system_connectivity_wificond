@@ -32,10 +32,15 @@ namespace android {
 namespace wificond {
 
 ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
+                                 uint32_t interface_index,
                                  unique_ptr<HostapdManager> hostapd_manager)
     : interface_name_(interface_name),
+      interface_index_(interface_index),
       hostapd_manager_(std::move(hostapd_manager)),
       binder_(new ApInterfaceBinder(this)) {
+  // This log keeps compiler happy.
+  LOG(DEBUG) << "Created ap interface " << interface_name_
+             << " with index " << interface_index_;
 }
 
 ApInterfaceImpl::~ApInterfaceImpl() {

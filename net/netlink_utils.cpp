@@ -81,8 +81,9 @@ bool NetlinkUtils::GetWiphyIndex(uint32_t* out_wiphy_index) {
   return true;
 }
 
-bool NetlinkUtils::GetInterfaceName(uint32_t wiphy_index,
-                                    string* interface_name) {
+bool NetlinkUtils::GetInterfaceNameAndIndex(uint32_t wiphy_index,
+                                            string* interface_name,
+                                            uint32_t* interface_index) {
   NL80211Packet get_interface(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_GET_INTERFACE,
@@ -136,7 +137,14 @@ bool NetlinkUtils::GetInterfaceName(uint32_t wiphy_index,
                  <<" we need to blacklist it.";
       continue;
     }
+
+    uint32_t if_index;
+    if (!packet.GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+      LOG(DEBUG) << "Failed to get interface index";
+      continue;
+    }
     *interface_name = if_name;
+    *interface_index = if_index;
     return true;
   }
 

@@ -52,7 +52,8 @@ class ServerTest : public ::testing::Test {
     ON_CALL(*driver_tool_, ChangeFirmwareMode(_)).WillByDefault(Return(true));
     ON_CALL(*if_tool_, SetWifiUpState(_)).WillByDefault(Return(true));
     ON_CALL(*netlink_utils_, GetWiphyIndex(_)).WillByDefault(Return(true));
-    ON_CALL(*netlink_utils_, GetInterfaceName(_, _)).WillByDefault(Return(true));
+    ON_CALL(*netlink_utils_, GetInterfaceNameAndIndex(_, _, _)).
+        WillByDefault(Return(true));
   }
 
   NiceMock<MockHalTool>* hal_tool_ = new NiceMock<MockHalTool>;
@@ -86,7 +87,7 @@ TEST_F(ServerTest, CanSetUpApInterface) {
   EXPECT_CALL(*netlink_utils_, GetWiphyIndex(_))
       .InSequence(sequence)
       .WillOnce(Return(true));
-  EXPECT_CALL(*netlink_utils_, GetInterfaceName(_, _))
+  EXPECT_CALL(*netlink_utils_, GetInterfaceNameAndIndex(_, _, _))
       .InSequence(sequence)
       .WillOnce(Return(true));
 
@@ -97,7 +98,7 @@ TEST_F(ServerTest, CanSetUpApInterface) {
 TEST_F(ServerTest, DoesNotSupportMultipleInterfaces) {
   sp<IApInterface> ap_if;
   EXPECT_CALL(*netlink_utils_, GetWiphyIndex(_)).Times(1);
-  EXPECT_CALL(*netlink_utils_, GetInterfaceName(_, _)).Times(1);
+  EXPECT_CALL(*netlink_utils_, GetInterfaceNameAndIndex(_, _, _)).Times(1);
 
   EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
   EXPECT_NE(nullptr, ap_if.get());
@@ -112,7 +113,7 @@ TEST_F(ServerTest, DoesNotSupportMultipleInterfaces) {
 TEST_F(ServerTest, CanDestroyInterfaces) {
   sp<IApInterface> ap_if;
   EXPECT_CALL(*netlink_utils_, GetWiphyIndex(_)).Times(2);
-  EXPECT_CALL(*netlink_utils_, GetInterfaceName(_, _)).Times(2);
+  EXPECT_CALL(*netlink_utils_, GetInterfaceNameAndIndex(_, _, _)).Times(2);
   EXPECT_CALL(*driver_tool_, UnloadDriver()).Times(0);
 
   EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());

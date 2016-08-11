@@ -48,12 +48,16 @@ Server::Server(unique_ptr<HalTool> hal_tool,
 
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
   string interface_name;
-  if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp, &interface_name)) {
+  uint32_t interface_index;
+  if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp,
+                             &interface_name,
+                             &interface_index)) {
     return Status::ok();  // Logging was done internally
   }
 
   unique_ptr<ApInterfaceImpl> ap_interface(new ApInterfaceImpl(
       interface_name,
+      interface_index,
       unique_ptr<HostapdManager>(new HostapdManager)));
   *created_interface = ap_interface->GetBinder();
   ap_interfaces_.push_back(std::move(ap_interface));
@@ -62,13 +66,16 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
 
 Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
   string interface_name;
+  uint32_t interface_index;
   if (!SetupInterfaceForMode(DriverTool::kFirmwareModeSta,
-                             &interface_name)) {
+                             &interface_name,
+                             &interface_index)) {
     return Status::ok();  // Logging was done internally
   }
 
   unique_ptr<ClientInterfaceImpl> client_interface(new ClientInterfaceImpl(
-      interface_name));
+      interface_name,
+      interface_index));
   *created_interface = client_interface->GetBinder();
   client_interfaces_.push_back(std::move(client_interface));
   return Status::ok();
@@ -83,7 +90,9 @@ Status Server::tearDownInterfaces() {
   return Status::ok();
 }
 
-bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
+bool Server::SetupInterfaceForMode(int mode,
+                                   string* interface_name,
+                                   uint32_t* interface_index) {
   if (!ap_interfaces_.empty() || !client_interfaces_.empty()) {
     // In the future we may support multiple interfaces at once.  However,
     // today, we support just one.
@@ -105,7 +114,9 @@ bool Server::SetupInterfaceForMode(int mode, string* interface_name) {
     return false;
   }
 
-  if (!netlink_utils_->GetInterfaceName(wiphy_index_, interface_name)) {
+  if (!netlink_utils_->GetInterfaceNameAndIndex(wiphy_index_,
+                                                interface_name,
+                                                interface_index)) {
     return false;
   }
 
