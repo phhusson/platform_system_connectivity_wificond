@@ -53,6 +53,7 @@ LOCAL_SRC_FILES := \
     client_interface_binder.cpp \
     client_interface_impl.cpp \
     looper_backed_event_loop.cpp \
+    scanning/scan_result.cpp \
     server.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
