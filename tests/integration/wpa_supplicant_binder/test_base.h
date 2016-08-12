@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef WIFICOND_TESTS_INTEGRATION_WPA_SUPPLICANT_BINDER_TEST_BASE_H
+#define WIFICOND_TESTS_INTEGRATION_WPA_SUPPLICANT_BINDER_TEST_BASE_H
 
 #include <android-base/logging.h>
 #include <binder/IBinder.h>
@@ -158,3 +160,5 @@ class WpaSupplicantBinderTestBase : public ::testing::Test {
 }  // namespace wpa_supplicant_binder_test
 }  // namespace wificond
 }  // namespace android
+
+#endif  // WIFICOND_TESTS_INTEGRATION_WPA_SUPPLICANT_BINDER_TEST_BASE_H
