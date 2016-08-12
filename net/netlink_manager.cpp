@@ -388,8 +388,69 @@ bool NetlinkManager::SubscribeToEvents(const string& group) {
   return true;
 }
 
-void NetlinkManager::BroadcastHandler(NL80211Packet& packet) {
-  //TODO(nywang): Handle broadcast packets.
+void NetlinkManager::BroadcastHandler(const NL80211Packet& packet) {
+  if (packet.GetMessageType() != GetFamilyId()) {
+    LOG(ERROR) << "Wrong family id for multicast message";
+    return;
+  }
+  uint32_t command = packet.GetCommand();
+
+  // There is another scan result notification: NL80211_CMD_SCHED_SCAN_RESULTS.
+  // which is used by PNO scan. Wificond is not going to handle that at this
+  // time.
+  if (command == NL80211_CMD_NEW_SCAN_RESULTS) {
+    OnScanResultsReady(packet);
+  }
+}
+
+void NetlinkManager::OnScanResultsReady(const NL80211Packet& packet) {
+  uint32_t if_index;
+  if (!packet.GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+    LOG(ERROR) << "Failed to get interface index from scan result notification";
+    return;
+  }
+
+  auto handler = on_scan_result_ready_handler_.find(if_index);
+  if (handler == on_scan_result_ready_handler_.end()) {
+    LOG(DEBUG) << "No handler for scan result notification from interface"
+               << " with index: " << if_index;
+    return;
+  }
+
+  vector<vector<uint8_t>> ssids;
+  NL80211NestedAttr ssids_attr(0);
+  if (!packet.GetAttribute(NL80211_ATTR_SCAN_SSIDS, &ssids_attr)) {
+    LOG(WARNING) << "Failed to get scan ssids from scan result notification";
+  } else {
+    vector<uint8_t> ssid;
+    for (int i = 0; ssids_attr.GetAttributeValue(i, &ssid); i++) {
+      ssids.push_back(ssid);
+    }
+  }
+
+  vector<uint32_t> freqs;
+  NL80211NestedAttr freqs_attr(0);
+  if (!packet.GetAttribute(NL80211_ATTR_SCAN_FREQUENCIES, &freqs_attr)) {
+    LOG(WARNING) << "Failed to get scan freqs from scan result notification";
+  } else {
+    uint32_t freq;
+    for (int i = 0; freqs_attr.GetAttributeValue(i, &freq); i++) {
+      freqs.push_back(freq);
+    }
+  }
+  // Run scan result notification handler.
+  handler->second(if_index, ssids, freqs);
+}
+
+void NetlinkManager::SubscribeScanResultNotification(
+    uint32_t interface_index,
+    OnScanResultsReadyHandler handler) {
+  on_scan_result_ready_handler_[interface_index] = handler;
+}
+
+void NetlinkManager::UnsubscribeScanResultNotification(
+    uint32_t interface_index) {
+  on_scan_result_ready_handler_.erase(interface_index);
 }
 
 }  // namespace wificond

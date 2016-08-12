@@ -44,6 +44,18 @@ struct MessageType {
    std::map<std::string, uint32_t> groups;
 };
 
+// This describes a type of function handling scan results ready notification.
+// |interface_index| is the index of interface which the scan results
+// are from.
+// |ssids| is a vector of scan ssids associated with the corresponding
+// scan request.
+// |frequencies| is a vector of scan frequencies associated with the
+// corresponding scan request.
+typedef std::function<void(
+    uint32_t interface_index,
+    std::vector<std::vector<uint8_t>>& ssids,
+    std::vector<uint32_t>& frequencies)> OnScanResultsReadyHandler;
+
 class NetlinkManager {
  public:
   explicit NetlinkManager(EventLoop* event_loop);
@@ -71,9 +83,22 @@ class NetlinkManager {
   virtual bool SendMessageAndGetResponses(const NL80211Packet& packet,
                                           std::vector<NL80211Packet>* response);
 
-  // Sign-up to receive and log multicast events of a specific type.
+  // Sign up to receive and log multicast events of a specific type.
   // |group| is one of the string NL80211_MULTICAST_GROUP_* in nl80211.h.
   virtual bool SubscribeToEvents(const std::string& group);
+
+  // Sign up to be notified when new scan results are available.
+  // |handler| will be called when the kernel signals to wificond that a scan
+  // has been completed on the given |interface_index|.  See the declaration of
+  // OnScanResultsReadyHandler for documentation on the semantics of this
+  // callback.
+  virtual void SubscribeScanResultNotification(
+      uint32_t interface_index,
+      OnScanResultsReadyHandler handler);
+
+  // Cancel the sign-up of receiving new scan result notification from
+  // interface with index |interface_index|.
+  virtual void UnsubscribeScanResultNotification(uint32_t interface_index);
 
  private:
   bool SetupSocket(android::base::unique_fd* netlink_fd);
@@ -81,7 +106,8 @@ class NetlinkManager {
   void ReceivePacketAndRunHandler(int fd);
   bool DiscoverFamilyId();
   bool SendMessageInternal(const NL80211Packet& packet, int fd);
-  void BroadcastHandler(NL80211Packet& packet);
+  void BroadcastHandler(const NL80211Packet& packet);
+  void OnScanResultsReady(const NL80211Packet& packet);
 
   // This handler revceives mapping from NL80211 family name to family id,
   // as well as mapping from group name to group id.
@@ -100,6 +126,10 @@ class NetlinkManager {
 
   // This is a collection of message handlers, for each sequence number.
   std::map<uint32_t, std::function<void(NL80211Packet)>> message_handlers_;
+
+  // A mapping from interface index to the handler registered to receive
+  // scan results notifications.
+  std::map<uint32_t, OnScanResultsReadyHandler> on_scan_result_ready_handler_;
 
   // Mapping from family name to family id, and group name to group id.
   std::map<std::string, MessageType> message_types_;
