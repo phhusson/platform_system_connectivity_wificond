@@ -16,7 +16,10 @@
 
 #include "wificond/client_interface_impl.h"
 
+#include <android-base/logging.h>
+
 #include "wificond/client_interface_binder.h"
+#include "wificond/net/netlink_utils.h"
 
 using android::net::wifi::IClientInterface;
 using android::sp;
@@ -25,9 +28,14 @@ using std::string;
 namespace android {
 namespace wificond {
 
-ClientInterfaceImpl::ClientInterfaceImpl(const std::string& interface_name)
+ClientInterfaceImpl::ClientInterfaceImpl(const std::string& interface_name,
+                                         uint32_t interface_index)
     : interface_name_(interface_name),
+      interface_index_(interface_index),
       binder_(new ClientInterfaceBinder(this)) {
+  // This log keeps compiler happy.
+  LOG(DEBUG) << "Created client interface " << interface_name_
+             << " with index " << interface_index_;
 }
 
 ClientInterfaceImpl::~ClientInterfaceImpl() {

@@ -37,7 +37,8 @@ class ClientInterfaceBinder;
 // keep this object separate from the binder representation of itself.
 class ClientInterfaceImpl {
  public:
-  explicit ClientInterfaceImpl(const std::string& interface_name);
+  ClientInterfaceImpl(const std::string& interface_name,
+                      uint32_t interface_index);
   ~ClientInterfaceImpl();
 
   // Get a pointer to the binder representing this ClientInterfaceImpl.
@@ -45,6 +46,7 @@ class ClientInterfaceImpl {
 
  private:
   const std::string interface_name_;
+  const uint32_t interface_index_;
   const android::sp<ClientInterfaceBinder> binder_;
 
   DISALLOW_COPY_AND_ASSIGN(ClientInterfaceImpl);

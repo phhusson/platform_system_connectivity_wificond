@@ -37,12 +37,14 @@ namespace wificond {
 namespace {
 
 const char kTestInterfaceName[] = "testwifi0";
+const uint32_t kTestInterfaceIndex = 42;
 
 class ApInterfaceImplTest : public ::testing::Test {
  protected:
   NiceMock<MockHostapdManager>* hostapd_manager_ =
       new NiceMock<MockHostapdManager>;
   ApInterfaceImpl ap_interface_{kTestInterfaceName,
+                                kTestInterfaceIndex,
                                 unique_ptr<HostapdManager>(hostapd_manager_)};
 };  // class ApInterfaceImplTest
 

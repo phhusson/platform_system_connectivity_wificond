@@ -38,6 +38,7 @@ class ApInterfaceBinder;
 class ApInterfaceImpl {
  public:
   ApInterfaceImpl(const std::string& interface_name,
+                  uint32_t interface_index,
                   std::unique_ptr<wifi_system::HostapdManager> hostapd_manager);
   ~ApInterfaceImpl();
 
@@ -55,6 +56,7 @@ class ApInterfaceImpl {
 
  private:
   const std::string interface_name_;
+  const uint32_t interface_index_;
   const std::unique_ptr<wifi_system::HostapdManager> hostapd_manager_;
   const android::sp<ApInterfaceBinder> binder_;
 

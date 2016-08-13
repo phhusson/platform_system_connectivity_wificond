@@ -43,6 +43,7 @@ constexpr uint16_t kFakeFamilyId = 14;
 constexpr uint16_t kFakeWiphyIndex = 8;
 constexpr int kFakeErrorCode = EIO;
 const char kFakeInterfaceName[] = "testif0";
+const uint32_t kFakeInterfaceIndex = 34;
 
 // Currently, control messages are only created by the kernel and sent to us.
 // Therefore NL80211Packet doesn't have corresponding constructor.
@@ -118,7 +119,7 @@ TEST_F(NetlinkUtilsTest, CanHandleGetWiphyIndexError) {
   EXPECT_FALSE(netlink_utils_->GetWiphyIndex(&wiphy_index));
 }
 
-TEST_F(NetlinkUtilsTest, CanGetInterfaceName) {
+TEST_F(NetlinkUtilsTest, CanGetInterfaceNameAndIndex) {
   NL80211Packet new_interface(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_NEW_INTERFACE,
@@ -127,6 +128,10 @@ TEST_F(NetlinkUtilsTest, CanGetInterfaceName) {
   // Insert interface name attribute.
   NL80211Attr<string> if_name_attr(NL80211_ATTR_IFNAME, string(kFakeInterfaceName));
   new_interface.AddAttribute(if_name_attr);
+  // Insert interface index attribute.
+  NL80211Attr<uint32_t> if_index_attr(NL80211_ATTR_IFINDEX, kFakeInterfaceIndex);
+  new_interface.AddAttribute(if_index_attr);
+
   // Mock a valid response from kernel.
   vector<NL80211Packet> response = {new_interface};
 
@@ -134,12 +139,15 @@ TEST_F(NetlinkUtilsTest, CanGetInterfaceName) {
       WillOnce(DoAll(MakeupResponse(response), Return(true)));
 
   string interface_name;
-  EXPECT_TRUE(netlink_utils_->GetInterfaceName(kFakeWiphyIndex,
-                                               &interface_name));
+  uint32_t interface_index;
+  EXPECT_TRUE(netlink_utils_->GetInterfaceNameAndIndex(kFakeWiphyIndex,
+                                                       &interface_name,
+                                                       &interface_index));
   EXPECT_EQ(string(kFakeInterfaceName), interface_name);
+  EXPECT_EQ(kFakeInterfaceIndex, interface_index);
 }
 
-TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameQuery) {
+TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameAndIndexQuery) {
   // Some kernels will have extra responses ahead of the expected packet.
   NL80211Packet psuedo_interface(
       netlink_manager_->GetFamilyId(),
@@ -148,6 +156,7 @@ TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameQuery) {
       getpid());
   psuedo_interface.AddAttribute(NL80211Attr<uint64_t>(
       NL80211_ATTR_WDEV, 0));
+
   // This is the packet we're looking for
   NL80211Packet expected_interface(
       netlink_manager_->GetFamilyId(),
@@ -156,6 +165,9 @@ TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameQuery) {
       getpid());
   expected_interface.AddAttribute(NL80211Attr<string>(
       NL80211_ATTR_IFNAME, string(kFakeInterfaceName)));
+  expected_interface.AddAttribute(NL80211Attr<uint32_t>(
+      NL80211_ATTR_IFINDEX, kFakeInterfaceIndex));
+
   // Kernel can send us the pseduo interface packet first
   vector<NL80211Packet> response = {psuedo_interface, expected_interface};
 
@@ -163,12 +175,15 @@ TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameQuery) {
       WillOnce(DoAll(MakeupResponse(response), Return(true)));
 
   string interface_name;
-  EXPECT_TRUE(netlink_utils_->GetInterfaceName(kFakeWiphyIndex,
-                                               &interface_name));
+  uint32_t interface_index;
+  EXPECT_TRUE(netlink_utils_->GetInterfaceNameAndIndex(kFakeWiphyIndex,
+                                                       &interface_name,
+                                                       &interface_index));
   EXPECT_EQ(string(kFakeInterfaceName), interface_name);
+  EXPECT_EQ(kFakeInterfaceIndex, interface_index);
 }
 
-TEST_F(NetlinkUtilsTest, CanGetInterfaceNameAndBlacklistP2p0) {
+TEST_F(NetlinkUtilsTest, HandleP2p0WhenGetInterfaceNameAndIndex) {
   NL80211Packet new_interface(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_NEW_INTERFACE,
@@ -177,6 +192,9 @@ TEST_F(NetlinkUtilsTest, CanGetInterfaceNameAndBlacklistP2p0) {
   // Insert interface name attribute.
   NL80211Attr<string> if_name_attr(NL80211_ATTR_IFNAME, string(kFakeInterfaceName));
   new_interface.AddAttribute(if_name_attr);
+  // Insert interface index attribute.
+  NL80211Attr<uint32_t> if_index_attr(NL80211_ATTR_IFINDEX, kFakeInterfaceIndex);
+  new_interface.AddAttribute(if_index_attr);
 
   // Create a new interface packet for p2p0.
   NL80211Packet new_interface_p2p0(
@@ -193,12 +211,15 @@ TEST_F(NetlinkUtilsTest, CanGetInterfaceNameAndBlacklistP2p0) {
       WillOnce(DoAll(MakeupResponse(response), Return(true)));
 
   string interface_name;
-  EXPECT_TRUE(netlink_utils_->GetInterfaceName(kFakeWiphyIndex,
-                                               &interface_name));
+  uint32_t interface_index;
+  EXPECT_TRUE(netlink_utils_->GetInterfaceNameAndIndex(kFakeWiphyIndex,
+                                                       &interface_name,
+                                                       &interface_index));
   EXPECT_EQ(string(kFakeInterfaceName), interface_name);
+  EXPECT_EQ(kFakeInterfaceIndex, interface_index);
 }
 
-TEST_F(NetlinkUtilsTest, CanHandleGetInterfaceNameError) {
+TEST_F(NetlinkUtilsTest, CanHandleGetInterfaceNameAndIndexError) {
   // Mock an error response from kernel.
   vector<NL80211Packet> response = {CreateControlMessageError(kFakeErrorCode)};
 
@@ -206,8 +227,10 @@ TEST_F(NetlinkUtilsTest, CanHandleGetInterfaceNameError) {
       WillOnce(DoAll(MakeupResponse(response), Return(true)));
 
   string interface_name;
-  EXPECT_FALSE(netlink_utils_->GetInterfaceName(kFakeWiphyIndex,
-                                                &interface_name));
+  uint32_t interface_index;
+  EXPECT_FALSE(netlink_utils_->GetInterfaceNameAndIndex(kFakeWiphyIndex,
+                                                        &interface_name,
+                                                        &interface_index));
 }
 
 }  // namespace wificond

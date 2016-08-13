@@ -65,7 +65,9 @@ class Server : public android::net::wifi::BnWificond {
   //     network interface that has been setup.
   //
   // Returns true on success, false otherwise.
-  bool SetupInterfaceForMode(int mode, std::string* interface_name);
+  bool SetupInterfaceForMode(int mode,
+                             std::string* interface_name,
+                             uint32_t* interface_index);
   bool RefreshWiphyIndex();
 
   const std::unique_ptr<wifi_system::HalTool> hal_tool_;
