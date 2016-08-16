@@ -423,6 +423,7 @@ void NetlinkManager::OnScanResultsReady(const NL80211Packet& packet) {
     LOG(WARNING) << "Failed to get scan ssids from scan result notification";
   } else {
     vector<uint8_t> ssid;
+    // Potential performance issues: b/30901326.
     for (int i = 0; ssids_attr.GetAttributeValue(i, &ssid); i++) {
       ssids.push_back(ssid);
     }
@@ -434,6 +435,7 @@ void NetlinkManager::OnScanResultsReady(const NL80211Packet& packet) {
     LOG(WARNING) << "Failed to get scan freqs from scan result notification";
   } else {
     uint32_t freq;
+    // Potential performance issues: b/30901326.
     for (int i = 0; freqs_attr.GetAttributeValue(i, &freq); i++) {
       freqs.push_back(freq);
     }
