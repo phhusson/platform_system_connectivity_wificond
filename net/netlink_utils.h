@@ -46,6 +46,9 @@ class NetlinkUtils {
                                         uint32_t* interface_index);
 
  private:
+  bool GetSSIDFromInfoElement(const std::vector<uint8_t>& ie,
+                              std::vector<uint8_t>* ssid);
+
   NetlinkManager* netlink_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(NetlinkUtils);

@@ -32,6 +32,11 @@ using std::vector;
 
 namespace android {
 namespace wificond {
+namespace {
+
+constexpr uint8_t kElemIdSsid = 0;
+
+}  // namespace
 
 NetlinkUtils::NetlinkUtils(NetlinkManager* netlink_manager)
     : netlink_manager_(netlink_manager) {
@@ -151,6 +156,38 @@ bool NetlinkUtils::GetInterfaceNameAndIndex(uint32_t wiphy_index,
   LOG(ERROR) << "Failed to get expected interface info from kernel";
   return false;
 }
+
+bool NetlinkUtils::GetSSIDFromInfoElement(const vector<uint8_t>& ie,
+                                          vector<uint8_t>* ssid) {
+  // Information elements are stored in 'TLV' format.
+  // Field:  |   Type     |          Length           |      Value      |
+  // Length: |     1      |             1             |     variable    |
+  // Content:| Element ID | Length of the Value field | Element payload |
+  const uint8_t* end = ie.data() + ie.size();
+  const uint8_t* ptr = ie.data();
+  // +1 means we must have space for the length field.
+  while (ptr + 1  < end) {
+    uint8_t type = *ptr;
+    uint8_t length = *(ptr + 1);
+    // Length field is invalid.
+    if (ptr + 1 + length >= end) {
+      return false;
+    }
+    // SSID element is found.
+    if (type == kElemIdSsid) {
+      // SSID is an empty string.
+      if (length == 0) {
+        *ssid = vector<uint8_t>();
+      } else {
+        *ssid = vector<uint8_t>(ptr + 2, ptr + length + 2);
+      }
+      return true;
+    }
+    ptr += 2 + length;
+  }
+  return false;
+}
+
 
 }  // namespace wificond
 }  // namespace android
