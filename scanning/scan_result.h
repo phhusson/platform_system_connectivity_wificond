@@ -31,6 +31,7 @@ class ScanResult {
              uint32_t frequency,
              int32_t signal_mbm,
              uint64_t tsf);
+  void DebugLog();
 
   // SSID of the BSS.
   std::vector<uint8_t> ssid;
