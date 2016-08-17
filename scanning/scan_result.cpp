@@ -16,6 +16,14 @@
 
 #include "wificond/scanning/scan_result.h"
 
+#include <iomanip>
+#include <sstream>
+
+#include <android-base/logging.h>
+
+using std::string;
+using std::stringstream;
+
 namespace android {
 namespace wificond {
 
@@ -31,6 +39,29 @@ ScanResult::ScanResult(std::vector<uint8_t>& ssid_,
       frequency(frequency_),
       signal_mbm(signal_mbm_),
       tsf(tsf_) {
+}
+
+void ScanResult::DebugLog() {
+  LOG(INFO) << "Scan result:";
+  // |ssid| might be an encoded array but we just print it as ASCII here.
+  string ssid_str(ssid.data(), ssid.data() + ssid.size());
+  LOG(INFO) << "SSID: " << ssid_str;
+
+  stringstream ss;
+  string bssid_str;
+  ss << std::hex << std::setfill('0') << std::setw(2);
+  for (uint8_t& b : bssid) {
+    ss << static_cast<int>(b);
+    if (&b != &bssid.back()) {
+      ss << ":";
+    }
+  }
+  bssid_str = ss.str();
+  LOG(INFO) << "BSSID: " << bssid_str;
+  LOG(INFO) << "FREQUENCY: " << frequency;
+  LOG(INFO) << "SIGNAL: " << signal_mbm/100 << "dBm";
+  LOG(INFO) << "TSF: " << tsf;
+
 }
 
 }  // namespace wificond
