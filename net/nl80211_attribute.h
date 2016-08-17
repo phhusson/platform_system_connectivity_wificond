@@ -125,6 +125,7 @@ class NL80211Attr<std::string> : public BaseNL80211Attr {
 extern template class NL80211Attr<uint8_t>;
 extern template class NL80211Attr<uint16_t>;
 extern template class NL80211Attr<uint32_t>;
+extern template class NL80211Attr<uint64_t>;
 extern template class NL80211Attr<std::vector<uint8_t>>;
 extern template class NL80211Attr<std::string>;
 
