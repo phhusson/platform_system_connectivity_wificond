@@ -34,6 +34,7 @@
 #include "wificond/looper_backed_event_loop.h"
 #include "wificond/net/netlink_manager.h"
 #include "wificond/net/netlink_utils.h"
+#include "wificond/scanning/scan_utils.h"
 #include "wificond/server.h"
 
 using android::net::wifi::IWificond;
@@ -123,12 +124,14 @@ int main(int argc, char** argv) {
   android::wificond::NetlinkManager netlink_manager(event_dispatcher.get());
   CHECK(netlink_manager.Start()) << "Failed to start netlink manager";
   android::wificond::NetlinkUtils netlink_utils(&netlink_manager);
+  android::wificond::ScanUtils scan_utils(&netlink_manager);
 
   unique_ptr<android::wificond::Server> server(new android::wificond::Server(
       unique_ptr<HalTool>(new HalTool),
       unique_ptr<InterfaceTool>(new InterfaceTool),
       unique_ptr<DriverTool>(new DriverTool),
-      &netlink_utils));
+      &netlink_utils,
+      &scan_utils));
   RegisterServiceOrCrash(server.get());
 
   event_dispatcher->Poll();

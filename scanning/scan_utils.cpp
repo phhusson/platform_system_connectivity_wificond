@@ -46,6 +46,16 @@ ScanUtils::ScanUtils(NetlinkManager* netlink_manager)
 
 ScanUtils::~ScanUtils() {}
 
+void ScanUtils::SubscribeScanResultNotification(
+    uint32_t interface_index,
+    OnScanResultsReadyHandler handler) {
+    netlink_manager_->SubscribeScanResultNotification(interface_index, handler);
+}
+
+void ScanUtils::UnsubscribeScanResultNotification(uint32_t interface_index) {
+    netlink_manager_->UnsubscribeScanResultNotification(interface_index);
+}
+
 bool ScanUtils::GetScanResult(uint32_t interface_index,
                               vector<ScanResult>* out_scan_results) {
   NL80211Packet get_scan(

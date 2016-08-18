@@ -21,11 +21,12 @@
 
 #include <android-base/macros.h>
 
+#include "wificond/net/netlink_manager.h"
+
 namespace android {
 namespace wificond {
 
 class NL80211Packet;
-class NetlinkManager;
 class ScanResult;
 
 // Provides scanning helper functions.
@@ -53,6 +54,19 @@ class ScanUtils {
   virtual bool Scan(uint32_t interface_index,
                     const std::vector<std::vector<uint8_t>>& ssids,
                     const std::vector<uint32_t>& freqs);
+
+  // Sign up to be notified when new scan results are available.
+  // |handler| will be called when the kernel signals to wificond that a scan
+  // has been completed on the given |interface_index|.  See the declaration of
+  // OnScanResultsReadyHandler for documentation on the semantics of this
+  // callback.
+  virtual void SubscribeScanResultNotification(
+      uint32_t interface_index,
+      OnScanResultsReadyHandler handler);
+
+  // Cancel the sign-up of receiving new scan result notification from
+  // interface with index |interface_index|.
+  virtual void UnsubscribeScanResultNotification(uint32_t interface_index);
 
  private:
   bool GetSSIDFromInfoElement(const std::vector<uint8_t>& ie,
