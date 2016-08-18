@@ -45,6 +45,18 @@ class NetlinkUtils {
                                         std::string* interface_name,
                                         uint32_t* interface_index);
 
+  // Send scan request to kernel for interface with index |interface_index|.
+  // |ssids| is a vector of ssids we request to scan, which mostly is used
+  // for hidden networks.
+  // If |ssids| is an empty vector, it will do a passive scan.
+  // If |ssids| contains an empty string, it will a scan for all ssids.
+  // |freqs| is a vector of frequencies we request to scan.
+  // If |freqs| is an empty vector, it will scan all supported frequencies.
+  // Returns true on success.
+  virtual bool Scan(uint32_t interface_index,
+                    const std::vector<std::vector<uint8_t>>& ssids,
+                    const std::vector<uint32_t>& freqs);
+
  private:
   bool GetSSIDFromInfoElement(const std::vector<uint8_t>& ie,
                               std::vector<uint8_t>* ssid);
