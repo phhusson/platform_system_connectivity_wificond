@@ -16,6 +16,12 @@
 
 #include "wificond/client_interface_binder.h"
 
+#include <binder/Status.h>
+
+#include "wificond/client_interface_impl.h"
+
+using android::binder::Status;
+
 namespace android {
 namespace wificond {
 
@@ -24,6 +30,16 @@ ClientInterfaceBinder::ClientInterfaceBinder(ClientInterfaceImpl* impl)
 }
 
 ClientInterfaceBinder::~ClientInterfaceBinder() {
+}
+
+Status ClientInterfaceBinder::enableSupplicant(bool* success) {
+  *success = impl_ && impl_->EnableSupplicant();
+  return Status::ok();
+}
+
+Status ClientInterfaceBinder::disableSupplicant(bool* success) {
+  *success = impl_ && impl_->DisableSupplicant();
+  return Status::ok();
 }
 
 }  // namespace wificond

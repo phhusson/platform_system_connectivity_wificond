@@ -44,6 +44,9 @@ class ClientInterfaceImpl {
   // Get a pointer to the binder representing this ClientInterfaceImpl.
   android::sp<android::net::wifi::IClientInterface> GetBinder() const;
 
+  bool EnableSupplicant();
+  bool DisableSupplicant();
+
  private:
   const std::string interface_name_;
   const uint32_t interface_index_;

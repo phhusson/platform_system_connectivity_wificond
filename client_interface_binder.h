@@ -18,6 +18,7 @@
 #define WIFICOND_CLIENT_INTERFACE_BINDER_H_
 
 #include <android-base/macros.h>
+#include <binder/Status.h>
 
 #include "android/net/wifi/BnClientInterface.h"
 
@@ -35,6 +36,9 @@ class ClientInterfaceBinder : public android::net::wifi::BnClientInterface {
   // This informs the binder proxy that no future manipulations of |impl_|
   // by remote processes are possible.
   void NotifyImplDead() { impl_ = nullptr; }
+
+  ::android::binder::Status enableSupplicant(bool* success);
+  ::android::binder::Status disableSupplicant(bool* success);
 
  private:
   ClientInterfaceImpl* impl_;
