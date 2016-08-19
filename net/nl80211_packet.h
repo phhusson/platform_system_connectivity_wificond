@@ -50,7 +50,9 @@ class NL80211Packet {
                 uint8_t command,
                 uint32_t sequence,
                 uint32_t pid);
-  // Copy constructor
+  // We don't copy NL80211Packet for performance reasons.
+  // However we keep this copy constructor because it makes unit tests easy.
+  // It prints WARNING log when this copy constructor is called.
   NL80211Packet(const NL80211Packet& packet);
   ~NL80211Packet() = default;
 
@@ -147,9 +149,7 @@ class NL80211Packet {
 
   void DebugLog() const;
 
-  static int copy_counter_;
-  static long packet_bytes_copied_;
-
+ private:
   std::vector<uint8_t> data_;
 };
 

@@ -17,6 +17,7 @@
 #ifndef WIFICOND_SCANNING_SCAN_UTILS_H_
 #define WIFICOND_SCANNING_SCAN_UTILS_H_
 
+#include <memory>
 #include <vector>
 
 #include <android-base/macros.h>
@@ -72,7 +73,7 @@ class ScanUtils {
   bool GetSSIDFromInfoElement(const std::vector<uint8_t>& ie,
                               std::vector<uint8_t>* ssid);
   // Converts a NL80211_CMD_NEW_SCAN_RESULTS packet to a ScanResult object.
-  bool ParseScanResult(const NL80211Packet& packet, ScanResult* scan_result);
+  bool ParseScanResult(std::unique_ptr<const NL80211Packet> packet, ScanResult* scan_result);
 
   NetlinkManager* netlink_manager_;
 

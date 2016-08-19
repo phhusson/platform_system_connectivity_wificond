@@ -33,6 +33,7 @@
 using android::base::unique_fd;
 using std::placeholders::_1;
 using std::string;
+using std::unique_ptr;
 using std::vector;
 
 namespace android {
@@ -46,8 +47,9 @@ constexpr uint32_t kBroadcastSequenceNumber = 0;
 constexpr int kMaximumNetlinkMessageWaitMilliSeconds = 300;
 uint8_t ReceiveBuffer[kReceiveBufferSize];
 
-void AppendPacket(vector<NL80211Packet>* vec, const NL80211Packet& packet) {
-  vec->push_back(packet);
+void AppendPacket(vector<unique_ptr<const NL80211Packet>>* vec,
+                  unique_ptr<const NL80211Packet> packet) {
+  vec->push_back(std::move(packet));
 }
 
 }
@@ -86,20 +88,21 @@ void NetlinkManager::ReceivePacketAndRunHandler(int fd) {
       return;
     }
     const nlmsghdr* nl_header = reinterpret_cast<const nlmsghdr*>(ptr);
-    NL80211Packet packet(vector<uint8_t>(ptr, ptr + nl_header->nlmsg_len));
+    unique_ptr<NL80211Packet> packet(
+        new NL80211Packet(vector<uint8_t>(ptr, ptr + nl_header->nlmsg_len)));
     ptr += nl_header->nlmsg_len;
-    if (!packet.IsValid()) {
+    if (!packet->IsValid()) {
       LOG(ERROR) << "Receive invalid packet";
       return;
     }
     // Some document says message from kernel should have port id equal 0.
     // However in practice this is not always true so we don't check that.
 
-    uint32_t sequence_number = packet.GetMessageSequence();
+    uint32_t sequence_number = packet->GetMessageSequence();
 
     // Handle multicasts.
     if (sequence_number == kBroadcastSequenceNumber) {
-      BroadcastHandler(packet);
+      BroadcastHandler(std::move(packet));
       continue;
     }
 
@@ -112,7 +115,7 @@ void NetlinkManager::ReceivePacketAndRunHandler(int fd) {
     // A multipart message is terminated by NLMSG_DONE.
     // In this case we don't need to run the handler.
     // NLMSG_NOOP means no operation, message must be discarded.
-    uint32_t message_type =  packet.GetMessageType();
+    uint32_t message_type =  packet->GetMessageType();
     if (message_type == NLMSG_DONE || message_type == NLMSG_NOOP) {
       message_handlers_.erase(itr);
       return;
@@ -131,31 +134,32 @@ void NetlinkManager::ReceivePacketAndRunHandler(int fd) {
     // We should still run handler in this case, leaving it for the caller
     // to decide what to do with the packet.
 
+    bool is_multi = packet->IsMulti();
     // Run the handler.
-    itr->second(packet);
+    itr->second(std::move(packet));
     // Remove handler after processing.
-    if (!packet.IsMulti()) {
+    if (!is_multi) {
       message_handlers_.erase(itr);
     }
   }
 }
 
-void NetlinkManager::OnNewFamily(const NL80211Packet& packet) {
-  if (packet.GetMessageType() != GENL_ID_CTRL) {
+void NetlinkManager::OnNewFamily(unique_ptr<const NL80211Packet> packet) {
+  if (packet->GetMessageType() != GENL_ID_CTRL) {
     LOG(ERROR) << "Wrong message type for new family message";
     return;
   }
-  if (packet.GetCommand() != CTRL_CMD_NEWFAMILY) {
+  if (packet->GetCommand() != CTRL_CMD_NEWFAMILY) {
     LOG(ERROR) << "Wrong command for new family message";
     return;
   }
   uint16_t family_id;
-  if (!packet.GetAttributeValue(CTRL_ATTR_FAMILY_ID, &family_id)) {
+  if (!packet->GetAttributeValue(CTRL_ATTR_FAMILY_ID, &family_id)) {
     LOG(ERROR) << "Failed to get family id";
     return;
   }
   string family_name;
-  if (!packet.GetAttributeValue(CTRL_ATTR_FAMILY_NAME, &family_name)) {
+  if (!packet->GetAttributeValue(CTRL_ATTR_FAMILY_NAME, &family_name)) {
     LOG(ERROR) << "Failed to get family name";
     return;
   }
@@ -166,7 +170,7 @@ void NetlinkManager::OnNewFamily(const NL80211Packet& packet) {
   message_types_[family_name] = nl80211_type;
   // Exract multicast groups.
   NL80211NestedAttr multicast_groups(0);
-  if (packet.GetAttribute(CTRL_ATTR_MCAST_GROUPS, &multicast_groups)) {
+  if (packet->GetAttribute(CTRL_ATTR_MCAST_GROUPS, &multicast_groups)) {
     NL80211NestedAttr current_group(0);
     for (int i = 1; multicast_groups.GetAttribute(i, &current_group); i++) {
       string group_name;
@@ -223,7 +227,7 @@ bool NetlinkManager::IsStarted() const {
 
 bool NetlinkManager::RegisterHandlerAndSendMessage(
     const NL80211Packet& packet,
-    std::function<void(const NL80211Packet&)> handler) {
+    std::function<void(unique_ptr<const NL80211Packet>)> handler) {
   if (packet.IsDump()) {
     LOG(ERROR) << "Do not use asynchronous interface for dump request !";
     return false;
@@ -237,7 +241,7 @@ bool NetlinkManager::RegisterHandlerAndSendMessage(
 
 bool NetlinkManager::SendMessageAndGetResponses(
     const NL80211Packet& packet,
-    vector<NL80211Packet>* response) {
+    vector<unique_ptr<const NL80211Packet>>* response) {
   if (!SendMessageInternal(packet, sync_netlink_fd_.get())) {
     return false;
   }
@@ -351,19 +355,19 @@ bool NetlinkManager::DiscoverFamilyId() {
                                    getpid());
   NL80211Attr<string> family_name(CTRL_ATTR_FAMILY_NAME, NL80211_GENL_NAME);
   get_family_request.AddAttribute(family_name);
-  vector<NL80211Packet> response;
+  vector<unique_ptr<const NL80211Packet>> response;
   if (!SendMessageAndGetResponses(get_family_request, &response) ||
       response.size() != 1) {
     LOG(ERROR) << "Failed to send and get response for NL80211 GetFamily message";
     return false;
   }
-  NL80211Packet& packet = response[0];
-  if (packet.GetMessageType() == NLMSG_ERROR) {
+  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
+  if (packet->GetMessageType() == NLMSG_ERROR) {
       LOG(ERROR) << "Receive ERROR message: "
-                 << strerror(packet.GetErrorCode());
+                 << strerror(packet->GetErrorCode());
       return false;
   }
-  OnNewFamily(packet);
+  OnNewFamily(std::move(packet));
   if (message_types_.find(NL80211_GENL_NAME) == message_types_.end()) {
     LOG(ERROR) << "Failed to get NL80211 family id";
     return false;
@@ -390,24 +394,24 @@ bool NetlinkManager::SubscribeToEvents(const string& group) {
   return true;
 }
 
-void NetlinkManager::BroadcastHandler(const NL80211Packet& packet) {
-  if (packet.GetMessageType() != GetFamilyId()) {
+void NetlinkManager::BroadcastHandler(unique_ptr<const NL80211Packet> packet) {
+  if (packet->GetMessageType() != GetFamilyId()) {
     LOG(ERROR) << "Wrong family id for multicast message";
     return;
   }
-  uint32_t command = packet.GetCommand();
+  uint32_t command = packet->GetCommand();
 
   // There is another scan result notification: NL80211_CMD_SCHED_SCAN_RESULTS.
   // which is used by PNO scan. Wificond is not going to handle that at this
   // time.
   if (command == NL80211_CMD_NEW_SCAN_RESULTS) {
-    OnScanResultsReady(packet);
+    OnScanResultsReady(std::move(packet));
   }
 }
 
-void NetlinkManager::OnScanResultsReady(const NL80211Packet& packet) {
+void NetlinkManager::OnScanResultsReady(unique_ptr<const NL80211Packet> packet) {
   uint32_t if_index;
-  if (!packet.GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+  if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
     LOG(ERROR) << "Failed to get interface index from scan result notification";
     return;
   }
@@ -421,7 +425,7 @@ void NetlinkManager::OnScanResultsReady(const NL80211Packet& packet) {
 
   vector<vector<uint8_t>> ssids;
   NL80211NestedAttr ssids_attr(0);
-  if (!packet.GetAttribute(NL80211_ATTR_SCAN_SSIDS, &ssids_attr)) {
+  if (!packet->GetAttribute(NL80211_ATTR_SCAN_SSIDS, &ssids_attr)) {
     LOG(WARNING) << "Failed to get scan ssids from scan result notification";
   } else {
     vector<uint8_t> ssid;
@@ -433,7 +437,7 @@ void NetlinkManager::OnScanResultsReady(const NL80211Packet& packet) {
 
   vector<uint32_t> freqs;
   NL80211NestedAttr freqs_attr(0);
-  if (!packet.GetAttribute(NL80211_ATTR_SCAN_FREQUENCIES, &freqs_attr)) {
+  if (!packet->GetAttribute(NL80211_ATTR_SCAN_FREQUENCIES, &freqs_attr)) {
     LOG(WARNING) << "Failed to get scan freqs from scan result notification";
   } else {
     uint32_t freq;

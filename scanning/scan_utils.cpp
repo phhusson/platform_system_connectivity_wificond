@@ -27,6 +27,7 @@
 #include "wificond/net/nl80211_packet.h"
 #include "wificond/scanning/scan_result.h"
 
+using std::unique_ptr;
 using std::vector;
 
 namespace android {
@@ -67,7 +68,7 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
   NL80211Attr<uint32_t> ifindex(NL80211_ATTR_IFINDEX, interface_index);
   get_scan.AddAttribute(ifindex);
 
-  vector<NL80211Packet> response;
+  vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetResponses(get_scan, &response))  {
     LOG(ERROR) << "Failed to get scan result";
     return false;
@@ -78,19 +79,19 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
   }
 
   vector<ScanResult> scan_results;
-  for (NL80211Packet& packet : response) {
-    if (packet.GetMessageType() == NLMSG_ERROR) {
+  for (auto& packet : response) {
+    if (packet->GetMessageType() == NLMSG_ERROR) {
       LOG(ERROR) << "Receive ERROR message: "
-                 << strerror(packet.GetErrorCode());
+                 << strerror(packet->GetErrorCode());
       continue;
     }
-    if (packet.GetMessageType() != netlink_manager_->GetFamilyId()) {
+    if (packet->GetMessageType() != netlink_manager_->GetFamilyId()) {
       LOG(ERROR) << "Wrong message type: "
-                 << packet.GetMessageType();
+                 << packet->GetMessageType();
       continue;
     }
     uint32_t if_index;
-    if (!packet.GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+    if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
       LOG(ERROR) << "No interface index in scan result.";
       continue;
     }
@@ -100,7 +101,7 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
     }
 
     ScanResult scan_result;
-    if (!ParseScanResult(packet, &scan_result)) {
+    if (!ParseScanResult(std::move(packet), &scan_result)) {
       LOG(WARNING) << "Ignore invalid scan result";
       continue;
     }
@@ -110,13 +111,13 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
   return true;
 }
 
-bool ScanUtils::ParseScanResult(const NL80211Packet& packet, ScanResult* scan_result) {
-  if (packet.GetCommand() != NL80211_CMD_NEW_SCAN_RESULTS) {
+bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet, ScanResult* scan_result) {
+  if (packet->GetCommand() != NL80211_CMD_NEW_SCAN_RESULTS) {
     LOG(ERROR) << "Wrong command command for new scan result message";
     return false;
   }
   NL80211NestedAttr bss(0);
-  if (packet.GetAttribute(NL80211_ATTR_BSS, &bss)) {
+  if (packet->GetAttribute(NL80211_ATTR_BSS, &bss)) {
     vector<uint8_t> bssid;
     if (!bss.GetAttributeValue(NL80211_BSS_BSSID, &bssid)) {
       LOG(ERROR) << "Failed to get BSSID from scan result packet";
@@ -220,7 +221,7 @@ bool ScanUtils::Scan(uint32_t interface_index,
   // We are receiving an ERROR/ACK message instead of the actual
   // scan results here, so it is OK to expect a timely response because
   // kernel is supposed to send the ERROR/ACK back before the scan starts.
-  vector<NL80211Packet> response;
+  vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetResponses(trigger_scan, &response)) {
     LOG(ERROR) << "Failed to send TriggerScan message";
     return false;
@@ -228,15 +229,15 @@ bool ScanUtils::Scan(uint32_t interface_index,
   if (response.size() != 1) {
     LOG(ERROR) << "Unexpected trigger scan response size: " <<response.size();
   }
-  NL80211Packet& packet = response[0];
-  uint16_t type = packet.GetMessageType();
+  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
+  uint16_t type = packet->GetMessageType();
   if (type == NLMSG_ERROR) {
     // It is an ACK message if error code is 0.
-    if (packet.GetErrorCode() == 0) {
+    if (packet->GetErrorCode() == 0) {
       return true;
     }
     LOG(ERROR) << "Received error messsage in response to scan request "
-               << strerror(packet.GetErrorCode());
+               << strerror(packet->GetErrorCode());
   } else {
     LOG(ERROR) << "Receive unexpected message type :"
                << "in response to scan request: " << type;

@@ -37,9 +37,9 @@ class MockNetlinkManager : public NetlinkManager {
   MOCK_METHOD0(Start, bool());
   MOCK_CONST_METHOD0(IsStarted, bool());
   MOCK_METHOD2(SendMessageAndGetResponses,
-      bool(const NL80211Packet&, std::vector<NL80211Packet>*));
+      bool(const NL80211Packet&, std::vector<std::unique_ptr<const NL80211Packet>>*));
   MOCK_METHOD2(RegisterHandlerAndSendMessage,
-      bool(const NL80211Packet&, std::function<void(const NL80211Packet&)>));
+      bool(const NL80211Packet&, std::function<void(std::unique_ptr<const NL80211Packet>)>));
 };  // class MockNetlinkManager
 
 }  // namespace wificond

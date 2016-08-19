@@ -27,6 +27,7 @@
 #include "wificond/tests/mock_netlink_manager.h"
 
 using std::string;
+using std::unique_ptr;
 using std::vector;
 using testing::DoAll;
 using testing::NiceMock;
@@ -84,8 +85,10 @@ class NetlinkUtilsTest : public ::testing::Test {
 // This mocks the behavior of SendMessageAndGetResponses(), which returns a
 // vector of NL80211Packet using passed in pointer.
 ACTION_P(MakeupResponse, response) {
-  // arg1 is the second parameter: vector<NL80211Packet>* responses.
-  *arg1 = response;
+  // arg1 is the second parameter: vector<unique_ptr<const NL80211Packet>>* responses.
+  for (auto& pkt : response) {
+    arg1->push_back(unique_ptr<NL80211Packet>(new NL80211Packet(pkt)));
+  }
 }
 
 TEST_F(NetlinkUtilsTest, CanGetWiphyIndex) {

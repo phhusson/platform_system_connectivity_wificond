@@ -28,6 +28,7 @@
 #include "wificond/net/nl80211_packet.h"
 
 using std::string;
+using std::unique_ptr;
 using std::vector;
 
 namespace android {
@@ -49,7 +50,7 @@ bool NetlinkUtils::GetWiphyIndex(uint32_t* out_wiphy_index) {
       netlink_manager_->GetSequenceNumber(),
       getpid());
   get_wiphy.AddFlag(NLM_F_DUMP);
-  vector<NL80211Packet> response;
+  vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetResponses(get_wiphy, &response))  {
     LOG(ERROR) << "Failed to get wiphy index";
     return false;
@@ -58,22 +59,22 @@ bool NetlinkUtils::GetWiphyIndex(uint32_t* out_wiphy_index) {
     LOG(ERROR) << "Unexpected empty response from kernel";
     return false;
   }
-  for (NL80211Packet& packet : response) {
-    if (packet.GetMessageType() == NLMSG_ERROR) {
+  for (auto& packet : response) {
+    if (packet->GetMessageType() == NLMSG_ERROR) {
       LOG(ERROR) << "Receive ERROR message: "
-                 << strerror(packet.GetErrorCode());
+                 << strerror(packet->GetErrorCode());
       return false;
     }
-    if (packet.GetMessageType() != netlink_manager_->GetFamilyId()) {
+    if (packet->GetMessageType() != netlink_manager_->GetFamilyId()) {
       LOG(ERROR) << "Wrong message type for new interface message: "
-                 << packet.GetMessageType();
+                 << packet->GetMessageType();
       return false;
     }
-    if (packet.GetCommand() != NL80211_CMD_NEW_WIPHY) {
+    if (packet->GetCommand() != NL80211_CMD_NEW_WIPHY) {
       LOG(ERROR) << "Wrong command for new wiphy message";
       return false;
     }
-    if (!packet.GetAttributeValue(NL80211_ATTR_WIPHY, out_wiphy_index)) {
+    if (!packet->GetAttributeValue(NL80211_ATTR_WIPHY, out_wiphy_index)) {
       LOG(ERROR) << "Failed to get wiphy index from reply message";
       return false;
     }
@@ -93,7 +94,7 @@ bool NetlinkUtils::GetInterfaceNameAndIndex(uint32_t wiphy_index,
   get_interface.AddFlag(NLM_F_DUMP);
   NL80211Attr<uint32_t> wiphy(NL80211_ATTR_WIPHY, wiphy_index);
   get_interface.AddAttribute(wiphy);
-  vector<NL80211Packet> response;
+  vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetResponses(get_interface, &response)) {
     LOG(ERROR) << "Failed to send GetWiphy message";
   }
@@ -101,20 +102,20 @@ bool NetlinkUtils::GetInterfaceNameAndIndex(uint32_t wiphy_index,
     LOG(ERROR) << "Unexpected empty response from kernel";
     return false;
   }
-  for (NL80211Packet& packet : response) {
-    if (packet.GetMessageType() == NLMSG_ERROR) {
+  for (auto& packet : response) {
+    if (packet->GetMessageType() == NLMSG_ERROR) {
       LOG(ERROR) << "Receive ERROR message: "
-                 << strerror(packet.GetErrorCode());
+                 << strerror(packet->GetErrorCode());
       return false;
     }
-    if (packet.GetMessageType() != netlink_manager_->GetFamilyId()) {
+    if (packet->GetMessageType() != netlink_manager_->GetFamilyId()) {
       LOG(ERROR) << "Wrong message type for new interface message: "
-                 << packet.GetMessageType();
+                 << packet->GetMessageType();
       return false;
     }
-    if (packet.GetCommand() != NL80211_CMD_NEW_INTERFACE) {
+    if (packet->GetCommand() != NL80211_CMD_NEW_INTERFACE) {
       LOG(ERROR) << "Wrong command for new interface message: "
-                 << packet.GetCommand();
+                 << packet->GetCommand();
       return false;
     }
 
@@ -124,7 +125,7 @@ bool NetlinkUtils::GetInterfaceNameAndIndex(uint32_t wiphy_index,
     // because hostapd is supposed to set interface to AP mode later.
 
     string if_name;
-    if (!packet.GetAttributeValue(NL80211_ATTR_IFNAME, &if_name)) {
+    if (!packet->GetAttributeValue(NL80211_ATTR_IFNAME, &if_name)) {
       // In some situations, it has been observed that the kernel tells us
       // about a pseudo-device that does not have a real netdev.  In this
       // case, responses will have a NL80211_ATTR_WDEV, and not the expected
@@ -139,7 +140,7 @@ bool NetlinkUtils::GetInterfaceNameAndIndex(uint32_t wiphy_index,
     }
 
     uint32_t if_index;
-    if (!packet.GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+    if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
       LOG(DEBUG) << "Failed to get interface index";
       continue;
     }
