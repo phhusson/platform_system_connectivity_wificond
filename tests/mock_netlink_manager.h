@@ -39,7 +39,7 @@ class MockNetlinkManager : public NetlinkManager {
   MOCK_METHOD2(SendMessageAndGetResponses,
       bool(const NL80211Packet&, std::vector<NL80211Packet>*));
   MOCK_METHOD2(RegisterHandlerAndSendMessage,
-      bool(const NL80211Packet&, std::function<void(NL80211Packet)>));
+      bool(const NL80211Packet&, std::function<void(const NL80211Packet&)>));
 };  // class MockNetlinkManager
 
 }  // namespace wificond

@@ -46,7 +46,7 @@ constexpr uint32_t kBroadcastSequenceNumber = 0;
 constexpr int kMaximumNetlinkMessageWaitMilliSeconds = 300;
 uint8_t ReceiveBuffer[kReceiveBufferSize];
 
-void AppendPacket(vector<NL80211Packet>* vec, NL80211Packet packet) {
+void AppendPacket(vector<NL80211Packet>* vec, const NL80211Packet& packet) {
   vec->push_back(packet);
 }
 
@@ -140,7 +140,7 @@ void NetlinkManager::ReceivePacketAndRunHandler(int fd) {
   }
 }
 
-void NetlinkManager::OnNewFamily(NL80211Packet packet) {
+void NetlinkManager::OnNewFamily(const NL80211Packet& packet) {
   if (packet.GetMessageType() != GENL_ID_CTRL) {
     LOG(ERROR) << "Wrong message type for new family message";
     return;
@@ -223,7 +223,7 @@ bool NetlinkManager::IsStarted() const {
 
 bool NetlinkManager::RegisterHandlerAndSendMessage(
     const NL80211Packet& packet,
-    std::function<void(NL80211Packet)> handler) {
+    std::function<void(const NL80211Packet&)> handler) {
   if (packet.IsDump()) {
     LOG(ERROR) << "Do not use asynchronous interface for dump request !";
     return false;

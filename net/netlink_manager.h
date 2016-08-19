@@ -76,7 +76,7 @@ class NetlinkManager {
   // Do not use this asynchronous interface to send a dump request.
   // Returns true on success.
   virtual bool RegisterHandlerAndSendMessage(const NL80211Packet& packet,
-      std::function<void(NL80211Packet)> handler);
+      std::function<void(const NL80211Packet&)> handler);
   // Synchronous version of |RegisterHandlerAndSendMessage|.
   // Returns true on successfully receiving an valid reply.
   // Reply packets will be stored in |response|.
@@ -112,7 +112,7 @@ class NetlinkManager {
   // This handler revceives mapping from NL80211 family name to family id,
   // as well as mapping from group name to group id.
   // These mappings are allocated by kernel.
-  void OnNewFamily(NL80211Packet packet);
+  void OnNewFamily(const NL80211Packet& packet);
 
   bool started_;
   // We use different sockets for synchronous and asynchronous interfaces.
@@ -125,7 +125,7 @@ class NetlinkManager {
   EventLoop* event_loop_;
 
   // This is a collection of message handlers, for each sequence number.
-  std::map<uint32_t, std::function<void(NL80211Packet)>> message_handlers_;
+  std::map<uint32_t, std::function<void(const NL80211Packet&)>> message_handlers_;
 
   // A mapping from interface index to the handler registered to receive
   // scan results notifications.
