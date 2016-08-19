@@ -50,6 +50,8 @@ class NL80211Packet {
                 uint8_t command,
                 uint32_t sequence,
                 uint32_t pid);
+  // Copy constructor
+  NL80211Packet(const NL80211Packet& packet);
   ~NL80211Packet() = default;
 
   // Returns whether a packet has consistent header fields.
@@ -144,6 +146,9 @@ class NL80211Packet {
   }
 
   void DebugLog() const;
+
+  static int copy_counter_;
+  static long packet_bytes_copied_;
 
   std::vector<uint8_t> data_;
 };

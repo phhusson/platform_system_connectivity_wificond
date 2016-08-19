@@ -23,9 +23,20 @@ using std::vector;
 namespace android {
 namespace wificond {
 
+int NL80211Packet::copy_counter_ = 0;
+long NL80211Packet::packet_bytes_copied_ = 0;
+
 NL80211Packet::NL80211Packet(const vector<uint8_t>& data)
     : data_(data) {
   data_ = data;
+}
+
+NL80211Packet::NL80211Packet(const NL80211Packet& packet) {
+  data_ = packet.data_;
+  copy_counter_++;
+  packet_bytes_copied_+= packet.data_.size();
+  LOG(DEBUG) << "Packet copy operations: " << copy_counter_;
+  LOG(DEBUG) << "Packet bytes copied: " << packet_bytes_copied_;
 }
 
 NL80211Packet::NL80211Packet(uint16_t type,
