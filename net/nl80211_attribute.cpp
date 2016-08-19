@@ -28,6 +28,7 @@ namespace wificond {
 template class NL80211Attr<uint8_t>;
 template class NL80211Attr<uint16_t>;
 template class NL80211Attr<uint32_t>;
+template class NL80211Attr<uint64_t>;
 template class NL80211Attr<vector<uint8_t>>;
 template class NL80211Attr<string>;
 

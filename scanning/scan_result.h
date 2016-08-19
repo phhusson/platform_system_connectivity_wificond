@@ -25,6 +25,7 @@ namespace wificond {
 // This is the class to represent a scan result for wificond internal use.
 class ScanResult {
  public:
+  ScanResult() = default;
   ScanResult(std::vector<uint8_t>& ssid,
              std::vector<uint8_t>& bssid,
              std::vector<uint8_t>& info_element,

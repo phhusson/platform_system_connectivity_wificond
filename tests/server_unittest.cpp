@@ -25,6 +25,7 @@
 #include "android/net/wifi/IApInterface.h"
 #include "wificond/tests/mock_netlink_manager.h"
 #include "wificond/tests/mock_netlink_utils.h"
+#include "wificond/tests/mock_scan_utils.h"
 #include "wificond/server.h"
 
 using android::net::wifi::IApInterface;
@@ -65,12 +66,15 @@ class ServerTest : public ::testing::Test {
 
   unique_ptr<NiceMock<MockNetlinkUtils>> netlink_utils_{
       new NiceMock<MockNetlinkUtils>(netlink_manager_.get())};
+  unique_ptr<NiceMock<MockScanUtils>> scan_utils_{
+      new NiceMock<MockScanUtils>(netlink_manager_.get())};
 
 
   Server server_{unique_ptr<HalTool>(hal_tool_),
                  unique_ptr<InterfaceTool>(if_tool_),
                  unique_ptr<DriverTool>(driver_tool_),
-                 netlink_utils_.get()};
+                 netlink_utils_.get(),
+                 scan_utils_.get()};
 };  // class ServerTest
 
 }  // namespace

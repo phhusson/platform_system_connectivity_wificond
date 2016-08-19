@@ -28,6 +28,7 @@ namespace android {
 namespace wificond {
 
 class ClientInterfaceBinder;
+class ScanUtils;
 
 // Holds the guts of how we control network interfaces capable of connecting to
 // access points via wpa_supplicant.
@@ -38,7 +39,8 @@ class ClientInterfaceBinder;
 class ClientInterfaceImpl {
  public:
   ClientInterfaceImpl(const std::string& interface_name,
-                      uint32_t interface_index);
+                      uint32_t interface_index,
+                      ScanUtils* scan_utils);
   ~ClientInterfaceImpl();
 
   // Get a pointer to the binder representing this ClientInterfaceImpl.
@@ -48,8 +50,13 @@ class ClientInterfaceImpl {
   bool DisableSupplicant();
 
  private:
+  void OnScanResultsReady(uint32_t interface_index,
+                          std::vector<std::vector<uint8_t>>& ssids,
+                          std::vector<uint32_t>& frequencies);
+
   const std::string interface_name_;
   const uint32_t interface_index_;
+  ScanUtils* const scan_utils_;
   const android::sp<ClientInterfaceBinder> binder_;
 
   DISALLOW_COPY_AND_ASSIGN(ClientInterfaceImpl);

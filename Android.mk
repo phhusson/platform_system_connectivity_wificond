@@ -54,6 +54,7 @@ LOCAL_SRC_FILES := \
     client_interface_impl.cpp \
     looper_backed_event_loop.cpp \
     scanning/scan_result.cpp \
+    scanning/scan_utils.cpp \
     server.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
@@ -129,6 +130,7 @@ LOCAL_SRC_FILES := \
     tests/main.cpp \
     tests/mock_netlink_manager.cpp \
     tests/mock_netlink_utils.cpp \
+    tests/mock_scan_utils.cpp \
     tests/netlink_manager_unittest.cpp \
     tests/netlink_utils_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \

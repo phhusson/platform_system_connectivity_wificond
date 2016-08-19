@@ -19,6 +19,7 @@
 #include <android-base/logging.h>
 
 #include "wificond/net/netlink_utils.h"
+#include "wificond/scanning/scan_utils.h"
 
 using android::binder::Status;
 using android::sp;
@@ -39,11 +40,13 @@ namespace wificond {
 Server::Server(unique_ptr<HalTool> hal_tool,
                unique_ptr<InterfaceTool> if_tool,
                unique_ptr<DriverTool> driver_tool,
-               NetlinkUtils* netlink_utils)
+               NetlinkUtils* netlink_utils,
+               ScanUtils* scan_utils)
     : hal_tool_(std::move(hal_tool)),
       if_tool_(std::move(if_tool)),
       driver_tool_(std::move(driver_tool)),
-      netlink_utils_(netlink_utils) {
+      netlink_utils_(netlink_utils),
+      scan_utils_(scan_utils) {
 }
 
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
@@ -75,7 +78,8 @@ Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
 
   unique_ptr<ClientInterfaceImpl> client_interface(new ClientInterfaceImpl(
       interface_name,
-      interface_index));
+      interface_index,
+      scan_utils_));
   *created_interface = client_interface->GetBinder();
   client_interfaces_.push_back(std::move(client_interface));
   return Status::ok();
