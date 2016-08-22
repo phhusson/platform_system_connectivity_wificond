@@ -15,6 +15,7 @@
  */
 
 #include <unistd.h>
+#include <sys/capability.h>
 
 #include <csignal>
 #include <memory>
@@ -25,6 +26,8 @@
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
 #include <cutils/properties.h>
+#include <libminijail.h>
+#include <private/android_filesystem_config.h>
 #include <utils/String16.h>
 #include <wifi_hal/driver_tool.h>
 #include <wifi_system/hal_tool.h>
@@ -101,6 +104,24 @@ void RegisterServiceOrCrash(const android::sp<android::IBinder>& service) {
            android::NO_ERROR);
 }
 
+void DoPrivilegedSetupOrCrash() {
+  // take ownership of the magic firmware change path
+  CHECK(chown(DriverTool::kFirmwareReloadPath, AID_WIFI, AID_WIFI) == 0)
+      << "Error changing ownership of '" << DriverTool::kFirmwareReloadPath
+      << "' to wifi:wifi, (" << strerror(errno) << ")";
+}
+
+void DropPrivilegesOrCrash() {
+  minijail* j = minijail_new();
+  CHECK(minijail_change_user(j, "wifi") == 0);
+  CHECK(minijail_change_group(j, "wifi") == 0);
+  minijail_use_caps(j,
+                    CAP_TO_MASK(CAP_NET_ADMIN) |
+                    CAP_TO_MASK(CAP_NET_RAW));
+  minijail_enter(j);
+  minijail_destroy(j);
+}
+
 }  // namespace
 
 void OnBinderReadReady(int fd) {
@@ -110,6 +131,9 @@ void OnBinderReadReady(int fd) {
 int main(int argc, char** argv) {
   android::base::InitLogging(argv, android::base::LogdLogger(android::base::SYSTEM));
   LOG(INFO) << "wificond is starting up...";
+
+  DoPrivilegedSetupOrCrash();
+  DropPrivilegesOrCrash();
 
   unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher(
       new android::wificond::LooperBackedEventLoop());

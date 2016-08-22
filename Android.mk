@@ -33,6 +33,7 @@ LOCAL_SHARED_LIBRARIES := \
     libbinder \
     libbase \
     libcutils \
+    libminijail \
     libutils \
     libwifi-hal \
     libwifi-system
