@@ -23,6 +23,7 @@
 
 #include <android-base/macros.h>
 #include <wifi_system/hostapd_manager.h>
+#include <wifi_system/interface_tool.h>
 
 #include "android/net/wifi/IApInterface.h"
 
@@ -39,6 +40,7 @@ class ApInterfaceImpl {
  public:
   ApInterfaceImpl(const std::string& interface_name,
                   uint32_t interface_index,
+                  wifi_system::InterfaceTool* if_tool,
                   std::unique_ptr<wifi_system::HostapdManager> hostapd_manager);
   ~ApInterfaceImpl();
 
@@ -57,6 +59,7 @@ class ApInterfaceImpl {
  private:
   const std::string interface_name_;
   const uint32_t interface_index_;
+  wifi_system::InterfaceTool* const if_tool_;
   const std::unique_ptr<wifi_system::HostapdManager> hostapd_manager_;
   const android::sp<ApInterfaceBinder> binder_;
 

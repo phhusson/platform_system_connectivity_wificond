@@ -63,6 +63,7 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
   unique_ptr<ApInterfaceImpl> ap_interface(new ApInterfaceImpl(
       interface_name,
       interface_index,
+      if_tool_.get(),
       unique_ptr<HostapdManager>(new HostapdManager)));
   *created_interface = ap_interface->GetBinder();
   ap_interfaces_.push_back(std::move(ap_interface));

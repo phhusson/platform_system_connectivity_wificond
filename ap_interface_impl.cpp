@@ -22,6 +22,7 @@
 
 using android::net::wifi::IApInterface;
 using android::wifi_system::HostapdManager;
+using android::wifi_system::InterfaceTool;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -33,9 +34,11 @@ namespace wificond {
 
 ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
                                  uint32_t interface_index,
+                                 InterfaceTool* if_tool,
                                  unique_ptr<HostapdManager> hostapd_manager)
     : interface_name_(interface_name),
       interface_index_(interface_index),
+      if_tool_(if_tool),
       hostapd_manager_(std::move(hostapd_manager)),
       binder_(new ApInterfaceBinder(this)) {
   // This log keeps compiler happy.
@@ -56,25 +59,15 @@ bool ApInterfaceImpl::StartHostapd() {
 }
 
 bool ApInterfaceImpl::StopHostapd() {
-  pid_t hostapd_pid;
-  if (hostapd_manager_->GetHostapdPid(&hostapd_pid)) {
-    // We do this because it was found that hostapd would leave the driver in a
-    // bad state if init killed it harshly with a SIGKILL. b/30311493
-    if (kill(hostapd_pid, SIGTERM) == -1) {
-      LOG(ERROR) << "Error delivering signal to hostapd: " << strerror(errno);
-    }
-    // This should really be asynchronous: b/30465379
-    for (int tries = 0; tries < 10; tries++) {
-      // Try to give hostapd some time to go down.
-      if (!hostapd_manager_->IsHostapdRunning()) {
-        break;
-      }
-      usleep(10 * 1000);  // Don't busy wait.
-    }
-  }
+  // Drop SIGKILL on hostapd.
+  bool success = hostapd_manager_->StopHostapd();
 
-  // Always drop a SIGKILL on hostapd on the way out, just in case.
-  return hostapd_manager_->StopHostapd();
+  // Take down the interface.  This has the pleasant side effect of
+  // letting the driver know that we don't want any lingering AP logic
+  // running in the driver.
+  success = if_tool_->SetUpState(interface_name_.c_str(), false) && success;
+
+  return success;
 }
 
 bool ApInterfaceImpl::WriteHostapdConfig(const vector<uint8_t>& ssid,

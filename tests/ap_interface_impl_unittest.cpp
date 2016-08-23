@@ -20,16 +20,19 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <wifi_system_test/mock_hostapd_manager.h>
+#include <wifi_system_test/mock_interface_tool.h>
 
 #include "wificond/ap_interface_impl.h"
 
 using android::wifi_system::HostapdManager;
 using android::wifi_system::MockHostapdManager;
+using android::wifi_system::MockInterfaceTool;
 using std::unique_ptr;
 using std::vector;
 using testing::NiceMock;
 using testing::Return;
 using testing::Sequence;
+using testing::StrEq;
 using testing::_;
 
 namespace android {
@@ -41,10 +44,13 @@ const uint32_t kTestInterfaceIndex = 42;
 
 class ApInterfaceImplTest : public ::testing::Test {
  protected:
+  unique_ptr<NiceMock<MockInterfaceTool>> if_tool_{
+      new NiceMock<MockInterfaceTool>};
   NiceMock<MockHostapdManager>* hostapd_manager_ =
       new NiceMock<MockHostapdManager>;
   ApInterfaceImpl ap_interface_{kTestInterfaceName,
                                 kTestInterfaceIndex,
+                                if_tool_.get(),
                                 unique_ptr<HostapdManager>(hostapd_manager_)};
 };  // class ApInterfaceImplTest
 
@@ -70,6 +76,8 @@ TEST_F(ApInterfaceImplTest, ShouldReportStopFailure) {
 
 TEST_F(ApInterfaceImplTest, ShouldReportStopSuccess) {
   EXPECT_CALL(*hostapd_manager_, StopHostapd())
+      .WillOnce(Return(true));
+  EXPECT_CALL(*if_tool_, SetUpState(StrEq(kTestInterfaceName), false))
       .WillOnce(Return(true));
   EXPECT_TRUE(ap_interface_.StopHostapd());
 }
