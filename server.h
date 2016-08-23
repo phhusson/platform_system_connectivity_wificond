@@ -69,7 +69,8 @@ class Server : public android::net::wifi::BnWificond {
   // Returns true on success, false otherwise.
   bool SetupInterfaceForMode(int mode,
                              std::string* interface_name,
-                             uint32_t* interface_index);
+                             uint32_t* interface_index,
+                             std::vector<uint8_t>* interface_mac_addr);
   bool RefreshWiphyIndex();
 
   const std::unique_ptr<wifi_system::HalTool> hal_tool_;

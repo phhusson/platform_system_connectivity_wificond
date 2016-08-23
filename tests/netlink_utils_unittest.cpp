@@ -45,6 +45,7 @@ constexpr uint16_t kFakeWiphyIndex = 8;
 constexpr int kFakeErrorCode = EIO;
 const char kFakeInterfaceName[] = "testif0";
 const uint32_t kFakeInterfaceIndex = 34;
+const uint8_t kFakeInterfaceMacAddress[] = {0x45, 0x54, 0xad, 0x67, 0x98, 0xf6};
 
 // Currently, control messages are only created by the kernel and sent to us.
 // Therefore NL80211Packet doesn't have corresponding constructor.
@@ -122,7 +123,7 @@ TEST_F(NetlinkUtilsTest, CanHandleGetWiphyIndexError) {
   EXPECT_FALSE(netlink_utils_->GetWiphyIndex(&wiphy_index));
 }
 
-TEST_F(NetlinkUtilsTest, CanGetInterfaceNameAndIndex) {
+TEST_F(NetlinkUtilsTest, CanGetInterfaceInfo) {
   NL80211Packet new_interface(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_NEW_INTERFACE,
@@ -134,6 +135,13 @@ TEST_F(NetlinkUtilsTest, CanGetInterfaceNameAndIndex) {
   // Insert interface index attribute.
   NL80211Attr<uint32_t> if_index_attr(NL80211_ATTR_IFINDEX, kFakeInterfaceIndex);
   new_interface.AddAttribute(if_index_attr);
+  // Insert mac address attribute.
+  std::vector<uint8_t> if_mac_addr;
+  if_mac_addr.assign(
+      kFakeInterfaceMacAddress,
+      kFakeInterfaceMacAddress + sizeof(kFakeInterfaceMacAddress));
+  NL80211Attr<vector<uint8_t>> if_mac_attr(NL80211_ATTR_MAC, if_mac_addr);
+  new_interface.AddAttribute(if_mac_attr);
 
   // Mock a valid response from kernel.
   vector<NL80211Packet> response = {new_interface};
@@ -143,14 +151,17 @@ TEST_F(NetlinkUtilsTest, CanGetInterfaceNameAndIndex) {
 
   string interface_name;
   uint32_t interface_index;
-  EXPECT_TRUE(netlink_utils_->GetInterfaceNameAndIndex(kFakeWiphyIndex,
-                                                       &interface_name,
-                                                       &interface_index));
+  vector<uint8_t> interface_mac_addr;
+  EXPECT_TRUE(netlink_utils_->GetInterfaceInfo(kFakeWiphyIndex,
+                                               &interface_name,
+                                               &interface_index,
+                                               &interface_mac_addr));
   EXPECT_EQ(string(kFakeInterfaceName), interface_name);
   EXPECT_EQ(kFakeInterfaceIndex, interface_index);
+  EXPECT_EQ(if_mac_addr, interface_mac_addr);
 }
 
-TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameAndIndexQuery) {
+TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceInfoQuery) {
   // Some kernels will have extra responses ahead of the expected packet.
   NL80211Packet psuedo_interface(
       netlink_manager_->GetFamilyId(),
@@ -170,6 +181,12 @@ TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameAndIndexQuery) {
       NL80211_ATTR_IFNAME, string(kFakeInterfaceName)));
   expected_interface.AddAttribute(NL80211Attr<uint32_t>(
       NL80211_ATTR_IFINDEX, kFakeInterfaceIndex));
+  std::vector<uint8_t> if_mac_addr;
+  if_mac_addr.assign(
+      kFakeInterfaceMacAddress,
+      kFakeInterfaceMacAddress + sizeof(kFakeInterfaceMacAddress));
+  expected_interface.AddAttribute(
+      NL80211Attr<vector<uint8_t>>(NL80211_ATTR_MAC, if_mac_addr));
 
   // Kernel can send us the pseduo interface packet first
   vector<NL80211Packet> response = {psuedo_interface, expected_interface};
@@ -179,14 +196,15 @@ TEST_F(NetlinkUtilsTest, HandlesPseudoDevicesInInterfaceNameAndIndexQuery) {
 
   string interface_name;
   uint32_t interface_index;
-  EXPECT_TRUE(netlink_utils_->GetInterfaceNameAndIndex(kFakeWiphyIndex,
-                                                       &interface_name,
-                                                       &interface_index));
+  vector<uint8_t> interface_mac_addr;
+  EXPECT_TRUE(netlink_utils_->GetInterfaceInfo(
+      kFakeWiphyIndex, &interface_name, &interface_index, &interface_mac_addr));
   EXPECT_EQ(string(kFakeInterfaceName), interface_name);
   EXPECT_EQ(kFakeInterfaceIndex, interface_index);
+  EXPECT_EQ(if_mac_addr, interface_mac_addr);
 }
 
-TEST_F(NetlinkUtilsTest, HandleP2p0WhenGetInterfaceNameAndIndex) {
+TEST_F(NetlinkUtilsTest, HandleP2p0WhenGetInterfaceInfo) {
   NL80211Packet new_interface(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_NEW_INTERFACE,
@@ -198,6 +216,13 @@ TEST_F(NetlinkUtilsTest, HandleP2p0WhenGetInterfaceNameAndIndex) {
   // Insert interface index attribute.
   NL80211Attr<uint32_t> if_index_attr(NL80211_ATTR_IFINDEX, kFakeInterfaceIndex);
   new_interface.AddAttribute(if_index_attr);
+  // Insert mac address attribute.
+  std::vector<uint8_t> if_mac_addr;
+  if_mac_addr.assign(
+      kFakeInterfaceMacAddress,
+      kFakeInterfaceMacAddress + sizeof(kFakeInterfaceMacAddress));
+  NL80211Attr<vector<uint8_t>> if_mac_attr(NL80211_ATTR_MAC, if_mac_addr);
+  new_interface.AddAttribute(if_mac_attr);
 
   // Create a new interface packet for p2p0.
   NL80211Packet new_interface_p2p0(
@@ -215,14 +240,17 @@ TEST_F(NetlinkUtilsTest, HandleP2p0WhenGetInterfaceNameAndIndex) {
 
   string interface_name;
   uint32_t interface_index;
-  EXPECT_TRUE(netlink_utils_->GetInterfaceNameAndIndex(kFakeWiphyIndex,
-                                                       &interface_name,
-                                                       &interface_index));
+  vector<uint8_t> interface_mac_addr;
+  EXPECT_TRUE(netlink_utils_->GetInterfaceInfo(kFakeWiphyIndex,
+                                               &interface_name,
+                                               &interface_index,
+                                               &interface_mac_addr));
   EXPECT_EQ(string(kFakeInterfaceName), interface_name);
   EXPECT_EQ(kFakeInterfaceIndex, interface_index);
+  EXPECT_EQ(if_mac_addr, interface_mac_addr);
 }
 
-TEST_F(NetlinkUtilsTest, CanHandleGetInterfaceNameAndIndexError) {
+TEST_F(NetlinkUtilsTest, CanHandleGetInterfaceInfoError) {
   // Mock an error response from kernel.
   vector<NL80211Packet> response = {CreateControlMessageError(kFakeErrorCode)};
 
@@ -231,9 +259,11 @@ TEST_F(NetlinkUtilsTest, CanHandleGetInterfaceNameAndIndexError) {
 
   string interface_name;
   uint32_t interface_index;
-  EXPECT_FALSE(netlink_utils_->GetInterfaceNameAndIndex(kFakeWiphyIndex,
-                                                        &interface_name,
-                                                        &interface_index));
+  vector<uint8_t> interface_mac_addr;
+  EXPECT_FALSE(netlink_utils_->GetInterfaceInfo(kFakeWiphyIndex,
+                                                &interface_name,
+                                                &interface_index,
+                                                &interface_mac_addr));
 }
 
 }  // namespace wificond

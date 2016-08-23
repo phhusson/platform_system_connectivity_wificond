@@ -30,9 +30,11 @@ class MockNetlinkUtils : public NetlinkUtils {
   ~MockNetlinkUtils() override = default;
 
   MOCK_METHOD1(GetWiphyIndex, bool(uint32_t* out_wiphy_index));
-  MOCK_METHOD3(GetInterfaceNameAndIndex, bool(uint32_t wiphy_index,
-                                              std::string* interface_name,
-                                              uint32_t* interface_index));
+  MOCK_METHOD4(GetInterfaceInfo,
+               bool(uint32_t wiphy_index,
+                    std::string* name,
+                    uint32_t* index,
+                    std::vector<uint8_t>* mac_address));
 
 };  // class MockNetlinkUtils
 

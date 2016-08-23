@@ -52,9 +52,11 @@ Server::Server(unique_ptr<HalTool> hal_tool,
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
   string interface_name;
   uint32_t interface_index;
+  vector<uint8_t> interface_mac_addr;
   if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp,
                              &interface_name,
-                             &interface_index)) {
+                             &interface_index,
+                             &interface_mac_addr)) {
     return Status::ok();  // Logging was done internally
   }
 
@@ -70,15 +72,18 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
 Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
   string interface_name;
   uint32_t interface_index;
+  vector<uint8_t> interface_mac_addr;
   if (!SetupInterfaceForMode(DriverTool::kFirmwareModeSta,
                              &interface_name,
-                             &interface_index)) {
+                             &interface_index,
+                             &interface_mac_addr)) {
     return Status::ok();  // Logging was done internally
   }
 
   unique_ptr<ClientInterfaceImpl> client_interface(new ClientInterfaceImpl(
       interface_name,
       interface_index,
+      interface_mac_addr,
       scan_utils_));
   *created_interface = client_interface->GetBinder();
   client_interfaces_.push_back(std::move(client_interface));
@@ -96,7 +101,8 @@ Status Server::tearDownInterfaces() {
 
 bool Server::SetupInterfaceForMode(int mode,
                                    string* interface_name,
-                                   uint32_t* interface_index) {
+                                   uint32_t* interface_index,
+                                   vector<uint8_t>* interface_mac_addr) {
   if (!ap_interfaces_.empty() || !client_interfaces_.empty()) {
     // In the future we may support multiple interfaces at once.  However,
     // today, we support just one.
@@ -118,9 +124,10 @@ bool Server::SetupInterfaceForMode(int mode,
     return false;
   }
 
-  if (!netlink_utils_->GetInterfaceNameAndIndex(wiphy_index_,
-                                                interface_name,
-                                                interface_index)) {
+  if (!netlink_utils_->GetInterfaceInfo(wiphy_index_,
+                                        interface_name,
+                                        interface_index,
+                                        interface_mac_addr)) {
     return false;
   }
 

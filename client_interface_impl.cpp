@@ -35,11 +35,14 @@ using std::vector;
 namespace android {
 namespace wificond {
 
-ClientInterfaceImpl::ClientInterfaceImpl(const std::string& interface_name,
-                                         uint32_t interface_index,
-                                         ScanUtils* scan_utils)
+ClientInterfaceImpl::ClientInterfaceImpl(
+    const std::string& interface_name,
+    uint32_t interface_index,
+    const std::vector<uint8_t>& interface_mac_addr,
+    ScanUtils* scan_utils)
     : interface_name_(interface_name),
       interface_index_(interface_index),
+      interface_mac_addr_(interface_mac_addr),
       scan_utils_(scan_utils),
       binder_(new ClientInterfaceBinder(this)) {
   scan_utils_->SubscribeScanResultNotification(

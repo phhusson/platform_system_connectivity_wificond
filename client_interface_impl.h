@@ -40,6 +40,7 @@ class ClientInterfaceImpl {
  public:
   ClientInterfaceImpl(const std::string& interface_name,
                       uint32_t interface_index,
+                      const std::vector<uint8_t>& interface_mac_addr,
                       ScanUtils* scan_utils);
   ~ClientInterfaceImpl();
 
@@ -56,6 +57,7 @@ class ClientInterfaceImpl {
 
   const std::string interface_name_;
   const uint32_t interface_index_;
+  const std::vector<uint8_t> interface_mac_addr_;
   ScanUtils* const scan_utils_;
   const android::sp<ClientInterfaceBinder> binder_;
 
