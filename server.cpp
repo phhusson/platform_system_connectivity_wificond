@@ -106,6 +106,29 @@ Status Server::tearDownInterfaces() {
   return Status::ok();
 }
 
+void Server::CleanUpSystemState() {
+  supplicant_manager_->StopSupplicant();
+  hostapd_manager_->StopHostapd();
+
+  uint32_t phy_index = 0;
+  uint32_t if_index = 0;
+  vector<uint8_t> mac;
+  string if_name;
+  if (netlink_utils_->GetWiphyIndex(&phy_index) &&
+      netlink_utils_->GetInterfaceInfo(phy_index,
+                                       &if_name,
+                                       &if_index,
+                                       &mac)) {
+    // If the kernel knows about a network interface, mark it as down.
+    // This prevents us from beaconing as an AP, or remaining associated
+    // as a client.
+    if_tool_->SetUpState(if_name.c_str(), false);
+  }
+  // "unloading the driver" is frequently a no-op in systems that
+  // don't have kernel modules, but just in case.
+  driver_tool_->UnloadDriver();
+}
+
 bool Server::SetupInterfaceForMode(int mode,
                                    string* interface_name,
                                    uint32_t* interface_index,
