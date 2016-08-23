@@ -18,9 +18,11 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <wifi_system_test/mock_hal_tool.h>
-#include <wifi_system_test/mock_interface_tool.h>
 #include <wifi_hal_test/mock_driver_tool.h>
+#include <wifi_system_test/mock_hal_tool.h>
+#include <wifi_system_test/mock_hostapd_manager.h>
+#include <wifi_system_test/mock_interface_tool.h>
+#include <wifi_system_test/mock_supplicant_manager.h>
 
 #include "android/net/wifi/IApInterface.h"
 #include "wificond/tests/mock_netlink_manager.h"
@@ -32,9 +34,13 @@ using android::net::wifi::IApInterface;
 using android::wifi_hal::DriverTool;
 using android::wifi_hal::MockDriverTool;
 using android::wifi_system::HalTool;
+using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::MockHalTool;
+using android::wifi_system::MockHostapdManager;
 using android::wifi_system::MockInterfaceTool;
+using android::wifi_system::MockSupplicantManager;
+using android::wifi_system::SupplicantManager;
 using std::unique_ptr;
 using testing::NiceMock;
 using testing::Return;
@@ -60,6 +66,10 @@ class ServerTest : public ::testing::Test {
   NiceMock<MockHalTool>* hal_tool_ = new NiceMock<MockHalTool>;
   NiceMock<MockInterfaceTool>* if_tool_ = new NiceMock<MockInterfaceTool>;
   NiceMock<MockDriverTool>* driver_tool_ = new NiceMock<MockDriverTool>;
+  NiceMock<MockSupplicantManager>* supplicant_manager_ =
+      new NiceMock<MockSupplicantManager>;
+  NiceMock<MockHostapdManager>* hostapd_manager_ =
+      new NiceMock<MockHostapdManager>;
 
   unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_{
       new NiceMock<MockNetlinkManager>()};
@@ -73,6 +83,8 @@ class ServerTest : public ::testing::Test {
   Server server_{unique_ptr<HalTool>(hal_tool_),
                  unique_ptr<InterfaceTool>(if_tool_),
                  unique_ptr<DriverTool>(driver_tool_),
+                 unique_ptr<SupplicantManager>(supplicant_manager_),
+                 unique_ptr<HostapdManager>(hostapd_manager_),
                  netlink_utils_.get(),
                  scan_utils_.get()};
 };  // class ServerTest

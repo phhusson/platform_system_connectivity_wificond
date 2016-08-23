@@ -43,7 +43,9 @@
 using android::net::wifi::IWificond;
 using android::wifi_hal::DriverTool;
 using android::wifi_system::HalTool;
+using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
+using android::wifi_system::SupplicantManager;
 using android::wificond::ipc_constants::kDevModePropertyKey;
 using android::wificond::ipc_constants::kDevModeServiceName;
 using android::wificond::ipc_constants::kServiceName;
@@ -154,6 +156,8 @@ int main(int argc, char** argv) {
       unique_ptr<HalTool>(new HalTool),
       unique_ptr<InterfaceTool>(new InterfaceTool),
       unique_ptr<DriverTool>(new DriverTool),
+      unique_ptr<SupplicantManager>(new SupplicantManager()),
+      unique_ptr<HostapdManager>(new HostapdManager()),
       &netlink_utils,
       &scan_utils));
   RegisterServiceOrCrash(server.get());

@@ -127,6 +127,7 @@ LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
     tests/ap_interface_impl_unittest.cpp \
+    tests/client_interface_impl_unittest.cpp \
     tests/looper_backed_event_loop_unittest.cpp \
     tests/main.cpp \
     tests/mock_netlink_manager.cpp \

@@ -17,7 +17,6 @@
 #ifndef WIFICOND_AP_INTERFACE_IMPL_H_
 #define WIFICOND_AP_INTERFACE_IMPL_H_
 
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -41,7 +40,7 @@ class ApInterfaceImpl {
   ApInterfaceImpl(const std::string& interface_name,
                   uint32_t interface_index,
                   wifi_system::InterfaceTool* if_tool,
-                  std::unique_ptr<wifi_system::HostapdManager> hostapd_manager);
+                  wifi_system::HostapdManager* hostapd_manager);
   ~ApInterfaceImpl();
 
   // Get a pointer to the binder representing this ApInterfaceImpl.
@@ -60,7 +59,7 @@ class ApInterfaceImpl {
   const std::string interface_name_;
   const uint32_t interface_index_;
   wifi_system::InterfaceTool* const if_tool_;
-  const std::unique_ptr<wifi_system::HostapdManager> hostapd_manager_;
+  wifi_system::HostapdManager* const hostapd_manager_;
   const android::sp<ApInterfaceBinder> binder_;
 
   DISALLOW_COPY_AND_ASSIGN(ApInterfaceImpl);

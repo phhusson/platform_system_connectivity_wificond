@@ -45,6 +45,8 @@ class Server : public android::net::wifi::BnWificond {
   Server(std::unique_ptr<wifi_system::HalTool> hal_tool,
          std::unique_ptr<wifi_system::InterfaceTool> if_tool,
          std::unique_ptr<wifi_hal::DriverTool> driver_tool,
+         std::unique_ptr<wifi_system::SupplicantManager> supplicant_man,
+         std::unique_ptr<wifi_system::HostapdManager> hostapd_man,
          NetlinkUtils* netlink_utils,
          ScanUtils* scan_utils);
   ~Server() override = default;
@@ -76,6 +78,8 @@ class Server : public android::net::wifi::BnWificond {
   const std::unique_ptr<wifi_system::HalTool> hal_tool_;
   const std::unique_ptr<wifi_system::InterfaceTool> if_tool_;
   const std::unique_ptr<wifi_hal::DriverTool> driver_tool_;
+  const std::unique_ptr<wifi_system::SupplicantManager> supplicant_manager_;
+  const std::unique_ptr<wifi_system::HostapdManager> hostapd_manager_;
   NetlinkUtils* const netlink_utils_;
   ScanUtils* const scan_utils_;
 

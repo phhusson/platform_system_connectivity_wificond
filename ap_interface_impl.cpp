@@ -35,11 +35,11 @@ namespace wificond {
 ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
                                  uint32_t interface_index,
                                  InterfaceTool* if_tool,
-                                 unique_ptr<HostapdManager> hostapd_manager)
+                                 HostapdManager* hostapd_manager)
     : interface_name_(interface_name),
       interface_index_(interface_index),
       if_tool_(if_tool),
-      hostapd_manager_(std::move(hostapd_manager)),
+      hostapd_manager_(hostapd_manager),
       binder_(new ApInterfaceBinder(this)) {
   // This log keeps compiler happy.
   LOG(DEBUG) << "Created ap interface " << interface_name_

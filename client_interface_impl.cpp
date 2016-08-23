@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <android-base/logging.h>
+#include <wifi_system/supplicant_manager.h>
 #include <wifi_system/wifi.h>
 
 #include "wificond/client_interface_binder.h"
@@ -27,6 +28,7 @@
 
 using android::net::wifi::IClientInterface;
 using android::sp;
+using android::wifi_system::SupplicantManager;
 
 using namespace std::placeholders;
 using std::string;
@@ -39,10 +41,12 @@ ClientInterfaceImpl::ClientInterfaceImpl(
     const std::string& interface_name,
     uint32_t interface_index,
     const std::vector<uint8_t>& interface_mac_addr,
+    SupplicantManager* supplicant_manager,
     ScanUtils* scan_utils)
     : interface_name_(interface_name),
       interface_index_(interface_index),
       interface_mac_addr_(interface_mac_addr),
+      supplicant_manager_(supplicant_manager),
       scan_utils_(scan_utils),
       binder_(new ClientInterfaceBinder(this)) {
   scan_utils_->SubscribeScanResultNotification(
@@ -61,11 +65,11 @@ sp<android::net::wifi::IClientInterface> ClientInterfaceImpl::GetBinder() const 
 }
 
 bool ClientInterfaceImpl::EnableSupplicant() {
-  return (wifi_system::wifi_start_supplicant() == 0);
+  return supplicant_manager_->StartSupplicant();
 }
 
 bool ClientInterfaceImpl::DisableSupplicant() {
-  return (wifi_system::wifi_stop_supplicant() == 0);
+  return supplicant_manager_->StopSupplicant();
 }
 
 void ClientInterfaceImpl::OnScanResultsReady(

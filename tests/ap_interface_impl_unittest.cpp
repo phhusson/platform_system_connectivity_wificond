@@ -46,12 +46,12 @@ class ApInterfaceImplTest : public ::testing::Test {
  protected:
   unique_ptr<NiceMock<MockInterfaceTool>> if_tool_{
       new NiceMock<MockInterfaceTool>};
-  NiceMock<MockHostapdManager>* hostapd_manager_ =
-      new NiceMock<MockHostapdManager>;
+  unique_ptr<NiceMock<MockHostapdManager>> hostapd_manager_{
+      new NiceMock<MockHostapdManager>};
   ApInterfaceImpl ap_interface_{kTestInterfaceName,
                                 kTestInterfaceIndex,
                                 if_tool_.get(),
-                                unique_ptr<HostapdManager>(hostapd_manager_)};
+                                hostapd_manager_.get()};
 };  // class ApInterfaceImplTest
 
 }  // namespace
