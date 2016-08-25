@@ -71,6 +71,7 @@ class NetlinkManager {
   virtual uint32_t GetSequenceNumber();
   // Get NL80211 netlink family id,
   virtual uint16_t GetFamilyId();
+
   // Send |packet| to kernel.
   // This works in an asynchronous way.
   // |handler| will be run when we receive a valid reply from kernel.
@@ -80,10 +81,27 @@ class NetlinkManager {
       std::function<void(std::unique_ptr<const NL80211Packet>)> handler);
   // Synchronous version of |RegisterHandlerAndSendMessage|.
   // Returns true on successfully receiving an valid reply.
-  // Reply packets will be stored in |response|.
+  // Reply packets will be stored in |*response|.
   virtual bool SendMessageAndGetResponses(
       const NL80211Packet& packet,
       std::vector<std::unique_ptr<const NL80211Packet>>* response);
+  // Wrapper of |SendMessageAndGetResponses| for messages with a single
+  // response.
+  // Returns true on successfully receiving an valid reply.
+  // Reply packet will be stored in |*response|.
+  virtual bool SendMessageAndGetSingleResponse(
+      const NL80211Packet& packet,
+      std::unique_ptr<const NL80211Packet>* response);
+  // Wrapper of |SendMessageAndGetResponses| for messages that trigger
+  // only a NLMSG_ERROR response
+  // Returns true if the message is successfully sent and a NLMSG_ERROR response
+  // comes back, regardless of the error code.
+  // Error code will be stored in |*error_code|
+  virtual bool SendMessageAndGetAckOrError(const NL80211Packet& packet,
+                                           int* error_code);
+  // Wrapper of |SendMessageAndGetResponses| that returns true iff the response
+  // is an ACK.
+  virtual bool SendMessageAndGetAck(const NL80211Packet& packet);
 
   // Sign up to receive and log multicast events of a specific type.
   // |group| is one of the string NL80211_MULTICAST_GROUP_* in nl80211.h.

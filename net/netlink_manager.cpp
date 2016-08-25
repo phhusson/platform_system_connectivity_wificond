@@ -288,6 +288,50 @@ bool NetlinkManager::SendMessageAndGetResponses(
   return true;
 }
 
+bool NetlinkManager::SendMessageAndGetSingleResponse(
+    const NL80211Packet& packet,
+    unique_ptr<const NL80211Packet>* response) {
+  vector<unique_ptr<const NL80211Packet>> response_vec;
+  if (!SendMessageAndGetResponses(packet, &response_vec)) {
+    return false;
+  }
+  if (response_vec.size() != 1) {
+    LOG(ERROR) << "Unexpected repsonse size: " << response_vec.size();
+    return false;
+  }
+
+  *response = std::move(response_vec[0]);
+  return true;
+}
+
+bool NetlinkManager::SendMessageAndGetAckOrError(const NL80211Packet& packet,
+                                                 int* error_code) {
+  unique_ptr<const NL80211Packet> response;
+  if (!SendMessageAndGetSingleResponse(packet, &response)) {
+    return false;
+  }
+  uint16_t type = response->GetMessageType();
+  if (type != NLMSG_ERROR) {
+    LOG(ERROR) << "Receive unexpected message type :" << type;
+    return false;
+  }
+
+  *error_code = response->GetErrorCode();
+  return true;
+}
+
+bool NetlinkManager::SendMessageAndGetAck(const NL80211Packet& packet) {
+  int error_code;
+  if (!SendMessageAndGetAckOrError(packet, &error_code)) {
+    return false;
+  }
+  if (error_code != 0) {
+    LOG(ERROR) << "Received error messsage: " << strerror(error_code);
+    return false;
+  }
+
+  return true;
+}
 
 bool NetlinkManager::SendMessageInternal(const NL80211Packet& packet, int fd) {
   const vector<uint8_t>& data = packet.GetConstData();
