@@ -181,6 +181,8 @@ class NL80211NestedAttr : public BaseNL80211Attr {
     return true;
   }
 
+  void DebugLog() const;
+
 };
 
 }  // namespace wificond

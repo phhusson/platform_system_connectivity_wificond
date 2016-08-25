@@ -187,5 +187,20 @@ bool NL80211NestedAttr::GetAttribute(int id,
   return true;
 }
 
+void NL80211NestedAttr::DebugLog() const {
+  const uint8_t* ptr = data_.data() + NLMSG_HDRLEN;
+  const uint8_t* end_ptr = data_.data() + data_.size();
+  while (ptr + NLA_HDRLEN <= end_ptr) {
+    const nlattr* header = reinterpret_cast<const nlattr*>(ptr);
+    if (ptr + NLA_ALIGN(header->nla_len) > end_ptr) {
+      LOG(ERROR) << "broken nl80211 atrribute.";
+      continue;
+    }
+    LOG(INFO) << "Have attribute with nla_type=" << header->nla_type
+              << " and nla_len=" << header->nla_len;
+    ptr += NLA_ALIGN(header->nla_len);
+  }
+}
+
 }  // namespace wificond
 }  // namespace android
