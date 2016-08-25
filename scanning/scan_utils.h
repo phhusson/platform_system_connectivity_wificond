@@ -56,6 +56,27 @@ class ScanUtils {
                     const std::vector<std::vector<uint8_t>>& ssids,
                     const std::vector<uint32_t>& freqs);
 
+  // Send scan request to kernel for interface with index |interface_index|.
+  // |inteval_ms| is the expected scan interval in milliseconds.
+  // |rssi_threshold| is the minimum RSSI threshold value as a filter.
+  // |scan_ssids| is a vector of ssids we request to scan, which is mostly
+  // used for hidden networks.
+  // If |scan_ssids| is an empty vector, it will do a passive scan.
+  // If |scan_ssids| contains an empty string, it will a scan for all ssids.
+  // |freqs| is a vector of frequencies we request to scan.
+  // |match_ssids| is the list of ssids that we want to add as filters.
+  // If |freqs| is an empty vector, it will scan all supported frequencies.
+  // Only BSSs match the |match_ssids| and |rssi_threshold| will be returned as
+  // scan results.
+  // Returns true on success.
+  bool StartScheduledScan(
+      uint32_t interface_index,
+      uint32_t interval_ms,
+      int32_t rssi_threshold,
+      const std::vector<std::vector<uint8_t>>& scan_ssids,
+      const std::vector<std::vector<uint8_t>>& match_ssids,
+      const std::vector<uint32_t>& freqs);
+
   // Sign up to be notified when new scan results are available.
   // |handler| will be called when the kernel signals to wificond that a scan
   // has been completed on the given |interface_index|.  See the declaration of
