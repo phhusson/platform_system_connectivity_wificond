@@ -228,6 +228,7 @@ bool ScanUtils::Scan(uint32_t interface_index,
   }
   if (response.size() != 1) {
     LOG(ERROR) << "Unexpected trigger scan response size: " <<response.size();
+    return false;
   }
   unique_ptr<const NL80211Packet> packet = std::move(response[0]);
   uint16_t type = packet->GetMessageType();
@@ -243,6 +244,48 @@ bool ScanUtils::Scan(uint32_t interface_index,
                << "in response to scan request: " << type;
   }
 
+  return false;
+}
+
+bool ScanUtils::StopScheduledScan(uint32_t interface_index) {
+  NL80211Packet stop_sched_scan(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_STOP_SCHED_SCAN,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  // Force an ACK response upon success.
+  stop_sched_scan.AddFlag(NLM_F_ACK);
+  stop_sched_scan.AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_IFINDEX, interface_index));
+  vector<unique_ptr<const NL80211Packet>> response;
+  if (!netlink_manager_->SendMessageAndGetResponses(stop_sched_scan,
+                                                    &response))  {
+    return false;
+  }
+  if (response.size() != 1) {
+    LOG(ERROR) << "Unexpected response size in response to"
+               << " 'stop scheduled scan' request: " << response.size();
+    return false;
+  }
+  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
+
+  uint16_t type = packet->GetMessageType();
+  if (type == NLMSG_ERROR) {
+    int code = packet->GetErrorCode();
+    if (code == ENOENT) {
+      LOG(WARNING) << "Scheduled scan is not running!";
+    } else if (code == 0) {
+      // It is an ACK message if error code is 0.
+      return true;
+    } else {
+      LOG(ERROR) << "Receive ERROR message in response to"
+                 << " 'stop scheduled scan' request: "
+                 << strerror(code);
+    }
+  } else {
+    LOG(ERROR) << "Receive unexpected message type :"
+               << "in response to 'stop scheduled scan' request: " << type;
+  }
   return false;
 }
 
