@@ -144,4 +144,3 @@ TEST(ApInterfaceTest, CanWriteHostapdConfig) {
 
 }  // namespace wificond
 }  // namespace android
-

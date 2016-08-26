@@ -61,6 +61,11 @@ class Server : public android::net::wifi::BnWificond {
 
   android::binder::Status tearDownInterfaces() override;
 
+  // Call this once on startup.  It ignores all the invariants held
+  // in wificond and tries to restore ourselves to a blank state by
+  // killing userspace daemons and cleaning up the interface state.
+  void CleanUpSystemState();
+
  private:
   // Does the actual work of setting up an interface for a particular mode.
   //
