@@ -1,0 +1,4 @@
+service wificond /system/bin/wificond
+    class main
+    user root
+    group wifi

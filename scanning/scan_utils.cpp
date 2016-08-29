@@ -1,0 +1,380 @@
+/*
+ * Copyright (C) 2016 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "wificond/scanning/scan_utils.h"
+
+#include <vector>
+
+#include <linux/netlink.h>
+#include <linux/nl80211.h>
+
+#include <android-base/logging.h>
+
+#include "wificond/net/netlink_manager.h"
+#include "wificond/net/nl80211_packet.h"
+#include "wificond/scanning/scan_result.h"
+
+using std::unique_ptr;
+using std::vector;
+
+namespace android {
+namespace wificond {
+namespace {
+
+constexpr uint8_t kElemIdSsid = 0;
+
+}  // namespace
+
+ScanUtils::ScanUtils(NetlinkManager* netlink_manager)
+    : netlink_manager_(netlink_manager) {
+  if (!netlink_manager_->IsStarted()) {
+    netlink_manager_->Start();
+  }
+}
+
+ScanUtils::~ScanUtils() {}
+
+void ScanUtils::SubscribeScanResultNotification(
+    uint32_t interface_index,
+    OnScanResultsReadyHandler handler) {
+    netlink_manager_->SubscribeScanResultNotification(interface_index, handler);
+}
+
+void ScanUtils::UnsubscribeScanResultNotification(uint32_t interface_index) {
+    netlink_manager_->UnsubscribeScanResultNotification(interface_index);
+}
+
+bool ScanUtils::GetScanResult(uint32_t interface_index,
+                              vector<ScanResult>* out_scan_results) {
+  NL80211Packet get_scan(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_GET_SCAN,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  get_scan.AddFlag(NLM_F_DUMP);
+  NL80211Attr<uint32_t> ifindex(NL80211_ATTR_IFINDEX, interface_index);
+  get_scan.AddAttribute(ifindex);
+
+  vector<unique_ptr<const NL80211Packet>> response;
+  if (!netlink_manager_->SendMessageAndGetResponses(get_scan, &response))  {
+    LOG(ERROR) << "Failed to get scan result";
+    return false;
+  }
+  if (response.empty()) {
+    LOG(INFO) << "Unexpected empty scan result!";
+    return false;
+  }
+
+  vector<ScanResult> scan_results;
+  for (auto& packet : response) {
+    if (packet->GetMessageType() == NLMSG_ERROR) {
+      LOG(ERROR) << "Receive ERROR message: "
+                 << strerror(packet->GetErrorCode());
+      continue;
+    }
+    if (packet->GetMessageType() != netlink_manager_->GetFamilyId()) {
+      LOG(ERROR) << "Wrong message type: "
+                 << packet->GetMessageType();
+      continue;
+    }
+    uint32_t if_index;
+    if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+      LOG(ERROR) << "No interface index in scan result.";
+      continue;
+    }
+    if (if_index != interface_index) {
+      LOG(WARNING) << "Uninteresting scan result for interface: " << if_index;
+      continue;
+    }
+
+    ScanResult scan_result;
+    if (!ParseScanResult(std::move(packet), &scan_result)) {
+      LOG(WARNING) << "Ignore invalid scan result";
+      continue;
+    }
+    scan_results.push_back(scan_result);
+  }
+  *out_scan_results = scan_results;
+  return true;
+}
+
+bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet, ScanResult* scan_result) {
+  if (packet->GetCommand() != NL80211_CMD_NEW_SCAN_RESULTS) {
+    LOG(ERROR) << "Wrong command command for new scan result message";
+    return false;
+  }
+  NL80211NestedAttr bss(0);
+  if (packet->GetAttribute(NL80211_ATTR_BSS, &bss)) {
+    vector<uint8_t> bssid;
+    if (!bss.GetAttributeValue(NL80211_BSS_BSSID, &bssid)) {
+      LOG(ERROR) << "Failed to get BSSID from scan result packet";
+      return false;
+    }
+    uint32_t freq;
+    if (!bss.GetAttributeValue(NL80211_BSS_FREQUENCY, &freq)) {
+      LOG(ERROR) << "Failed to get Frequency from scan result packet";
+      return false;
+    }
+    vector<uint8_t> ie;
+    if (!bss.GetAttributeValue(NL80211_BSS_INFORMATION_ELEMENTS, &ie)) {
+      LOG(ERROR) << "Failed to get Information Element from scan result packet";
+      return false;
+    }
+    vector<uint8_t> ssid;
+    if (!GetSSIDFromInfoElement(ie, &ssid)) {
+      // Hidden wireless network has no SSID in IE.
+      LOG(DEBUG) << "Failed to get SSID from Information Element. "
+                 << "This might be a hidden network";
+    }
+    uint64_t tsf;
+    if (!bss.GetAttributeValue(NL80211_BSS_TSF, &tsf)) {
+      LOG(ERROR) << "Failed to get TSF from scan result packet";
+      return false;
+    }
+    int32_t signal;
+    if (!bss.GetAttributeValue(NL80211_BSS_SIGNAL_MBM, &signal)) {
+      LOG(ERROR) << "Failed to get Signal Strength from scan result packet";
+      return false;
+    }
+    *scan_result = ScanResult(ssid, bssid, ie, freq, signal, tsf);
+  }
+  return true;
+}
+
+bool ScanUtils::GetSSIDFromInfoElement(const vector<uint8_t>& ie,
+                                       vector<uint8_t>* ssid) {
+  // Information elements are stored in 'TLV' format.
+  // Field:  |   Type     |          Length           |      Value      |
+  // Length: |     1      |             1             |     variable    |
+  // Content:| Element ID | Length of the Value field | Element payload |
+  const uint8_t* end = ie.data() + ie.size();
+  const uint8_t* ptr = ie.data();
+  // +1 means we must have space for the length field.
+  while (ptr + 1  < end) {
+    uint8_t type = *ptr;
+    uint8_t length = *(ptr + 1);
+    // Length field is invalid.
+    if (ptr + 1 + length >= end) {
+      return false;
+    }
+    // SSID element is found.
+    if (type == kElemIdSsid) {
+      // SSID is an empty string.
+      if (length == 0) {
+        *ssid = vector<uint8_t>();
+      } else {
+        *ssid = vector<uint8_t>(ptr + 2, ptr + length + 2);
+      }
+      return true;
+    }
+    ptr += 2 + length;
+  }
+  return false;
+}
+
+bool ScanUtils::Scan(uint32_t interface_index,
+                     const vector<vector<uint8_t>>& ssids,
+                     const vector<uint32_t>& freqs) {
+  NL80211Packet trigger_scan(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_TRIGGER_SCAN,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  // If we do not use NLM_F_ACK, we only receive a unicast repsonse
+  // when there is an error. If everything is good, scan results notification
+  // will only be sent through multicast.
+  // If NLM_F_ACK is set, there will always be an unicast repsonse, either an
+  // ERROR or an ACK message. The handler will always be called and removed by
+  // NetlinkManager.
+  trigger_scan.AddFlag(NLM_F_ACK);
+  NL80211Attr<uint32_t> if_index_attr(NL80211_ATTR_IFINDEX, interface_index);
+
+  NL80211NestedAttr ssids_attr(NL80211_ATTR_SCAN_SSIDS);
+  for (size_t i = 0; i < ssids.size(); i++) {
+    ssids_attr.AddAttribute(NL80211Attr<vector<uint8_t>>(i, ssids[i]));
+  }
+  NL80211NestedAttr freqs_attr(NL80211_ATTR_SCAN_FREQUENCIES);
+  for (size_t i = 0; i < freqs.size(); i++) {
+    freqs_attr.AddAttribute(NL80211Attr<uint32_t>(i, freqs[i]));
+  }
+
+  trigger_scan.AddAttribute(if_index_attr);
+  trigger_scan.AddAttribute(ssids_attr);
+  // An absence of NL80211_ATTR_SCAN_FREQUENCIES attribue informs kernel to
+  // scan all supported frequencies.
+  if (!freqs.empty()) {
+    trigger_scan.AddAttribute(freqs_attr);
+  }
+
+  // We are receiving an ERROR/ACK message instead of the actual
+  // scan results here, so it is OK to expect a timely response because
+  // kernel is supposed to send the ERROR/ACK back before the scan starts.
+  vector<unique_ptr<const NL80211Packet>> response;
+  if (!netlink_manager_->SendMessageAndGetResponses(trigger_scan, &response)) {
+    LOG(ERROR) << "Failed to send TriggerScan message";
+    return false;
+  }
+  if (response.size() != 1) {
+    LOG(ERROR) << "Unexpected trigger scan response size: " <<response.size();
+    return false;
+  }
+  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
+  uint16_t type = packet->GetMessageType();
+  if (type == NLMSG_ERROR) {
+    // It is an ACK message if error code is 0.
+    if (packet->GetErrorCode() == 0) {
+      return true;
+    }
+    LOG(ERROR) << "Received error messsage in response to scan request "
+               << strerror(packet->GetErrorCode());
+  } else {
+    LOG(ERROR) << "Receive unexpected message type :"
+               << "in response to scan request: " << type;
+  }
+
+  return false;
+}
+
+bool ScanUtils::StopScheduledScan(uint32_t interface_index) {
+  NL80211Packet stop_sched_scan(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_STOP_SCHED_SCAN,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  // Force an ACK response upon success.
+  stop_sched_scan.AddFlag(NLM_F_ACK);
+  stop_sched_scan.AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_IFINDEX, interface_index));
+  vector<unique_ptr<const NL80211Packet>> response;
+  if (!netlink_manager_->SendMessageAndGetResponses(stop_sched_scan,
+                                                    &response))  {
+    return false;
+  }
+  if (response.size() != 1) {
+    LOG(ERROR) << "Unexpected response size in response to"
+               << " 'stop scheduled scan' request: " << response.size();
+    return false;
+  }
+  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
+
+  uint16_t type = packet->GetMessageType();
+  if (type == NLMSG_ERROR) {
+    int code = packet->GetErrorCode();
+    if (code == ENOENT) {
+      LOG(WARNING) << "Scheduled scan is not running!";
+    } else if (code == 0) {
+      // It is an ACK message if error code is 0.
+      return true;
+    } else {
+      LOG(ERROR) << "Receive ERROR message in response to"
+                 << " 'stop scheduled scan' request: "
+                 << strerror(code);
+    }
+  } else {
+    LOG(ERROR) << "Receive unexpected message type :"
+               << "in response to 'stop scheduled scan' request: " << type;
+  }
+  return false;
+}
+
+bool ScanUtils::StartScheduledScan(
+    uint32_t interface_index,
+    uint32_t interval_ms,
+    int32_t rssi_threshold,
+    const std::vector<std::vector<uint8_t>>& scan_ssids,
+    const std::vector<std::vector<uint8_t>>& match_ssids,
+    const std::vector<uint32_t>& freqs) {
+  NL80211Packet start_sched_scan(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_START_SCHED_SCAN,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  // Force an ACK response upon success.
+  start_sched_scan.AddFlag(NLM_F_ACK);
+
+  NL80211NestedAttr scan_ssids_attr(NL80211_ATTR_SCAN_SSIDS);
+  for (size_t i = 0; i < scan_ssids.size(); i++) {
+    scan_ssids_attr.AddAttribute(NL80211Attr<vector<uint8_t>>(i, scan_ssids[i]));
+  }
+  NL80211NestedAttr freqs_attr(NL80211_ATTR_SCAN_FREQUENCIES);
+  for (size_t i = 0; i < freqs.size(); i++) {
+    freqs_attr.AddAttribute(NL80211Attr<uint32_t>(i, freqs[i]));
+  }
+
+  //   Structure of attributes of scheduled scan filters:
+  // |                                Nested Attribute: id: NL80211_ATTR_SCHED_SCAN_MATCH                           |
+  // |     Nested Attributed: id: 0       |    Nested Attributed: id: 1         |      Nested Attr: id: 2     | ... |
+  // | MATCH_SSID  | MATCH_RSSI(optional) | MATCH_SSID  | MACTCH_RSSI(optional) | MATCH_RSSI(optinal, global) | ... |
+  NL80211NestedAttr scan_match_attr(NL80211_ATTR_SCHED_SCAN_MATCH);
+  for (size_t i = 0; i < match_ssids.size(); i++) {
+    NL80211NestedAttr match_group(i);
+    match_group.AddAttribute(
+        NL80211Attr<vector<uint8_t>>(NL80211_SCHED_SCAN_MATCH_ATTR_SSID, match_ssids[i]));
+    // TODO(nywang): Add RSSI threshold for every SSID respectively.
+    scan_match_attr.AddAttribute(match_group);
+  }
+  // Global RSSI threshold.
+  NL80211NestedAttr global_rssi_match_group(match_ssids.size());
+  global_rssi_match_group.AddAttribute(
+      NL80211Attr<int32_t>(NL80211_SCHED_SCAN_MATCH_ATTR_RSSI, rssi_threshold));
+  scan_match_attr.AddAttribute(global_rssi_match_group);
+
+  // Append all attributes to the NL80211_CMD_START_SCHED_SCAN packet.
+  start_sched_scan.AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_IFINDEX, interface_index));
+  start_sched_scan.AddAttribute(scan_ssids_attr);
+  // An absence of NL80211_ATTR_SCAN_FREQUENCIES attribue informs kernel to
+  // scan all supported frequencies.
+  if (!freqs.empty()) {
+    start_sched_scan.AddAttribute(freqs_attr);
+  }
+  start_sched_scan.AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_SCHED_SCAN_INTERVAL, interval_ms));
+  start_sched_scan.AddAttribute(scan_match_attr);
+
+  vector<unique_ptr<const NL80211Packet>> response;
+  if (!netlink_manager_->SendMessageAndGetResponses(start_sched_scan,
+                                                    &response))  {
+    LOG(ERROR) << "Failed to send 'start scheduled scan' message";
+    return false;
+  }
+
+  if (response.size() != 1) {
+    LOG(ERROR) << "Unexpected response size in response to"
+               << " 'start scheduled scan' request: " << response.size();
+    return false;
+  }
+  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
+  uint16_t type = packet->GetMessageType();
+  if (type == NLMSG_ERROR) {
+    int code = packet->GetErrorCode();
+    // It is an ACK message if error code is 0.
+    if (code == 0) {
+      return true;
+    }
+    LOG(ERROR) << "Receive ERROR message in response to"
+               << " 'start scheduled scan' request: "
+               << strerror(code);
+  } else {
+    LOG(ERROR) << "Receive unexpected message type :"
+               << "in response to start schuduled scan request: " << type;
+  }
+
+  return false;
+}
+
+}  // namespace wificond
+}  // namespace android
