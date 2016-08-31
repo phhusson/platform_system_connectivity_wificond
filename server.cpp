@@ -158,6 +158,7 @@ bool Server::SetupInterfaceForMode(int mode,
                                         interface_name,
                                         interface_index,
                                         interface_mac_addr)) {
+    LOG(ERROR) << "Failed to get interface info from kernel";
     return false;
   }
 

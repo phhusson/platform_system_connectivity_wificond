@@ -56,7 +56,7 @@ bool NetlinkUtils::GetWiphyIndex(uint32_t* out_wiphy_index) {
     return false;
   }
   if (response.empty()) {
-    LOG(ERROR) << "Unexpected empty response from kernel";
+    LOG(DEBUG) << "No wiphy is found";
     return false;
   }
   for (auto& packet : response) {
@@ -98,9 +98,10 @@ bool NetlinkUtils::GetInterfaceInfo(uint32_t wiphy_index,
   vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetResponses(get_interface, &response)) {
     LOG(ERROR) << "Failed to send GetWiphy message";
+    return false;
   }
   if (response.empty()) {
-    LOG(ERROR) << "Unexpected empty response from kernel";
+    LOG(ERROR) << "No interface is found";
     return false;
   }
   for (auto& packet : response) {
