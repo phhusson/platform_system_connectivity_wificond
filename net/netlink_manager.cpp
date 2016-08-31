@@ -399,19 +399,17 @@ bool NetlinkManager::DiscoverFamilyId() {
                                    getpid());
   NL80211Attr<string> family_name(CTRL_ATTR_FAMILY_NAME, NL80211_GENL_NAME);
   get_family_request.AddAttribute(family_name);
-  vector<unique_ptr<const NL80211Packet>> response;
-  if (!SendMessageAndGetResponses(get_family_request, &response) ||
-      response.size() != 1) {
-    LOG(ERROR) << "Failed to send and get response for NL80211 GetFamily message";
+  unique_ptr<const NL80211Packet> response;
+  if (!SendMessageAndGetSingleResponse(get_family_request, &response)) {
+    LOG(ERROR) << "Failed to get NL80211 family info";
     return false;
   }
-  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
-  if (packet->GetMessageType() == NLMSG_ERROR) {
+  if (response->GetMessageType() == NLMSG_ERROR) {
       LOG(ERROR) << "Receive ERROR message: "
-                 << strerror(packet->GetErrorCode());
+                 << strerror(response->GetErrorCode());
       return false;
   }
-  OnNewFamily(std::move(packet));
+  OnNewFamily(std::move(response));
   if (message_types_.find(NL80211_GENL_NAME) == message_types_.end()) {
     LOG(ERROR) << "Failed to get NL80211 family id";
     return false;
