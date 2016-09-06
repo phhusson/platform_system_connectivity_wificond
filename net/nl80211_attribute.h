@@ -24,6 +24,7 @@
 
 #include <linux/netlink.h>
 
+#include <android-base/logging.h>
 #include <android-base/macros.h>
 
 namespace android {
@@ -162,6 +163,49 @@ class NL80211NestedAttr : public BaseNL80211Attr {
     *value = attribute.GetValue();
     return true;
   }
+
+  // Some of the nested attribute contains a list of same type sub-attributes.
+  // This function retrieves a vector of attribute value from a nested
+  // attribute.
+  // This is for both correctness and performance reasons:
+  //
+  // Correctness reason:
+  // These sub-attributes have attribute id from '0 to n' or '1 to n'.
+  // There is no document defining what the start index should be.
+  // This function ignore all these fake attribute ids.
+  //
+  // Performance reson:
+  // Calling GetAttributeValue() from '0 to n' results a n^2 time complexity.
+  // This function get a list of attribute values in one pass.
+  //
+  // Returns true one success.
+  template <typename T>
+  bool GetListOfAttributeValues(std::vector<T>* value) const {
+    const uint8_t* ptr = data_.data() + NLA_HDRLEN;
+    const uint8_t* end_ptr = data_.data() + data_.size();
+    std::vector<T> attr_list;
+    while (ptr + NLA_HDRLEN <= end_ptr) {
+      const nlattr* header = reinterpret_cast<const nlattr*>(ptr);
+      if (ptr + NLA_ALIGN(header->nla_len) > end_ptr) {
+        LOG(ERROR) << "Failed to get list of attributes: invalid nla_len.";
+        return false;
+      }
+      NL80211Attr<T> attribute(std::vector<uint8_t>(
+          ptr,
+          ptr + NLA_ALIGN(header->nla_len)));
+      if (!attribute.IsValid()) {
+        return false;
+      }
+      attr_list.emplace_back(attribute.GetValue());
+      ptr += NLA_ALIGN(header->nla_len);
+    }
+    *value = std::move(attr_list);
+    return true;
+  }
+
+  // This is similar to |GetListOfAttributeValues|, but for the cases where all
+  // the sub-attributes are nested attributes.
+  bool GetListOfNestedAttributes(std::vector<NL80211NestedAttr>* value) const;
 
   template <typename T>
   bool GetAttribute(int id, NL80211Attr<T>* attribute) const {
