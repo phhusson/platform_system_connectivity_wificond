@@ -194,7 +194,7 @@ void NL80211NestedAttr::DebugLog() const {
     const nlattr* header = reinterpret_cast<const nlattr*>(ptr);
     if (ptr + NLA_ALIGN(header->nla_len) > end_ptr) {
       LOG(ERROR) << "broken nl80211 atrribute.";
-      continue;
+      return;
     }
     LOG(INFO) << "Have attribute with nla_type=" << header->nla_type
               << " and nla_len=" << header->nla_len;
