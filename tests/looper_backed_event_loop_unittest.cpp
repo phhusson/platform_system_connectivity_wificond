@@ -106,8 +106,8 @@ TEST_F(WificondLooperBackedEventLoopTest,
 
 TEST_F(WificondLooperBackedEventLoopTest, LooperBackedEventLoopWatchFdInputReadyTest) {
   Pipe pipe;
-  bool read_result;
-  bool write_result;
+  bool read_result = false;
+  bool write_result = false;
   event_loop_->PostTask([&write_result, &pipe]() {write_result = pipe.writeSignal();});
   // Read data from pipe when fd is ready for input.
   EXPECT_TRUE(event_loop_->WatchFileDescriptor(
@@ -123,7 +123,7 @@ TEST_F(WificondLooperBackedEventLoopTest, LooperBackedEventLoopWatchFdInputReady
 
 TEST_F(WificondLooperBackedEventLoopTest, LooperBackedEventLoopWatchFdOutputReadyTest) {
   Pipe pipe;
-  bool write_result;
+  bool write_result = false;
   // Write data to pipe when fd is ready for output.
   EXPECT_TRUE(event_loop_->WatchFileDescriptor(
       pipe.send_fd,
@@ -138,8 +138,8 @@ TEST_F(WificondLooperBackedEventLoopTest, LooperBackedEventLoopWatchFdOutputRead
 
 TEST_F(WificondLooperBackedEventLoopTest, LooperBackedEventLoopStopWatchFdTest) {
   Pipe pipe;
-  bool read_result;
-  bool write_result;
+  bool read_result = false;
+  bool write_result = false;
   event_loop_->PostTask([&write_result, &pipe]() {write_result = pipe.writeSignal();});
   // Read data from pipe when fd is ready for input.
   EXPECT_TRUE(event_loop_->WatchFileDescriptor(
@@ -151,9 +151,10 @@ TEST_F(WificondLooperBackedEventLoopTest, LooperBackedEventLoopStopWatchFdTest) 
   // Stop watching the file descriptor.
   EXPECT_TRUE(event_loop_->StopWatchFileDescriptor(pipe.receive_fd));
   event_loop_->Poll();
+  // We wrote to pipe successfully.
   EXPECT_EQ(true, write_result);
-  // No data can be read from the pipe because we stopped watching the file
-  // descriptor.
+  // No data was read from the pipe because we stopped watching the file
+  // descriptor. |read_result| is not set to true;
   EXPECT_EQ(false, read_result);
 }
 
