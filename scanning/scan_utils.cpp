@@ -223,29 +223,11 @@ bool ScanUtils::Scan(uint32_t interface_index,
   // scan results here, so it is OK to expect a timely response because
   // kernel is supposed to send the ERROR/ACK back before the scan starts.
   vector<unique_ptr<const NL80211Packet>> response;
-  if (!netlink_manager_->SendMessageAndGetResponses(trigger_scan, &response)) {
-    LOG(ERROR) << "Failed to send TriggerScan message";
+  if (!netlink_manager_->SendMessageAndGetAck(trigger_scan)) {
+    LOG(ERROR) << "Failed to trigger scan";
     return false;
   }
-  if (response.size() != 1) {
-    LOG(ERROR) << "Unexpected trigger scan response size: " <<response.size();
-    return false;
-  }
-  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
-  uint16_t type = packet->GetMessageType();
-  if (type == NLMSG_ERROR) {
-    // It is an ACK message if error code is 0.
-    if (packet->GetErrorCode() == 0) {
-      return true;
-    }
-    LOG(ERROR) << "Received error messsage in response to scan request "
-               << strerror(packet->GetErrorCode());
-  } else {
-    LOG(ERROR) << "Receive unexpected message type :"
-               << "in response to scan request: " << type;
-  }
-
-  return false;
+  return true;
 }
 
 bool ScanUtils::StopScheduledScan(uint32_t interface_index) {
@@ -259,35 +241,22 @@ bool ScanUtils::StopScheduledScan(uint32_t interface_index) {
   stop_sched_scan.AddAttribute(
       NL80211Attr<uint32_t>(NL80211_ATTR_IFINDEX, interface_index));
   vector<unique_ptr<const NL80211Packet>> response;
-  if (!netlink_manager_->SendMessageAndGetResponses(stop_sched_scan,
-                                                    &response))  {
+  int error_code;
+  if (!netlink_manager_->SendMessageAndGetAckOrError(stop_sched_scan,
+                                                     &error_code))  {
+    LOG(ERROR) << "Failed to stop scheduled scan";
     return false;
   }
-  if (response.size() != 1) {
-    LOG(ERROR) << "Unexpected response size in response to"
-               << " 'stop scheduled scan' request: " << response.size();
+  if (error_code == ENOENT) {
+    LOG(WARNING) << "Scheduled scan is not running!";
+    return false;
+  } else if (error_code != 0) {
+    LOG(ERROR) << "Receive ERROR message in response to"
+               << " 'stop scheduled scan' request: "
+               << strerror(error_code);
     return false;
   }
-  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
-
-  uint16_t type = packet->GetMessageType();
-  if (type == NLMSG_ERROR) {
-    int code = packet->GetErrorCode();
-    if (code == ENOENT) {
-      LOG(WARNING) << "Scheduled scan is not running!";
-    } else if (code == 0) {
-      // It is an ACK message if error code is 0.
-      return true;
-    } else {
-      LOG(ERROR) << "Receive ERROR message in response to"
-                 << " 'stop scheduled scan' request: "
-                 << strerror(code);
-    }
-  } else {
-    LOG(ERROR) << "Receive unexpected message type :"
-               << "in response to 'stop scheduled scan' request: " << type;
-  }
-  return false;
+  return true;
 }
 
 bool ScanUtils::StartScheduledScan(
@@ -346,34 +315,12 @@ bool ScanUtils::StartScheduledScan(
   start_sched_scan.AddAttribute(scan_match_attr);
 
   vector<unique_ptr<const NL80211Packet>> response;
-  if (!netlink_manager_->SendMessageAndGetResponses(start_sched_scan,
-                                                    &response))  {
-    LOG(ERROR) << "Failed to send 'start scheduled scan' message";
+  if (!netlink_manager_->SendMessageAndGetAck(start_sched_scan)) {
+    LOG(ERROR) << "Failed to start scheduled scan";
     return false;
   }
 
-  if (response.size() != 1) {
-    LOG(ERROR) << "Unexpected response size in response to"
-               << " 'start scheduled scan' request: " << response.size();
-    return false;
-  }
-  unique_ptr<const NL80211Packet> packet = std::move(response[0]);
-  uint16_t type = packet->GetMessageType();
-  if (type == NLMSG_ERROR) {
-    int code = packet->GetErrorCode();
-    // It is an ACK message if error code is 0.
-    if (code == 0) {
-      return true;
-    }
-    LOG(ERROR) << "Receive ERROR message in response to"
-               << " 'start scheduled scan' request: "
-               << strerror(code);
-  } else {
-    LOG(ERROR) << "Receive unexpected message type :"
-               << "in response to start schuduled scan request: " << type;
-  }
-
-  return false;
+  return true;
 }
 
 }  // namespace wificond
