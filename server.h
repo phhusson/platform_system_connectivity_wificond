@@ -29,6 +29,7 @@
 #include "android/net/wifi/BnWificond.h"
 #include "android/net/wifi/IApInterface.h"
 #include "android/net/wifi/IClientInterface.h"
+#include "android/net/wifi/IInterfaceEventCallback.h"
 
 #include "wificond/ap_interface_impl.h"
 #include "wificond/client_interface_impl.h"
@@ -50,6 +51,13 @@ class Server : public android::net::wifi::BnWificond {
          NetlinkUtils* netlink_utils,
          ScanUtils* scan_utils);
   ~Server() override = default;
+
+  android::binder::Status RegisterCallback(
+      const android::sp<android::net::wifi::IInterfaceEventCallback>&
+          callback) override;
+  android::binder::Status UnregisterCallback(
+      const android::sp<android::net::wifi::IInterfaceEventCallback>&
+          callback) override;
 
   android::binder::Status createApInterface(
       android::sp<android::net::wifi::IApInterface>*
@@ -91,6 +99,8 @@ class Server : public android::net::wifi::BnWificond {
   uint32_t wiphy_index_;
   std::vector<std::unique_ptr<ApInterfaceImpl>> ap_interfaces_;
   std::vector<std::unique_ptr<ClientInterfaceImpl>> client_interfaces_;
+  std::vector<android::sp<android::net::wifi::IInterfaceEventCallback>>
+      interface_event_callbacks_;
 
   DISALLOW_COPY_AND_ASSIGN(Server);
 };
