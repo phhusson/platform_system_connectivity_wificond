@@ -32,13 +32,15 @@ ScanResult::ScanResult(std::vector<uint8_t>& ssid_,
              std::vector<uint8_t>& info_element_,
              uint32_t frequency_,
              int32_t signal_mbm_,
-             uint64_t tsf_)
+             uint64_t tsf_,
+             uint16_t capability_)
     : ssid(ssid_),
       bssid(bssid_),
       info_element(info_element_),
       frequency(frequency_),
       signal_mbm(signal_mbm_),
-      tsf(tsf_) {
+      tsf(tsf_),
+      capability(capability_) {
 }
 
 void ScanResult::DebugLog() {
@@ -61,6 +63,7 @@ void ScanResult::DebugLog() {
   LOG(INFO) << "FREQUENCY: " << frequency;
   LOG(INFO) << "SIGNAL: " << signal_mbm/100 << "dBm";
   LOG(INFO) << "TSF: " << tsf;
+  LOG(INFO) << "CAPABILITY: " << capability;
 
 }
 

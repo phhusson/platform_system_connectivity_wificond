@@ -149,7 +149,13 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet, ScanResu
       LOG(ERROR) << "Failed to get Signal Strength from scan result packet";
       return false;
     }
-    *scan_result = ScanResult(ssid, bssid, ie, freq, signal, tsf);
+    uint16_t capability;
+    if (!bss.GetAttributeValue(NL80211_BSS_CAPABILITY, &capability)) {
+      LOG(ERROR) << "Failed to get capability field from scan result packet";
+      return false;
+    }
+
+    *scan_result = ScanResult(ssid, bssid, ie, freq, signal, tsf, capability);
   }
   return true;
 }
