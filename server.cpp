@@ -29,6 +29,7 @@ using std::vector;
 using std::unique_ptr;
 using android::net::wifi::IApInterface;
 using android::net::wifi::IClientInterface;
+using android::net::wifi::IInterfaceEventCallback;
 using android::wifi_hal::DriverTool;
 using android::wifi_system::HalTool;
 using android::wifi_system::HostapdManager;
@@ -53,6 +54,34 @@ Server::Server(unique_ptr<HalTool> hal_tool,
       netlink_utils_(netlink_utils),
       scan_utils_(scan_utils) {
 }
+
+Status Server::RegisterCallback(const sp<IInterfaceEventCallback>& callback) {
+  for (auto& it : interface_event_callbacks_) {
+    if (IInterface::asBinder(callback) == IInterface::asBinder(it)) {
+      LOG(WARNING) << "Ignore duplicate interface event callback registration";
+      return Status::ok();
+    }
+  }
+  LOG(INFO) << "New interface event callback registered";
+  interface_event_callbacks_.push_back(callback);
+  return Status::ok();
+}
+
+Status Server::UnregisterCallback(const sp<IInterfaceEventCallback>& callback) {
+  for (auto it = interface_event_callbacks_.begin();
+       it != interface_event_callbacks_.end();
+       it++) {
+    if (IInterface::asBinder(callback) == IInterface::asBinder(*it)) {
+      interface_event_callbacks_.erase(it);
+      LOG(INFO) << "Unregister interface event callback";
+      return Status::ok();
+    }
+  }
+  LOG(WARNING) << "Failed to find registered interface event callback"
+               << " to unregister";
+  return Status::ok();
+}
+
 
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
   string interface_name;
