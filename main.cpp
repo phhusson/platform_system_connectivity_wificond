@@ -27,7 +27,6 @@
 #include <binder/ProcessState.h>
 #include <cutils/properties.h>
 #include <libminijail.h>
-#include <private/android_filesystem_config.h>
 #include <utils/String16.h>
 #include <wifi_hal/driver_tool.h>
 #include <wifi_system/hal_tool.h>
@@ -107,13 +106,7 @@ void RegisterServiceOrCrash(const android::sp<android::IBinder>& service) {
 }
 
 void DoPrivilegedSetupOrCrash() {
-  // take ownership of the magic firmware change path
-  // TODO: Return CHECK: b/31225859
-  if (chown(DriverTool::kFirmwareReloadPath, AID_WIFI, AID_WIFI) != 0) {
-    LOG(INFO) << "Error changing ownership of '"
-              << DriverTool::kFirmwareReloadPath
-              << "' to wifi:wifi, (" << strerror(errno) << ")";
-  }
+  CHECK(DriverTool::TakeOwnershipOfFirmwareReload());
 }
 
 void DropPrivilegesOrCrash() {
