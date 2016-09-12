@@ -171,14 +171,17 @@ void NetlinkManager::OnNewFamily(unique_ptr<const NL80211Packet> packet) {
   // Exract multicast groups.
   NL80211NestedAttr multicast_groups(0);
   if (packet->GetAttribute(CTRL_ATTR_MCAST_GROUPS, &multicast_groups)) {
-    NL80211NestedAttr current_group(0);
-    for (int i = 1; multicast_groups.GetAttribute(i, &current_group); i++) {
+    vector<NL80211NestedAttr> groups;
+    if (!multicast_groups.GetListOfNestedAttributes(&groups)) {
+      return;
+    }
+    for (auto& group : groups) {
       string group_name;
       uint32_t group_id;
-      if (!current_group.GetAttributeValue(CTRL_ATTR_MCAST_GRP_NAME, &group_name)) {
+      if (!group.GetAttributeValue(CTRL_ATTR_MCAST_GRP_NAME, &group_name)) {
         LOG(ERROR) << "Failed to get group name";
       }
-      if (!current_group.GetAttributeValue(CTRL_ATTR_MCAST_GRP_ID, &group_id)) {
+      if (!group.GetAttributeValue(CTRL_ATTR_MCAST_GRP_ID, &group_id)) {
         LOG(ERROR) << "Failed to get group id";
       }
       message_types_[family_name].groups[group_name] = group_id;
@@ -470,22 +473,17 @@ void NetlinkManager::OnScanResultsReady(unique_ptr<const NL80211Packet> packet) 
   if (!packet->GetAttribute(NL80211_ATTR_SCAN_SSIDS, &ssids_attr)) {
     LOG(WARNING) << "Failed to get scan ssids from scan result notification";
   } else {
-    vector<uint8_t> ssid;
-    // Potential performance issues: b/30901326.
-    for (int i = 0; ssids_attr.GetAttributeValue(i, &ssid); i++) {
-      ssids.push_back(ssid);
+    if (!ssids_attr.GetListOfAttributeValues(&ssids)) {
+      return;
     }
   }
-
   vector<uint32_t> freqs;
   NL80211NestedAttr freqs_attr(0);
   if (!packet->GetAttribute(NL80211_ATTR_SCAN_FREQUENCIES, &freqs_attr)) {
     LOG(WARNING) << "Failed to get scan freqs from scan result notification";
   } else {
-    uint32_t freq;
-    // Potential performance issues: b/30901326.
-    for (int i = 0; freqs_attr.GetAttributeValue(i, &freq); i++) {
-      freqs.push_back(freq);
+    if (!freqs_attr.GetListOfAttributeValues(&freqs)) {
+      return;
     }
   }
   // Run scan result notification handler.
