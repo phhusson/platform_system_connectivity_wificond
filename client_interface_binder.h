@@ -37,8 +37,8 @@ class ClientInterfaceBinder : public android::net::wifi::BnClientInterface {
   // by remote processes are possible.
   void NotifyImplDead() { impl_ = nullptr; }
 
-  ::android::binder::Status enableSupplicant(bool* success);
-  ::android::binder::Status disableSupplicant(bool* success);
+  ::android::binder::Status enableSupplicant(bool* success) override;
+  ::android::binder::Status disableSupplicant(bool* success) override;
 
  private:
   ClientInterfaceImpl* impl_;
