@@ -87,6 +87,14 @@ class Server : public android::net::wifi::BnWificond {
                              uint32_t* interface_index,
                              std::vector<uint8_t>* interface_mac_addr);
   bool RefreshWiphyIndex();
+  void BroadcastClientInterfaceReady(
+      android::sp<android::net::wifi::IClientInterface> network_interface);
+  void BroadcastApInterfaceReady(
+      android::sp<android::net::wifi::IApInterface> network_interface);
+  void BroadcastClientInterfaceTornDown(
+      android::sp<android::net::wifi::IClientInterface> network_interface);
+  void BroadcastApInterfaceTornDown(
+      android::sp<android::net::wifi::IApInterface> network_interface);
 
   const std::unique_ptr<wifi_system::HalTool> hal_tool_;
   const std::unique_ptr<wifi_system::InterfaceTool> if_tool_;

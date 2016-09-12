@@ -101,6 +101,8 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
       hostapd_manager_.get()));
   *created_interface = ap_interface->GetBinder();
   ap_interfaces_.push_back(std::move(ap_interface));
+  BroadcastApInterfaceReady(ap_interfaces_.back()->GetBinder());
+
   return Status::ok();
 }
 
@@ -123,12 +125,22 @@ Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
       scan_utils_));
   *created_interface = client_interface->GetBinder();
   client_interfaces_.push_back(std::move(client_interface));
+  BroadcastClientInterfaceReady(client_interfaces_.back()->GetBinder());
+
   return Status::ok();
 }
 
 Status Server::tearDownInterfaces() {
-  ap_interfaces_.clear();
+  for (auto& it : client_interfaces_) {
+    BroadcastClientInterfaceTornDown(it->GetBinder());
+  }
   client_interfaces_.clear();
+
+  for (auto& it : ap_interfaces_) {
+    BroadcastApInterfaceTornDown(it->GetBinder());
+  }
+  ap_interfaces_.clear();
+
   if (!driver_tool_->UnloadDriver()) {
     LOG(ERROR) << "Failed to unload WiFi driver!";
   }
@@ -200,6 +212,34 @@ bool Server::RefreshWiphyIndex() {
     return false;
   }
   return true;
+}
+
+void Server::BroadcastClientInterfaceReady(
+    sp<IClientInterface> network_interface) {
+  for (auto& it : interface_event_callbacks_) {
+    it->OnClientInterfaceReady(network_interface);
+  }
+}
+
+void Server::BroadcastApInterfaceReady(
+    sp<IApInterface> network_interface) {
+  for (auto& it : interface_event_callbacks_) {
+    it->OnApInterfaceReady(network_interface);
+  }
+}
+
+void Server::BroadcastClientInterfaceTornDown(
+    sp<IClientInterface> network_interface) {
+  for (auto& it : interface_event_callbacks_) {
+    it->OnClientTorndownEvent(network_interface);
+  }
+}
+
+void Server::BroadcastApInterfaceTornDown(
+    sp<IApInterface> network_interface) {
+  for (auto& it : interface_event_callbacks_) {
+    it->OnApTorndownEvent(network_interface);
+  }
 }
 
 }  // namespace wificond
