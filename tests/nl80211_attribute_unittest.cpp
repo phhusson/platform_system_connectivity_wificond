@@ -66,6 +66,57 @@ const uint8_t kBufferContainsStringWithoutTrailingZero[] = {
     0x00, 0x00, 0x00  // padding
 };
 
+const uint8_t kBufferContainsListOfAttributes[] = {
+    0x28, 0x00, // nla_len = 40
+    0x01, 0x00, // nla_type
+    // List of attributes:
+    // They have attribute id from 0 to N.
+    0x0a, 0x00, // nla_len = 10
+    0x00, 0x00, // nla_type = 0
+    'f', 'i', 'r', 's', 't','\0',
+    0x00, 0x00,  // padding
+    0x0b, 0x00, // nla_len = 11
+    0x01, 0x00, // nla_type = 1
+    's', 'e', 'c', 'o', 'n', 'd','\0',
+    0x00, // padding
+    0x0a, 0x00, // nla_len = 10
+    0x02, 0x00, // nla_type = 2
+    't', 'h', 'i', 'r', 'd','\0',
+    0x00, 0x00, // padding
+};
+
+const uint8_t kBufferContainsListOfNestedAttributes[] = {
+    0x28, 0x00, // nla_len = 40
+    0x01, 0x00, // nla_type
+
+    // List of nested attributes:
+    // They have attribute id from 0 to N.
+
+    // Nested attribute 1:
+    0x0c, 0x00, // nla_len = 12
+    0x00, 0x00, // nla_type = 0
+        0x06, 0x00, // nla_len = 6
+        0x01, 0x00, // nla_type
+        0x05, 0x00, // uint16_t attribute with value 5
+        0x00, 0x00, // padding
+
+    // Nested attribute 2:
+    0x0c, 0x00, // nla_len = 12
+    0x01, 0x00, // nla_type = 1
+        0x08, 0x00, // nla_len = 8
+        0x01, 0x00, // nla_type
+        0x0a, 0x00,
+        0x00, 0x00, // uint32_t attribute with value 10
+
+    // Nested attribute 3:
+    0x0c, 0x00, // nla_len = 12
+    0x02, 0x00, // nla_type = 2
+        0x05, 0x00, // nla_len = 5
+        0x01, 0x00, // nla_type
+        0x08, 0x00, // uint8_t attribute with value 8
+        0x00, 0x00, // padding
+};
+
 }  // namespace
 
 TEST(NL80211AttributeTest,U8AttributesSeriallizeCorrectly) {
@@ -197,6 +248,38 @@ TEST(NL80211AttributeTest, InitStringAttributeWithoutTrailingZeroFromBuffer) {
           sizeof(kBufferContainsStringWithoutTrailingZero));
   NL80211Attr<std::string> str_attr(buffer);
   EXPECT_EQ("wlan0", str_attr.GetValue());
+}
+
+TEST(NL80211AttributeTest, GetListOfStringsFromBuffer) {
+  std::vector<uint8_t> buffer(
+      kBufferContainsListOfAttributes,
+      kBufferContainsListOfAttributes +
+          sizeof(kBufferContainsListOfAttributes));
+  std::vector<std::string> strs;
+  std::vector<std::string> expected_strs = {"first", "second", "third"};
+  NL80211NestedAttr nested_attr(buffer);
+  nested_attr.GetListOfAttributeValues(&strs);
+  EXPECT_EQ(expected_strs, strs);
+}
+
+TEST(NL80211AttributeTest, GetListOfNestedAttributesFromBuffer) {
+  std::vector<uint8_t> buffer(
+      kBufferContainsListOfNestedAttributes,
+      kBufferContainsListOfNestedAttributes +
+          sizeof(kBufferContainsListOfNestedAttributes));
+  std::vector<NL80211NestedAttr> nested_attrs;
+  NL80211NestedAttr attr(buffer);
+  EXPECT_TRUE(attr.GetListOfNestedAttributes(&nested_attrs));
+  EXPECT_TRUE(nested_attrs.size() == 3);
+  uint16_t value1;
+  uint32_t value2;
+  uint8_t value3;
+  EXPECT_TRUE(nested_attrs[0].GetAttributeValue(1, &value1));
+  EXPECT_TRUE(nested_attrs[1].GetAttributeValue(1, &value2));
+  EXPECT_TRUE(nested_attrs[2].GetAttributeValue(1, &value3));
+  EXPECT_TRUE(value1 == 5);
+  EXPECT_TRUE(value2 == 10);
+  EXPECT_TRUE(value3 == 8);
 }
 
 }  // namespace wificond
