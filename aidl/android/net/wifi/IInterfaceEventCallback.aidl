@@ -29,6 +29,6 @@ interface IInterfaceEventCallback {
   // Signals that an interface was torn down.
   // No future callbacks will be delivered via this callback, and the callback
   // is automatically unregistered.
-  oneway void OnClientTorndownEvent();
-  oneway void OnApTorndownEvent();
+  oneway void OnClientTorndownEvent(IClientInterface network_interface);
+  oneway void OnApTorndownEvent(IApInterface network_interface);
 }
