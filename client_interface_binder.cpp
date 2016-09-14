@@ -54,6 +54,13 @@ Status ClientInterfaceBinder::getPacketCounters(
   return Status::ok();
 }
 
+Status ClientInterfaceBinder::getMacAddress(vector<uint8_t>* out_mac_address) {
+  if (impl_ == nullptr) {
+    return Status::ok();
+  }
+  *out_mac_address = impl_->GetMacAddress();
+  return Status::ok();
+}
 
 }  // namespace wificond
 }  // namespace android
