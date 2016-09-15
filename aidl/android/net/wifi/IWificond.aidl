@@ -34,6 +34,12 @@ interface IWificond {
     // future interfaces immediately after this method returns.
     void tearDownInterfaces();
 
+    // @return list of the currently configured IClientInterface instances.
+    List<IBinder> GetClientInterfaces();
+
+    // @return list of the currently configured IApInterface instances.
+    List<IBinder> GetApInterfaces();
+
     // Register a callback to receive interface status updates.
     //
     // Multiple callbacks can be registered simultaneously.
