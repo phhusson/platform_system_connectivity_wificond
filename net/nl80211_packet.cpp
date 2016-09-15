@@ -226,6 +226,10 @@ void NL80211Packet::DebugLog() const {
     }
     LOG(INFO) << "Have attribute with nla_type=" << header->nla_type
               << " and nla_len=" << header->nla_len;
+    if (header->nla_len == 0) {
+      LOG(ERROR) << "0 is a bad nla_len";
+      return;
+    }
     ptr += NLA_ALIGN(header->nla_len);
   }
 }

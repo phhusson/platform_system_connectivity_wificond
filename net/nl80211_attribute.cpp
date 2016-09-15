@@ -210,7 +210,7 @@ bool NL80211NestedAttr::GetListOfNestedAttributes(
 
 
 void NL80211NestedAttr::DebugLog() const {
-  const uint8_t* ptr = data_.data() + NLMSG_HDRLEN;
+  const uint8_t* ptr = data_.data() + NLA_HDRLEN;
   const uint8_t* end_ptr = data_.data() + data_.size();
   while (ptr + NLA_HDRLEN <= end_ptr) {
     const nlattr* header = reinterpret_cast<const nlattr*>(ptr);
@@ -220,6 +220,10 @@ void NL80211NestedAttr::DebugLog() const {
     }
     LOG(INFO) << "Have attribute with nla_type=" << header->nla_type
               << " and nla_len=" << header->nla_len;
+    if (header->nla_len == 0) {
+      LOG(ERROR) << "0 is a bad nla_len";
+      return;
+    }
     ptr += NLA_ALIGN(header->nla_len);
   }
 }
