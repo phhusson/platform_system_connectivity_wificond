@@ -31,7 +31,16 @@ interface IClientInterface {
   // Get packet counters for this interface.
   // First element in array is the number of successfully transmitted packets.
   // Second element in array is the number of tramsmission failure.
+  // This call is valid only when interface is associated with an AP, otherwise
+  // it returns an empty array.
   int[] getPacketCounters();
+
+  // Do signal poll for this interface.
+  // First element in array is the RSSI value in dBM.
+  // Second element in array is the transmission bit rate in Mbps.
+  // This call is valid only when interface is associated with an AP, otherwise
+  // it returns an empty array.
+  int[] signalPoll();
 
   // Get the MAC address of this interface.
   byte[] getMacAddress();
