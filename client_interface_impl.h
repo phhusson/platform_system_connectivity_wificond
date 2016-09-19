@@ -29,6 +29,7 @@ namespace android {
 namespace wificond {
 
 class ClientInterfaceBinder;
+class NetlinkUtils;
 class ScanUtils;
 
 // Holds the guts of how we control network interfaces capable of connecting to
@@ -44,6 +45,7 @@ class ClientInterfaceImpl {
       uint32_t interface_index,
       const std::vector<uint8_t>& interface_mac_addr,
       android::wifi_system::SupplicantManager* supplicant_manager,
+      NetlinkUtils* netlink_utils,
       ScanUtils* scan_utils);
   ~ClientInterfaceImpl();
 
@@ -52,6 +54,7 @@ class ClientInterfaceImpl {
 
   bool EnableSupplicant();
   bool DisableSupplicant();
+  bool GetPacketCounters(std::vector<int32_t>* out_packet_counters);
 
  private:
   void OnScanResultsReady(uint32_t interface_index,
@@ -62,6 +65,7 @@ class ClientInterfaceImpl {
   const uint32_t interface_index_;
   const std::vector<uint8_t> interface_mac_addr_;
   android::wifi_system::SupplicantManager* const supplicant_manager_;
+  NetlinkUtils* const netlink_utils_;
   ScanUtils* const scan_utils_;
   const android::sp<ClientInterfaceBinder> binder_;
 

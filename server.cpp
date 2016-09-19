@@ -122,6 +122,7 @@ Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
       interface_index,
       interface_mac_addr,
       supplicant_manager_.get(),
+      netlink_utils_,
       scan_utils_));
   *created_interface = client_interface->GetBinder();
   client_interfaces_.push_back(std::move(client_interface));

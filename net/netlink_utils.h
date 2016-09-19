@@ -57,6 +57,20 @@ struct ScanCapabilities {
   uint8_t max_match_sets;
 };
 
+struct StationInfo {
+  StationInfo() = default;
+  StationInfo(uint32_t station_tx_packets_,
+              uint32_t station_tx_failed_)
+      : station_tx_packets(station_tx_packets_),
+        station_tx_failed(station_tx_failed_) {}
+  // Number of successfully transmitted packets.
+  int32_t station_tx_packets;
+  // number of tramsmission failures.
+  int32_t station_tx_failed;
+  // There are many other counters/parameters included in station info.
+  // We will add them once we find them useful.
+};
+
 class NetlinkManager;
 class NL80211Packet;
 
@@ -79,9 +93,21 @@ class NetlinkUtils {
                                 uint32_t* index,
                                 std::vector<uint8_t>* mac_addr);
 
+  // Get wifi wiphy info from kernel.
+  // |*out_band_info| is the lists of frequencies in specific bands.
+  // |*out_scan_capabilities| is the lists of parameters specifying the
+  // scanning capability of underlying implementation.
+  // Returns true on success.
   virtual bool GetWiphyInfo(uint32_t wiphy_index,
                             BandInfo* out_band_info,
                             ScanCapabilities* out_scan_capabilities);
+
+  // Get station info from kernel.
+  // |*out_station_info]| is the struct of available station information.
+  // Returns true on success.
+  virtual bool GetStationInfo(uint32_t interface_index,
+                              const std::vector<uint8_t>& mac_address,
+                              StationInfo* out_station_info);
 
  private:
   bool ParseBandInfo(const NL80211Packet* const packet,
