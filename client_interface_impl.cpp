@@ -23,6 +23,7 @@
 #include <wifi_system/wifi.h>
 
 #include "wificond/client_interface_binder.h"
+#include "wificond/net/netlink_utils.h"
 #include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/scan_utils.h"
 
@@ -32,6 +33,7 @@ using android::wifi_system::SupplicantManager;
 
 using namespace std::placeholders;
 using std::string;
+using std::unique_ptr;
 using std::vector;
 
 namespace android {
@@ -42,11 +44,13 @@ ClientInterfaceImpl::ClientInterfaceImpl(
     uint32_t interface_index,
     const std::vector<uint8_t>& interface_mac_addr,
     SupplicantManager* supplicant_manager,
+    NetlinkUtils* netlink_utils,
     ScanUtils* scan_utils)
     : interface_name_(interface_name),
       interface_index_(interface_index),
       interface_mac_addr_(interface_mac_addr),
       supplicant_manager_(supplicant_manager),
+      netlink_utils_(netlink_utils),
       scan_utils_(scan_utils),
       binder_(new ClientInterfaceBinder(this)) {
   scan_utils_->SubscribeScanResultNotification(
@@ -70,6 +74,18 @@ bool ClientInterfaceImpl::EnableSupplicant() {
 
 bool ClientInterfaceImpl::DisableSupplicant() {
   return supplicant_manager_->StopSupplicant();
+}
+
+bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters) {
+  StationInfo station_info;
+  if(!netlink_utils_->GetStationInfo(interface_index_,
+                                     interface_mac_addr_,
+                                     &station_info)) {
+    return false;
+  }
+  out_packet_counters->push_back(station_info.station_tx_packets);
+  out_packet_counters->push_back(station_info.station_tx_failed);
+  return true;
 }
 
 void ClientInterfaceImpl::OnScanResultsReady(

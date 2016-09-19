@@ -191,7 +191,8 @@ bool NetlinkUtils::GetWiphyInfo(
   }
   if (response->GetMessageType() == NLMSG_ERROR) {
     LOG(ERROR) << "Receive ERROR message: "
-               << strerror(response->GetErrorCode()) << "in response to a GetWiphy request";
+               << strerror(response->GetErrorCode())
+               << "in response to a GetWiphy request";
     return false;
   }
   if (response->GetCommand() != NL80211_CMD_NEW_WIPHY) {
@@ -287,7 +288,7 @@ bool NetlinkUtils::ParseBandInfo(const NL80211Packet* const packet,
         // Since there is no guarantee for the order of band attributes,
         // we do some math here.
         if (frequency_value > k2GHzFrequencyLowerBound &&
-            frequency_value < k2GHzFrequencyUpperBound ) {
+            frequency_value < k2GHzFrequencyUpperBound) {
           frequencies_2g.push_back(frequency_value);
         } else {
           frequencies_5g.push_back(frequency_value);
@@ -296,6 +297,55 @@ bool NetlinkUtils::ParseBandInfo(const NL80211Packet* const packet,
     }
   }
   *out_band_info = BandInfo(frequencies_2g, frequencies_5g, frequencies_dfs);
+  return true;
+}
+
+bool NetlinkUtils::GetStationInfo(uint32_t interface_index,
+                                  const vector<uint8_t>& mac_address,
+                                  StationInfo* out_station_info) {
+  NL80211Packet get_station(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_GET_STATION,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  get_station.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_IFINDEX,
+                                                 interface_index));
+  get_station.AddAttribute(NL80211Attr<vector<uint8_t>>(NL80211_ATTR_MAC,
+                                                        mac_address));
+
+  unique_ptr<const NL80211Packet> response;
+  if (!netlink_manager_->SendMessageAndGetSingleResponse(get_station,
+                                                         &response)) {
+    LOG(ERROR) << "Failed to get packet counters";
+    return false;
+  }
+  if (response->GetMessageType() == NLMSG_ERROR) {
+    LOG(ERROR) << "Receive ERROR message: "
+               << strerror(response->GetErrorCode())
+               << "in response to a get station request";
+    return false;
+  }
+
+  if (response->GetCommand() != NL80211_CMD_NEW_STATION) {
+    LOG(ERROR) << "Wrong command in response to a get station request: "
+               << static_cast<int>(response->GetCommand());
+    return false;
+  }
+  NL80211NestedAttr sta_info(0);
+  if (!response->GetAttribute(NL80211_ATTR_STA_INFO, &sta_info)) {
+    LOG(ERROR) << "Failed to get NL80211_ATTR_STA_INFO";
+    return false;
+  }
+  int32_t tx_good, tx_bad;
+  if (!sta_info.GetAttributeValue(NL80211_STA_INFO_TX_PACKETS, &tx_good)) {
+    LOG(ERROR) << "Failed to get NL80211_STA_INFO_TX_PACKETS";
+    return false;
+  }
+  if (!sta_info.GetAttributeValue(NL80211_STA_INFO_TX_FAILED, &tx_bad)) {
+    LOG(ERROR) << "Failed to get NL80211_STA_INFO_TX_FAILED";
+    return false;
+  }
+  *out_station_info = StationInfo(tx_good, tx_bad);
   return true;
 }
 
