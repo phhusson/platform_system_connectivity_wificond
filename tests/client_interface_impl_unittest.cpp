@@ -24,6 +24,7 @@
 
 #include "wificond/client_interface_impl.h"
 #include "wificond/tests/mock_netlink_manager.h"
+#include "wificond/tests/mock_netlink_utils.h"
 #include "wificond/tests/mock_scan_utils.h"
 
 using android::wifi_system::MockSupplicantManager;
@@ -53,6 +54,7 @@ class ClientInterfaceImplTest : public ::testing::Test {
         kTestInterfaceIndex,
         vector<uint8_t>{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
         supplicant_manager_.get(),
+        &netlink_utils_,
         &scan_utils_});
   }
 
@@ -68,6 +70,7 @@ class ClientInterfaceImplTest : public ::testing::Test {
       new NiceMock<MockSupplicantManager>};
   unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_{
       new NiceMock<MockNetlinkManager>()};
+  MockNetlinkUtils netlink_utils_{netlink_manager_.get()};
   MockScanUtils scan_utils_{netlink_manager_.get()};
   unique_ptr<ClientInterfaceImpl> client_interface_;
 };  // class ClientInterfaceImplTest
