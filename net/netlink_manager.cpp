@@ -449,7 +449,10 @@ void NetlinkManager::BroadcastHandler(unique_ptr<const NL80211Packet> packet) {
   // There is another scan result notification: NL80211_CMD_SCHED_SCAN_RESULTS.
   // which is used by PNO scan. Wificond is not going to handle that at this
   // time.
-  if (command == NL80211_CMD_NEW_SCAN_RESULTS) {
+  if (command == NL80211_CMD_NEW_SCAN_RESULTS ||
+      // Scan was aborted, for unspecified reasons.partial scan results may be
+      // available.
+      command == NL80211_CMD_SCAN_ABORTED) {
     OnScanResultsReady(std::move(packet));
   }
 }
@@ -459,6 +462,10 @@ void NetlinkManager::OnScanResultsReady(unique_ptr<const NL80211Packet> packet) 
   if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
     LOG(ERROR) << "Failed to get interface index from scan result notification";
     return;
+  }
+  bool aborted = false;
+  if (packet->GetCommand() == NL80211_CMD_SCAN_ABORTED) {
+    aborted = true;
   }
 
   auto handler = on_scan_result_ready_handler_.find(if_index);
@@ -471,7 +478,9 @@ void NetlinkManager::OnScanResultsReady(unique_ptr<const NL80211Packet> packet) 
   vector<vector<uint8_t>> ssids;
   NL80211NestedAttr ssids_attr(0);
   if (!packet->GetAttribute(NL80211_ATTR_SCAN_SSIDS, &ssids_attr)) {
-    LOG(WARNING) << "Failed to get scan ssids from scan result notification";
+    if (!aborted) {
+      LOG(WARNING) << "Failed to get scan ssids from scan result notification";
+    }
   } else {
     if (!ssids_attr.GetListOfAttributeValues(&ssids)) {
       return;
@@ -480,14 +489,16 @@ void NetlinkManager::OnScanResultsReady(unique_ptr<const NL80211Packet> packet) 
   vector<uint32_t> freqs;
   NL80211NestedAttr freqs_attr(0);
   if (!packet->GetAttribute(NL80211_ATTR_SCAN_FREQUENCIES, &freqs_attr)) {
-    LOG(WARNING) << "Failed to get scan freqs from scan result notification";
+    if (!aborted) {
+      LOG(WARNING) << "Failed to get scan freqs from scan result notification";
+    }
   } else {
     if (!freqs_attr.GetListOfAttributeValues(&freqs)) {
       return;
     }
   }
   // Run scan result notification handler.
-  handler->second(if_index, ssids, freqs);
+  handler->second(if_index, aborted, ssids, freqs);
 }
 
 void NetlinkManager::SubscribeScanResultNotification(
