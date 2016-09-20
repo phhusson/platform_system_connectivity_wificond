@@ -32,7 +32,8 @@ class ScanResult {
              uint32_t frequency,
              int32_t signal_mbm,
              uint64_t tsf,
-             uint16_t capability);
+             uint16_t capability,
+             bool associated);
   void DebugLog();
 
   // SSID of the BSS.
@@ -67,6 +68,7 @@ class ScanResult {
   // Bit 14 - Delayed Block Ack
   // Bit 15 - Immediate Block Ack
   uint16_t capability;
+  uint32_t associated;
 };
 
 }  // namespace wificond
