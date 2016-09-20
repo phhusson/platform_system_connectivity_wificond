@@ -32,4 +32,7 @@ interface IClientInterface {
   // First element in array is the number of successfully transmitted packets.
   // Second element in array is the number of tramsmission failure.
   int[] getPacketCounters();
+
+  // Get the MAC address of this interface.
+  byte[] getMacAddress();
 }

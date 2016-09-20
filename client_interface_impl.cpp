@@ -90,6 +90,10 @@ bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters
   return true;
 }
 
+const vector<uint8_t>& ClientInterfaceImpl::GetMacAddress() {
+  return interface_mac_addr_;
+}
+
 void ClientInterfaceImpl::OnScanResultsReady(
                          uint32_t interface_index,
                          bool aborted,
