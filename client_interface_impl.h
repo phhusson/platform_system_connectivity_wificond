@@ -55,6 +55,7 @@ class ClientInterfaceImpl {
   bool EnableSupplicant();
   bool DisableSupplicant();
   bool GetPacketCounters(std::vector<int32_t>* out_packet_counters);
+  const std::vector<uint8_t>& GetMacAddress();
 
  private:
   void OnScanResultsReady(uint32_t interface_index,
