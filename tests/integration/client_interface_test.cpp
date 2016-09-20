@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <vector>
+
 #include <gtest/gtest.h>
 #include <utils/StrongPointer.h>
 
@@ -27,6 +29,7 @@ using android::wificond::tests::integration::ScopedDevModeWificond;
 using android::wificond::tests::integration::SupplicantIsDead;
 using android::wificond::tests::integration::SupplicantIsRunning;
 using android::wificond::tests::integration::WaitForTrue;
+using std::vector;
 
 namespace android {
 namespace wificond {
@@ -84,5 +87,17 @@ TEST(ClientInterfaceTest, CanStartStopSupplicant) {
         << "Failed on iteration " << iteration;
   }
 }
+
+TEST(ClientInterfaceTest, CanGetMacAddress) {
+  ScopedDevModeWificond dev_mode;
+  sp<IWificond> service = dev_mode.EnterDevModeOrDie();
+  sp<IClientInterface> client_interface;
+  EXPECT_TRUE(service->createClientInterface(&client_interface).isOk());
+  ASSERT_NE(nullptr, client_interface.get());
+  vector<uint8_t> mac_address;
+  EXPECT_TRUE(client_interface->getMacAddress(&mac_address).isOk());
+  EXPECT_TRUE(mac_address.size() == 6);
+}
+
 }  // namespace wificond
 }  // namespace android
