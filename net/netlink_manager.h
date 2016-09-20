@@ -48,12 +48,14 @@ struct MessageType {
 // This describes a type of function handling scan results ready notification.
 // |interface_index| is the index of interface which the scan results
 // are from.
+// |aborted| is a boolean indicating if this scan request was aborted or not.
 // |ssids| is a vector of scan ssids associated with the corresponding
 // scan request.
 // |frequencies| is a vector of scan frequencies associated with the
 // corresponding scan request.
 typedef std::function<void(
     uint32_t interface_index,
+    bool aborted,
     std::vector<std::vector<uint8_t>>& ssids,
     std::vector<uint32_t>& frequencies)> OnScanResultsReadyHandler;
 

@@ -55,7 +55,9 @@ ClientInterfaceImpl::ClientInterfaceImpl(
       binder_(new ClientInterfaceBinder(this)) {
   scan_utils_->SubscribeScanResultNotification(
       interface_index_,
-      std::bind(&ClientInterfaceImpl::OnScanResultsReady, this, _1, _2, _3));
+      std::bind(&ClientInterfaceImpl::OnScanResultsReady,
+                this,
+                _1, _2, _3, _4));
 }
 
 ClientInterfaceImpl::~ClientInterfaceImpl() {
@@ -90,8 +92,13 @@ bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters
 
 void ClientInterfaceImpl::OnScanResultsReady(
                          uint32_t interface_index,
+                         bool aborted,
                          std::vector<std::vector<uint8_t>>& ssids,
                          std::vector<uint32_t>& frequencies) {
+  if (aborted) {
+    LOG(ERROR) << "Scan aborted";
+    return;
+  }
   vector<ScanResult> scan_results;
   // TODO(nywang): Find a way to differentiate scan results for
   // internel/external scan request. This is useful when location is

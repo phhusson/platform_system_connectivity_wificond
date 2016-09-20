@@ -58,6 +58,7 @@ class ClientInterfaceImpl {
 
  private:
   void OnScanResultsReady(uint32_t interface_index,
+                          bool aborted,
                           std::vector<std::vector<uint8_t>>& ssids,
                           std::vector<uint32_t>& frequencies);
 
