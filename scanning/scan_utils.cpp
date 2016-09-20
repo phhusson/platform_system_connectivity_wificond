@@ -154,8 +154,16 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet, ScanResu
       LOG(ERROR) << "Failed to get capability field from scan result packet";
       return false;
     }
+    bool associated = false;
+    uint32_t bss_status;
+    if (bss.GetAttributeValue(NL80211_BSS_STATUS, &bss_status) &&
+            (bss_status == NL80211_BSS_STATUS_AUTHENTICATED ||
+                bss_status == NL80211_BSS_STATUS_ASSOCIATED)) {
+      associated = true;
+    }
 
-    *scan_result = ScanResult(ssid, bssid, ie, freq, signal, tsf, capability);
+    *scan_result =
+        ScanResult(ssid, bssid, ie, freq, signal, tsf, capability, associated);
   }
   return true;
 }
