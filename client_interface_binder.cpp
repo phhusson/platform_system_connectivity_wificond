@@ -54,6 +54,15 @@ Status ClientInterfaceBinder::getPacketCounters(
   return Status::ok();
 }
 
+Status ClientInterfaceBinder::signalPoll(
+    vector<int32_t>* out_signal_poll_results) {
+  if (impl_ == nullptr) {
+    return Status::ok();
+  }
+  impl_->SignalPoll(out_signal_poll_results);
+  return Status::ok();
+}
+
 Status ClientInterfaceBinder::getMacAddress(vector<uint8_t>* out_mac_address) {
   if (impl_ == nullptr) {
     return Status::ok();

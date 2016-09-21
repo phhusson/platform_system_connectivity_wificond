@@ -80,13 +80,30 @@ bool ClientInterfaceImpl::DisableSupplicant() {
 
 bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters) {
   StationInfo station_info;
-  if(!netlink_utils_->GetStationInfo(interface_index_,
-                                     interface_mac_addr_,
-                                     &station_info)) {
+  if (!netlink_utils_->GetStationInfo(interface_index_,
+                                      interface_mac_addr_,
+                                      &station_info)) {
     return false;
   }
   out_packet_counters->push_back(station_info.station_tx_packets);
   out_packet_counters->push_back(station_info.station_tx_failed);
+
+  return true;
+}
+
+bool ClientInterfaceImpl::SignalPoll(vector<int32_t>* out_signal_poll_results) {
+  StationInfo station_info;
+  if (!netlink_utils_->GetStationInfo(interface_index_,
+                                      interface_mac_addr_,
+                                      &station_info)) {
+    return false;
+  }
+  out_signal_poll_results->push_back(
+      static_cast<int32_t>(station_info.current_rssi));
+  // Convert from 100kbit/s to Mbps.
+  out_signal_poll_results->push_back(
+      static_cast<int32_t>(station_info.station_tx_bitrate/10));
+
   return true;
 }
 
