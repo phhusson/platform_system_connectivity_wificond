@@ -345,7 +345,25 @@ bool NetlinkUtils::GetStationInfo(uint32_t interface_index,
     LOG(ERROR) << "Failed to get NL80211_STA_INFO_TX_FAILED";
     return false;
   }
-  *out_station_info = StationInfo(tx_good, tx_bad);
+  int8_t current_rssi;
+  if (!sta_info.GetAttributeValue(NL80211_STA_INFO_SIGNAL, &current_rssi)) {
+    LOG(ERROR) << "Failed to get NL80211_STA_INFO_SIGNAL";
+    return false;
+  }
+  NL80211NestedAttr tx_bitrate_attr(0);
+  if (!sta_info.GetAttribute(NL80211_STA_INFO_TX_BITRATE,
+                            &tx_bitrate_attr)) {
+    LOG(ERROR) << "Failed to get NL80211_STA_INFO_TX_BITRATE";
+    return false;
+  }
+  uint32_t tx_bitrate;
+  if (!tx_bitrate_attr.GetAttributeValue(NL80211_RATE_INFO_BITRATE32,
+                                         &tx_bitrate)) {
+    LOG(ERROR) << "Failed to get NL80211_RATE_INFO_BITRATE32";
+    return false;
+  }
+
+  *out_station_info = StationInfo(tx_good, tx_bad, tx_bitrate, current_rssi);
   return true;
 }
 
