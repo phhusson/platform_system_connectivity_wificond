@@ -73,15 +73,15 @@ int RunShellCommand(const std::string& shell_command, std::string* output) {
   if (child_pid == 0) {  // We are in the child process.
     close(0);  // Don't want to read anything in this process.
     dup2(write_fd.get(), 1);  // Replace existing stdout with the pipe.
-    read_fd.clear();
-    write_fd.clear();
+    read_fd.reset();
+    write_fd.reset();
     // Note that we're keeping parent stderr.
     execl(kShellPath, "sh", "-c", shell_command.c_str(), nullptr);
     LOG(FATAL) << "exec() of child failed " << strerror(errno);
   }
 
   // We are in the parent process.
-  write_fd.clear();  // Close this or we never get HUP from child.
+  write_fd.reset();  // Close this or we never get HUP from child.
   struct pollfd shell_output;
   memset(&shell_output, 0, sizeof(shell_output));
   shell_output.fd = read_fd.get();
