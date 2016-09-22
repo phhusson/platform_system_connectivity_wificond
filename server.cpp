@@ -121,6 +121,7 @@ Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
       interface_name,
       interface_index,
       interface_mac_addr,
+      if_tool_.get(),
       supplicant_manager_.get(),
       netlink_utils_,
       scan_utils_));

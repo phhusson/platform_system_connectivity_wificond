@@ -80,6 +80,7 @@ TEST_F(ApInterfaceImplTest, ShouldReportStopSuccess) {
   EXPECT_CALL(*if_tool_, SetUpState(StrEq(kTestInterfaceName), false))
       .WillOnce(Return(true));
   EXPECT_TRUE(ap_interface_.StopHostapd());
+  testing::Mock::VerifyAndClearExpectations(if_tool_.get());
 }
 
 TEST_F(ApInterfaceImplTest, ShouldRejectInvalidConfig) {
