@@ -57,6 +57,7 @@ class ClientInterfaceImpl {
   bool GetPacketCounters(std::vector<int32_t>* out_packet_counters);
   bool SignalPoll(std::vector<int32_t>* out_signal_poll_results);
   const std::vector<uint8_t>& GetMacAddress();
+  std::string GetInterfaceName() { return interface_name_; }
 
  private:
   void OnScanResultsReady(uint32_t interface_index,

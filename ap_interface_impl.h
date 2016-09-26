@@ -54,6 +54,7 @@ class ApInterfaceImpl {
       int32_t channel,
       wifi_system::HostapdManager::EncryptionType encryption_type,
       const std::vector<uint8_t>& passphrase);
+  std::string GetInterfaceName() { return interface_name_; }
 
  private:
   const std::string interface_name_;

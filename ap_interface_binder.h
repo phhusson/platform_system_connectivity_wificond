@@ -44,6 +44,7 @@ class ApInterfaceBinder : public android::net::wifi::BnApInterface {
                                     int32_t encryption_type,
                                     const std::vector<uint8_t>& passphrase,
                                     bool* out_success) override;
+  binder::Status getInterfaceName(std::string* out_name) override;
 
  private:
   ApInterfaceImpl* impl_;
