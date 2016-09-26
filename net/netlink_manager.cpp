@@ -294,12 +294,30 @@ bool NetlinkManager::SendMessageAndGetResponses(
 bool NetlinkManager::SendMessageAndGetSingleResponse(
     const NL80211Packet& packet,
     unique_ptr<const NL80211Packet>* response) {
+  unique_ptr<const NL80211Packet> response_or_error;
+  if (!SendMessageAndGetSingleResponseOrError(packet, &response_or_error)) {
+    return false;
+  }
+  if (response_or_error->GetMessageType() == NLMSG_ERROR) {
+    // We use ERROR because we are not expecting to receive a ACK here.
+    // In that case the caller should use |SendMessageAndGetAckOrError|.
+    LOG(ERROR) << "Received error message: "
+               << strerror(response_or_error->GetErrorCode());
+    return false;
+  }
+  *response = std::move(response_or_error);
+  return true;
+}
+
+bool NetlinkManager::SendMessageAndGetSingleResponseOrError(
+    const NL80211Packet& packet,
+    unique_ptr<const NL80211Packet>* response) {
   vector<unique_ptr<const NL80211Packet>> response_vec;
   if (!SendMessageAndGetResponses(packet, &response_vec)) {
     return false;
   }
   if (response_vec.size() != 1) {
-    LOG(ERROR) << "Unexpected repsonse size: " << response_vec.size();
+    LOG(ERROR) << "Unexpected response size: " << response_vec.size();
     return false;
   }
 
@@ -310,7 +328,7 @@ bool NetlinkManager::SendMessageAndGetSingleResponse(
 bool NetlinkManager::SendMessageAndGetAckOrError(const NL80211Packet& packet,
                                                  int* error_code) {
   unique_ptr<const NL80211Packet> response;
-  if (!SendMessageAndGetSingleResponse(packet, &response)) {
+  if (!SendMessageAndGetSingleResponseOrError(packet, &response)) {
     return false;
   }
   uint16_t type = response->GetMessageType();
@@ -406,11 +424,6 @@ bool NetlinkManager::DiscoverFamilyId() {
   if (!SendMessageAndGetSingleResponse(get_family_request, &response)) {
     LOG(ERROR) << "Failed to get NL80211 family info";
     return false;
-  }
-  if (response->GetMessageType() == NLMSG_ERROR) {
-      LOG(ERROR) << "Receive ERROR message: "
-                 << strerror(response->GetErrorCode());
-      return false;
   }
   OnNewFamily(std::move(response));
   if (message_types_.find(NL80211_GENL_NAME) == message_types_.end()) {
