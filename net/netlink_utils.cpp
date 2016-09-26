@@ -189,12 +189,6 @@ bool NetlinkUtils::GetWiphyInfo(
     LOG(ERROR) << "Failed to get scan capabilities";
     return false;
   }
-  if (response->GetMessageType() == NLMSG_ERROR) {
-    LOG(ERROR) << "Receive ERROR message: "
-               << strerror(response->GetErrorCode())
-               << "in response to a GetWiphy request";
-    return false;
-  }
   if (response->GetCommand() != NL80211_CMD_NEW_WIPHY) {
     LOG(ERROR) << "Wrong command in response to a get wiphy request: "
                << static_cast<int>(response->GetCommand());
@@ -319,13 +313,6 @@ bool NetlinkUtils::GetStationInfo(uint32_t interface_index,
     LOG(ERROR) << "Failed to get packet counters";
     return false;
   }
-  if (response->GetMessageType() == NLMSG_ERROR) {
-    LOG(ERROR) << "Receive ERROR message: "
-               << strerror(response->GetErrorCode())
-               << "in response to a get station request";
-    return false;
-  }
-
   if (response->GetCommand() != NL80211_CMD_NEW_STATION) {
     LOG(ERROR) << "Wrong command in response to a get station request: "
                << static_cast<int>(response->GetCommand());
