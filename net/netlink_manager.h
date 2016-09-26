@@ -90,10 +90,22 @@ class NetlinkManager {
   // Wrapper of |SendMessageAndGetResponses| for messages with a single
   // response.
   // Returns true on successfully receiving an valid reply.
+  // This will returns false if a NLMSG_ERROR is received.
   // Reply packet will be stored in |*response|.
   virtual bool SendMessageAndGetSingleResponse(
       const NL80211Packet& packet,
       std::unique_ptr<const NL80211Packet>* response);
+
+  // Wrapper of |SendMessageAndGetResponses| for messages with a single
+  // response.
+  // Returns true on successfully receiving an valid reply.
+  // This will returns true if a NLMSG_ERROR is received.
+  // This is useful when the caller needs the error code from kernel.
+  // Reply packet will be stored in |*response|.
+  virtual bool SendMessageAndGetSingleResponseOrError(
+      const NL80211Packet& packet,
+      std::unique_ptr<const NL80211Packet>* response);
+
   // Wrapper of |SendMessageAndGetResponses| for messages that trigger
   // only a NLMSG_ERROR response
   // Returns true if the message is successfully sent and a NLMSG_ERROR response
