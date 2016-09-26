@@ -44,4 +44,10 @@ interface IClientInterface {
 
   // Get the MAC address of this interface.
   byte[] getMacAddress();
+
+  // Retrieve the name of the network interface corresponding to this
+  // IClientInterface instance (e.g. "wlan0")
+  @utf8InCpp
+  String getInterfaceName();
+
 }
