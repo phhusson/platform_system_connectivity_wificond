@@ -87,5 +87,14 @@ binder::Status ApInterfaceBinder::writeHostapdConfig(
   return binder::Status::ok();
 }
 
+binder::Status ApInterfaceBinder::getInterfaceName(std::string* out_name) {
+  if (!impl_) {
+    LOG(WARNING) << "Cannot get interface name from dead ApInterface";
+    return binder::Status::ok();
+  }
+  *out_name = impl_->GetInterfaceName();
+  return binder::Status::ok();
+}
+
 }  // namespace wificond
 }  // namespace android

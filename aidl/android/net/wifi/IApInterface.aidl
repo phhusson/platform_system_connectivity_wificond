@@ -45,4 +45,9 @@ interface IApInterface {
   boolean writeHostapdConfig(in byte[] ssid, boolean isHidden, int channel,
                              int encryptionType, in byte[] passphrase);
 
+  // Retrieve the name of the network interface corresponding to this
+  // IApInterface instance (e.g. "wlan0")
+  @utf8InCpp
+  String getInterfaceName();
+
 }

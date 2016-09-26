@@ -71,5 +71,13 @@ Status ClientInterfaceBinder::getMacAddress(vector<uint8_t>* out_mac_address) {
   return Status::ok();
 }
 
+Status ClientInterfaceBinder::getInterfaceName(std::string* out_name) {
+  if (impl_ == nullptr) {
+    return Status::ok();
+  }
+  *out_name = impl_->GetInterfaceName();
+  return Status::ok();
+}
+
 }  // namespace wificond
 }  // namespace android
