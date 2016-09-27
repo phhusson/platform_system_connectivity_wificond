@@ -53,9 +53,8 @@ void ScanResult::DebugLog() {
 
   stringstream ss;
   string bssid_str;
-  ss << std::hex << std::setfill('0') << std::setw(2);
   for (uint8_t& b : bssid) {
-    ss << static_cast<int>(b);
+    ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(b);
     if (&b != &bssid.back()) {
       ss << ":";
     }
