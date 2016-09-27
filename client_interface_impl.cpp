@@ -29,6 +29,7 @@
 
 using android::net::wifi::IClientInterface;
 using android::sp;
+using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
 
 using namespace std::placeholders;
@@ -43,12 +44,14 @@ ClientInterfaceImpl::ClientInterfaceImpl(
     const std::string& interface_name,
     uint32_t interface_index,
     const std::vector<uint8_t>& interface_mac_addr,
+    InterfaceTool* if_tool,
     SupplicantManager* supplicant_manager,
     NetlinkUtils* netlink_utils,
     ScanUtils* scan_utils)
     : interface_name_(interface_name),
       interface_index_(interface_index),
       interface_mac_addr_(interface_mac_addr),
+      if_tool_(if_tool),
       supplicant_manager_(supplicant_manager),
       netlink_utils_(netlink_utils),
       scan_utils_(scan_utils),
@@ -64,6 +67,7 @@ ClientInterfaceImpl::~ClientInterfaceImpl() {
   binder_->NotifyImplDead();
   DisableSupplicant();
   scan_utils_->UnsubscribeScanResultNotification(interface_index_);
+  if_tool_->SetUpState(interface_name_.c_str(), false);
 }
 
 sp<android::net::wifi::IClientInterface> ClientInterfaceImpl::GetBinder() const {

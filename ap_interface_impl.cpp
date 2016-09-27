@@ -48,6 +48,7 @@ ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
 
 ApInterfaceImpl::~ApInterfaceImpl() {
   binder_->NotifyImplDead();
+  if_tool_->SetUpState(interface_name_.c_str(), false);
 }
 
 sp<IApInterface> ApInterfaceImpl::GetBinder() const {

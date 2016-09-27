@@ -20,6 +20,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <wifi_system/supplicant_manager.h>
+#include <wifi_system_test/mock_interface_tool.h>
 #include <wifi_system_test/mock_supplicant_manager.h>
 
 #include "wificond/client_interface_impl.h"
@@ -27,6 +28,7 @@
 #include "wificond/tests/mock_netlink_utils.h"
 #include "wificond/tests/mock_scan_utils.h"
 
+using android::wifi_system::MockInterfaceTool;
 using android::wifi_system::MockSupplicantManager;
 using android::wifi_system::SupplicantManager;
 using std::unique_ptr;
@@ -53,6 +55,7 @@ class ClientInterfaceImplTest : public ::testing::Test {
         kTestInterfaceName,
         kTestInterfaceIndex,
         vector<uint8_t>{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+        if_tool_.get(),
         supplicant_manager_.get(),
         &netlink_utils_,
         &scan_utils_});
@@ -66,6 +69,8 @@ class ClientInterfaceImplTest : public ::testing::Test {
         UnsubscribeScanResultNotification(kTestInterfaceIndex));
   }
 
+  unique_ptr<NiceMock<MockInterfaceTool>> if_tool_{
+      new NiceMock<MockInterfaceTool>};
   unique_ptr<NiceMock<MockSupplicantManager>> supplicant_manager_{
       new NiceMock<MockSupplicantManager>};
   unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_{
