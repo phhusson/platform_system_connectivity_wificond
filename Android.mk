@@ -173,7 +173,8 @@ LOCAL_SHARED_LIBRARIES := \
     libbase \
     libbinder \
     libcutils \
-    libutils
+    libutils \
+    libwifi-system
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
     libwificond_ipc \

@@ -21,6 +21,7 @@
 
 #include <android-base/macros.h>
 #include <utils/StrongPointer.h>
+#include <wifi_system/interface_tool.h>
 #include <wifi_system/supplicant_manager.h>
 
 #include "android/net/wifi/IClientInterface.h"
@@ -44,6 +45,7 @@ class ClientInterfaceImpl {
       const std::string& interface_name,
       uint32_t interface_index,
       const std::vector<uint8_t>& interface_mac_addr,
+      android::wifi_system::InterfaceTool* if_tool,
       android::wifi_system::SupplicantManager* supplicant_manager,
       NetlinkUtils* netlink_utils,
       ScanUtils* scan_utils);
@@ -68,6 +70,7 @@ class ClientInterfaceImpl {
   const std::string interface_name_;
   const uint32_t interface_index_;
   const std::vector<uint8_t> interface_mac_addr_;
+  android::wifi_system::InterfaceTool* const if_tool_;
   android::wifi_system::SupplicantManager* const supplicant_manager_;
   NetlinkUtils* const netlink_utils_;
   ScanUtils* const scan_utils_;
