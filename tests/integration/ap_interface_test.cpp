@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 #include <utils/StrongPointer.h>
+#include <wifi_system/interface_tool.h>
 
 #include "android/net/wifi/IApInterface.h"
 #include "android/net/wifi/IWificond.h"
@@ -25,10 +26,12 @@
 
 using android::net::wifi::IApInterface;
 using android::net::wifi::IWificond;
+using android::wifi_system::InterfaceTool;
 using android::wificond::tests::integration::HostapdIsDead;
 using android::wificond::tests::integration::HostapdIsRunning;
 using android::wificond::tests::integration::ScopedDevModeWificond;
 using android::wificond::tests::integration::WaitForTrue;
+using std::string;
 using std::vector;
 
 namespace android {
@@ -56,6 +59,17 @@ TEST(ApInterfaceTest, CanCreateApInterfaces) {
   EXPECT_TRUE(service->createApInterface(&ap_interface).isOk());
   EXPECT_NE(nullptr, ap_interface.get());
 
+  // The interface should start out down.
+  string if_name;
+  EXPECT_TRUE(ap_interface->getInterfaceName(&if_name).isOk());
+  EXPECT_TRUE(!if_name.empty());
+  InterfaceTool if_tool;
+  EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
+
+  // Mark the interface as up, just to test that we mark it down on teardown.
+  EXPECT_TRUE(if_tool.SetUpState(if_name.c_str(), true));
+  EXPECT_TRUE(if_tool.GetUpState(if_name.c_str()));
+
   // We should not be able to create two AP interfaces.
   sp<IApInterface> ap_interface2;
   EXPECT_TRUE(service->createApInterface(&ap_interface2).isOk());
@@ -63,6 +77,7 @@ TEST(ApInterfaceTest, CanCreateApInterfaces) {
 
   // We can tear down the created interface.
   EXPECT_TRUE(service->tearDownInterfaces().isOk());
+  EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
 }
 
 // TODO: b/30311493 this test fails because hostapd fails to set the driver
@@ -73,6 +88,13 @@ TEST(ApInterfaceTest, CanStartStopHostapd) {
   sp<IApInterface> ap_interface;
   EXPECT_TRUE(service->createApInterface(&ap_interface).isOk());
   ASSERT_NE(nullptr, ap_interface.get());
+
+  // Interface should start out down.
+  string if_name;
+  EXPECT_TRUE(ap_interface->getInterfaceName(&if_name).isOk());
+  EXPECT_TRUE(!if_name.empty());
+  InterfaceTool if_tool;
+  EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
 
   bool wrote_config = false;
   EXPECT_TRUE(ap_interface->writeHostapdConfig(
@@ -99,12 +121,18 @@ TEST(ApInterfaceTest, CanStartStopHostapd) {
     //      can leave the driver in a poor state.
     // The latter points to an obvious race, where we cannot fully clean up the
     // driver on quick transitions.
-    sleep(1);
+    auto InterfaceIsUp = [&if_tool, &if_name] () {
+      return if_tool.GetUpState(if_name.c_str());
+    };
+    EXPECT_TRUE(WaitForTrue(InterfaceIsUp, kHostapdStartupTimeoutSeconds))
+        << "Failed on iteration " << iteration;
     EXPECT_TRUE(HostapdIsRunning()) << "Failed on iteration " << iteration;
 
     bool hostapd_stopped = false;
     EXPECT_TRUE(ap_interface->stopHostapd(&hostapd_stopped).isOk());
     EXPECT_TRUE(hostapd_stopped);
+    EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
+
 
     EXPECT_TRUE(WaitForTrue(HostapdIsDead, kHostapdDeathTimeoutSeconds))
         << "Failed on iteration " << iteration;

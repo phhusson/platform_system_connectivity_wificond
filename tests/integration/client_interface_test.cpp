@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+#include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
 #include <utils/StrongPointer.h>
+#include <wifi_system/interface_tool.h>
 
 #include "android/net/wifi/IClientInterface.h"
 #include "android/net/wifi/IWificond.h"
@@ -25,10 +27,12 @@
 
 using android::net::wifi::IClientInterface;
 using android::net::wifi::IWificond;
+using android::wifi_system::InterfaceTool;
 using android::wificond::tests::integration::ScopedDevModeWificond;
 using android::wificond::tests::integration::SupplicantIsDead;
 using android::wificond::tests::integration::SupplicantIsRunning;
 using android::wificond::tests::integration::WaitForTrue;
+using std::string;
 using std::vector;
 
 namespace android {
@@ -49,6 +53,17 @@ TEST(ClientInterfaceTest, CanCreateClientInterfaces) {
   EXPECT_TRUE(service->createClientInterface(&client_interface).isOk());
   EXPECT_NE(nullptr, client_interface.get());
 
+  // The interface should start out down.
+  string if_name;
+  EXPECT_TRUE(client_interface->getInterfaceName(&if_name).isOk());
+  EXPECT_TRUE(!if_name.empty());
+  InterfaceTool if_tool;
+  EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
+
+  // Mark the interface as up, just to test that we mark it down on teardown.
+  EXPECT_TRUE(if_tool.SetUpState(if_name.c_str(), true));
+  EXPECT_TRUE(if_tool.GetUpState(if_name.c_str()));
+
   // We should not be able to create two client interfaces.
   sp<IClientInterface> client_interface2;
   EXPECT_TRUE(service->createClientInterface(&client_interface2).isOk());
@@ -56,6 +71,7 @@ TEST(ClientInterfaceTest, CanCreateClientInterfaces) {
 
   // We can tear down the created interface.
   EXPECT_TRUE(service->tearDownInterfaces().isOk());
+  EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
 }
 
 TEST(ClientInterfaceTest, CanStartStopSupplicant) {
