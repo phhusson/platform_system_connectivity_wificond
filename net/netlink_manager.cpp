@@ -27,6 +27,8 @@
 #include <android-base/logging.h>
 #include <utils/Timers.h>
 
+#include "net/mlme_event.h"
+#include "net/mlme_event_handler.h"
 #include "net/nl80211_attribute.h"
 #include "net/nl80211_packet.h"
 
@@ -219,6 +221,9 @@ bool NetlinkManager::Start() {
   //  if (!SubscribeToEvents(NL80211_MULTICAST_GROUP_SCAN)) {
   //    return false;
   //  }
+  if (!SubscribeToEvents(NL80211_MULTICAST_GROUP_MLME)) {
+    return false;
+  }
 
   started_ = true;
   return true;
@@ -464,8 +469,64 @@ void NetlinkManager::BroadcastHandler(unique_ptr<const NL80211Packet> packet) {
       // available.
       command == NL80211_CMD_SCAN_ABORTED) {
     OnScanResultsReady(std::move(packet));
-  } else if (command == NL80211_CMD_SCHED_SCAN_RESULTS) {
+    return;
+  }
+
+  if (command == NL80211_CMD_SCHED_SCAN_RESULTS) {
     OnSchedScanResultsReady(std::move(packet));
+    return;
+  }
+
+
+  // Driver which supports SME uses both NL80211_CMD_AUTHENTICATE and
+  // NL80211_CMD_ASSOCIATE, otherwise it uses NL80211_CMD_CONNECT
+  // to notify a combination of authentication and association processses.
+  // Currently we monitor CONNECT/ASSOCIATE/ROAM event for up-to-date
+  // frequency and bssid.
+  // TODO(nywang): Handle other MLME events, which help us track the
+  // connection state better.
+  if (command == NL80211_CMD_CONNECT ||
+      command == NL80211_CMD_ASSOCIATE ||
+      command == NL80211_CMD_ROAM) {
+      OnMlmeEvent(std::move(packet));
+     return;
+  }
+}
+
+void NetlinkManager::OnMlmeEvent(unique_ptr<const NL80211Packet> packet) {
+  uint32_t if_index;
+
+  if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+    LOG(ERROR) << "Failed to get interface index from a MLME event message";
+    return;
+  }
+  auto handler = on_mlme_event_handler_.find(if_index);
+  if (handler == on_mlme_event_handler_.end()) {
+    LOG(DEBUG) << "No handler for mlme event from interface"
+               << " with index: " << if_index;
+    return;
+  }
+  uint32_t command = packet->GetCommand();
+  if (command == NL80211_CMD_CONNECT) {
+    auto event = MlmeConnectEvent::InitFromPacket(packet.get());
+    if (event != nullptr) {
+       handler->second->OnConnect(std::move(event));
+    }
+    return;
+  }
+  if (command == NL80211_CMD_ASSOCIATE) {
+    auto event = MlmeAssociateEvent::InitFromPacket(packet.get());
+    if (event != nullptr) {
+       handler->second->OnAssociate(std::move(event));
+    }
+    return;
+  }
+  if (command == NL80211_CMD_ROAM) {
+    auto event = MlmeRoamEvent::InitFromPacket(packet.get());
+    if (event != nullptr) {
+       handler->second->OnRoam(std::move(event));
+    }
+    return;
   }
 }
 
@@ -539,6 +600,15 @@ void NetlinkManager::SubscribeScanResultNotification(
 void NetlinkManager::UnsubscribeScanResultNotification(
     uint32_t interface_index) {
   on_scan_result_ready_handler_.erase(interface_index);
+}
+
+void NetlinkManager::SubscribeMlmeEvent(uint32_t interface_index,
+                                        MlmeEventHandler* handler) {
+  on_mlme_event_handler_[interface_index] = handler;
+}
+
+void NetlinkManager::UnsubscribeMlmeEvent(uint32_t interface_index) {
+  on_mlme_event_handler_.erase(interface_index);
 }
 
 void NetlinkManager::SubscribeSchedScanResultNotification(
