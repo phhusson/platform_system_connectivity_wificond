@@ -46,6 +46,10 @@ class ClientInterfaceBinder : public android::net::wifi::BnClientInterface {
   ::android::binder::Status getMacAddress(
       std::vector<uint8_t>* out_mac_address) override;
   ::android::binder::Status getInterfaceName(std::string* out_name) override;
+  ::android::binder::Status requestANQP(
+      const ::std::vector<uint8_t>& bssid,
+      const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback,
+      bool* out_success) override;
 
  private:
   ClientInterfaceImpl* impl_;
