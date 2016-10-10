@@ -59,7 +59,10 @@ class ClientInterfaceImpl {
   bool GetPacketCounters(std::vector<int32_t>* out_packet_counters);
   bool SignalPoll(std::vector<int32_t>* out_signal_poll_results);
   const std::vector<uint8_t>& GetMacAddress();
-  std::string GetInterfaceName() { return interface_name_; }
+  const std::string& GetInterfaceName() const { return interface_name_; }
+  bool requestANQP(
+      const ::std::vector<uint8_t>& bssid,
+      const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback);
 
  private:
   void OnScanResultsReady(uint32_t interface_index,
