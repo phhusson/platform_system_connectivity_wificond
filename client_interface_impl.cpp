@@ -132,5 +132,12 @@ void ClientInterfaceImpl::OnScanResultsReady(
   // TODO(nywang): Send these scan results back to java framework.
 }
 
+bool ClientInterfaceImpl::requestANQP(
+      const ::std::vector<uint8_t>& bssid,
+      const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback) {
+  // TODO(nywang): query ANQP information from wpa_supplicant.
+  return true;
+}
+
 }  // namespace wificond
 }  // namespace android
