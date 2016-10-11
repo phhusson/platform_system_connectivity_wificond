@@ -58,7 +58,7 @@ bool NetlinkUtils::GetWiphyIndex(uint32_t* out_wiphy_index) {
   get_wiphy.AddFlag(NLM_F_DUMP);
   vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetResponses(get_wiphy, &response))  {
-    LOG(ERROR) << "Failed to get wiphy index";
+    LOG(ERROR) << "NL80211_CMD_GET_WIPHY dump failed";
     return false;
   }
   if (response.empty()) {
@@ -105,7 +105,7 @@ bool NetlinkUtils::GetInterfaceInfo(uint32_t wiphy_index,
   get_interface.AddAttribute(wiphy);
   vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetResponses(get_interface, &response)) {
-    LOG(ERROR) << "Failed to send GetWiphy message";
+    LOG(ERROR) << "NL80211_CMD_GET_INTERFACE dump failed";
     return false;
   }
   if (response.empty()) {
@@ -186,7 +186,7 @@ bool NetlinkUtils::GetWiphyInfo(
   unique_ptr<const NL80211Packet> response;
   if (!netlink_manager_->SendMessageAndGetSingleResponse(get_wiphy,
                                                          &response)) {
-    LOG(ERROR) << "Failed to get scan capabilities";
+    LOG(ERROR) << "NL80211_CMD_GET_WIPHY failed";
     return false;
   }
   if (response->GetCommand() != NL80211_CMD_NEW_WIPHY) {
@@ -310,7 +310,7 @@ bool NetlinkUtils::GetStationInfo(uint32_t interface_index,
   unique_ptr<const NL80211Packet> response;
   if (!netlink_manager_->SendMessageAndGetSingleResponse(get_station,
                                                          &response)) {
-    LOG(ERROR) << "Failed to get packet counters";
+    LOG(ERROR) << "NL80211_CMD_GET_STATION failed";
     return false;
   }
   if (response->GetCommand() != NL80211_CMD_NEW_STATION) {
