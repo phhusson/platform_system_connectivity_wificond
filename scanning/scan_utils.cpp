@@ -70,7 +70,7 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
 
   vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetResponses(get_scan, &response))  {
-    LOG(ERROR) << "Failed to get scan result";
+    LOG(ERROR) << "NL80211_CMD_GET_SCAN dump failed";
     return false;
   }
   if (response.empty()) {
@@ -238,7 +238,7 @@ bool ScanUtils::Scan(uint32_t interface_index,
   // kernel is supposed to send the ERROR/ACK back before the scan starts.
   vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetAck(trigger_scan)) {
-    LOG(ERROR) << "Failed to trigger scan";
+    LOG(ERROR) << "NL80211_CMD_TRIGGER_SCAN failed";
     return false;
   }
   return true;
@@ -258,7 +258,7 @@ bool ScanUtils::StopScheduledScan(uint32_t interface_index) {
   int error_code;
   if (!netlink_manager_->SendMessageAndGetAckOrError(stop_sched_scan,
                                                      &error_code))  {
-    LOG(ERROR) << "Failed to stop scheduled scan";
+    LOG(ERROR) << "NL80211_CMD_STOP_SCHED_SCAN failed";
     return false;
   }
   if (error_code == ENOENT) {
@@ -330,7 +330,7 @@ bool ScanUtils::StartScheduledScan(
 
   vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetAck(start_sched_scan)) {
-    LOG(ERROR) << "Failed to start scheduled scan";
+    LOG(ERROR) << "NL80211_CMD_START_SCHED_SCAN failed";
     return false;
   }
 
