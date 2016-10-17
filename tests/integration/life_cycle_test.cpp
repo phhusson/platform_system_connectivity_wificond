@@ -20,7 +20,6 @@
 #include "wificond/tests/shell_utils.h"
 #include "wificond/tests/integration/process_utils.h"
 
-using android::wificond::ipc_constants::kDevModeServiceName;
 using android::wificond::ipc_constants::kServiceName;
 using android::wificond::tests::integration::RunShellCommand;
 using android::wificond::tests::integration::WaitForTrue;
@@ -41,8 +40,6 @@ TEST(LifeCycleTest, ProcessStartsUp) {
 
   // Confirm that the service manager has no binder for wificond.
   EXPECT_FALSE(IsBinderServiceRegistered(kServiceName));
-  EXPECT_FALSE(IsBinderServiceRegistered(kDevModeServiceName));
-  EXPECT_TRUE(WificondSetDevMode(false));  // Clear dev mode
 
   // Start wificond.
   RunShellCommand("start wificond");
