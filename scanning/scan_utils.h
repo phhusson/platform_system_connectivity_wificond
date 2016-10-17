@@ -77,6 +77,11 @@ class ScanUtils {
       const std::vector<std::vector<uint8_t>>& match_ssids,
       const std::vector<uint32_t>& freqs);
 
+  // Stop existing scheduled scan on interface with index |interface_index|.
+  // Returns true on success.
+  // Returns false on error or when there is no scheduled scan running.
+  virtual bool StopScheduledScan(uint32_t interface_index);
+
   // Sign up to be notified when new scan results are available.
   // |handler| will be called when the kernel signals to wificond that a scan
   // has been completed on the given |interface_index|.  See the declaration of
@@ -90,10 +95,18 @@ class ScanUtils {
   // interface with index |interface_index|.
   virtual void UnsubscribeScanResultNotification(uint32_t interface_index);
 
-  // Stop existing scheduled scan on interface with index |interface_index|.
-  // Returns true on success.
-  // Returns false on error or when there is no scheduled scan running.
-  virtual bool StopScheduledScan(uint32_t interface_index);
+  // Sign up to be notified when new scan results are available.
+  // |handler| will be called when the kernel signals to wificond that a
+  // scheduled scan has been completed on the given |interface_index|.
+  // See the declaration of OnSchedScanResultsReadyHandler for documentation
+  // on the semantics of this callback.
+  virtual void SubscribeSchedScanResultNotification(
+      uint32_t interface_index,
+      OnSchedScanResultsReadyHandler handler);
+
+  // Cancel the sign-up of receiving new scheduled scan result notification from
+  // interface with index |interface_index|.
+  virtual void UnsubscribeSchedScanResultNotification(uint32_t interface_index);
 
  private:
   bool GetSSIDFromInfoElement(const std::vector<uint8_t>& ie,
