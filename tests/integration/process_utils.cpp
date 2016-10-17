@@ -23,7 +23,6 @@
 #include <android-base/strings.h>
 #include <binder/IBinder.h>
 #include <binder/IServiceManager.h>
-#include <cutils/properties.h>
 #include <utils/String16.h>
 #include <utils/StrongPointer.h>
 
@@ -35,8 +34,7 @@ using android::base::StringPrintf;
 using android::base::Trim;
 using android::net::wifi::IWificond;
 using android::sp;
-using android::wificond::ipc_constants::kDevModePropertyKey;
-using android::wificond::ipc_constants::kDevModeServiceName;
+using android::wificond::ipc_constants::kServiceName;
 
 namespace android {
 namespace wificond {
@@ -56,6 +54,8 @@ bool IsProcessRunning(const char* process_name) {
 
 }
 
+const uint32_t ScopedDevModeWificond::kSystemServerDeathTimeoutSeconds = 10;
+const uint32_t ScopedDevModeWificond::kSystemServerStartTimeoutSeconds = 10;
 const uint32_t ScopedDevModeWificond::kWificondDeathTimeoutSeconds = 10;
 const uint32_t ScopedDevModeWificond::kWificondStartTimeoutSeconds = 10;
 
@@ -66,30 +66,29 @@ ScopedDevModeWificond::~ScopedDevModeWificond() {
 }
 
 sp<IWificond> ScopedDevModeWificond::EnterDevModeOrDie() {
-  sp<IWificond> service = MaybeEnterDevMode();
-  if (service.get() == nullptr) {
-    LOG(FATAL) << "Failed to restart wificond in dev mode";
-  }
-  return service;
-}
-
-sp<IWificond> ScopedDevModeWificond::MaybeEnterDevMode() {
   sp<IWificond> service;
   RunShellCommand("stop wificond");
-  if (!WificondSetDevMode(true)) {
-    return service;
-  }
+  CHECK(WaitForTrue(WificondIsDead, kWificondDeathTimeoutSeconds));
+  RunShellCommand("stop");
+  CHECK(WaitForTrue(SystemServerIsDead, kSystemServerDeathTimeoutSeconds));
   RunShellCommand("start wificond");
-  auto in_dev_mode = std::bind(IsBinderServiceRegistered, kDevModeServiceName);
-  in_dev_mode_ = WaitForTrue(in_dev_mode, kWificondStartTimeoutSeconds);
-  getService(String16(kDevModeServiceName), &service);
+  auto wificond_restarted = std::bind(IsBinderServiceRegistered, kServiceName);
+  CHECK(WaitForTrue(wificond_restarted, kWificondStartTimeoutSeconds));
+  status_t status = getService(String16(kServiceName), &service);
+  if (status != NO_ERROR || service.get() == nullptr) {
+    LOG(FATAL) << "Failed to restart wificond in dev mode";
+  }
+  in_dev_mode_ = true;
   return service;
 }
 
 void ScopedDevModeWificond::ExitDevMode() {
   RunShellCommand("stop wificond");
-  WificondSetDevMode(false);
+  CHECK(WaitForTrue(WificondIsDead, kWificondDeathTimeoutSeconds));
+  RunShellCommand("start");
+  CHECK(WaitForTrue(SystemServerIsRunning, kSystemServerStartTimeoutSeconds));
   RunShellCommand("start wificond");
+  CHECK(WaitForTrue(WificondIsRunning, kWificondStartTimeoutSeconds));
   in_dev_mode_ = false;
 }
 
@@ -110,15 +109,19 @@ bool IsBinderServiceRegistered(const char* service_name) {
   return service.get() != nullptr;
 }
 
+bool SystemServerIsRunning() {
+  return IsProcessRunning("system_server");
+}
+
+bool SystemServerIsDead() {
+  return !IsProcessRunning("system_server");
+}
+
 bool WificondIsRunning() {
   return IsProcessRunning("wificond");
 }
 
 bool WificondIsDead() { return !WificondIsRunning(); }
-
-bool WificondSetDevMode(bool is_on) {
-  return property_set(kDevModePropertyKey, (is_on) ? "1" : "0") == 0;
-}
 
 bool HostapdIsRunning() {
   return IsProcessRunning("hostapd");

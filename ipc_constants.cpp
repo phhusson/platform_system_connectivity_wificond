@@ -21,8 +21,6 @@ namespace wificond {
 namespace ipc_constants {
 
 const char kServiceName[] = "wificond";
-const char kDevModeServiceName[] = "wificond-dev";
-const char kDevModePropertyKey[] = "wificond.dev-mode-on";
 
 }  // namespace ipc_constants
 }  // namespace wificond
