@@ -59,6 +59,9 @@ typedef std::function<void(
     std::vector<std::vector<uint8_t>>& ssids,
     std::vector<uint32_t>& frequencies)> OnScanResultsReadyHandler;
 
+typedef std::function<void(
+    uint32_t interface_index)> OnSchedScanResultsReadyHandler;
+
 class NetlinkManager {
  public:
   explicit NetlinkManager(EventLoop* event_loop);
@@ -126,6 +129,9 @@ class NetlinkManager {
   // has been completed on the given |interface_index|.  See the declaration of
   // OnScanResultsReadyHandler for documentation on the semantics of this
   // callback.
+  // Only one handler can be registered per interface index.
+  // New handler will replace the registered handler if they are for the
+  // same interface index.
   virtual void SubscribeScanResultNotification(
       uint32_t interface_index,
       OnScanResultsReadyHandler handler);
@@ -133,6 +139,22 @@ class NetlinkManager {
   // Cancel the sign-up of receiving new scan result notification from
   // interface with index |interface_index|.
   virtual void UnsubscribeScanResultNotification(uint32_t interface_index);
+
+  // Sign up to be notified when new scan results are available.
+  // |handler| will be called when the kernel signals to wificond that a
+  // scheduled scan has been completed on the given |interface_index|.
+  // See the declaration of OnSchedScanResultsReadyHandler for documentation
+  // on the semantics of this callback.
+  // Only one handler can be registered per interface index.
+  // New handler will replace the registered handler if they are for the
+  // same interface index.
+  virtual void SubscribeSchedScanResultNotification(
+      uint32_t interface_index,
+      OnSchedScanResultsReadyHandler handler);
+
+  // Cancel the sign-up of receiving new scheduled scan result notification from
+  // interface with index |interface_index|.
+  virtual void UnsubscribeSchedScanResultNotification(uint32_t interface_index);
 
  private:
   bool SetupSocket(android::base::unique_fd* netlink_fd);
@@ -142,6 +164,7 @@ class NetlinkManager {
   bool SendMessageInternal(const NL80211Packet& packet, int fd);
   void BroadcastHandler(std::unique_ptr<const NL80211Packet> packet);
   void OnScanResultsReady(std::unique_ptr<const NL80211Packet> packet);
+  void OnSchedScanResultsReady(std::unique_ptr<const NL80211Packet> packet);
 
   // This handler revceives mapping from NL80211 family name to family id,
   // as well as mapping from group name to group id.
@@ -165,6 +188,10 @@ class NetlinkManager {
   // A mapping from interface index to the handler registered to receive
   // scan results notifications.
   std::map<uint32_t, OnScanResultsReadyHandler> on_scan_result_ready_handler_;
+  // A mapping from interface index to the handler registered to receive
+  // scheduled scan results notifications.
+  std::map<uint32_t, OnSchedScanResultsReadyHandler>
+      on_sched_scan_result_ready_handler_;
 
   // Mapping from family name to family id, and group name to group id.
   std::map<std::string, MessageType> message_types_;
