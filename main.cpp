@@ -45,8 +45,6 @@ using android::wifi_system::HalTool;
 using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
-using android::wificond::ipc_constants::kDevModePropertyKey;
-using android::wificond::ipc_constants::kDevModeServiceName;
 using android::wificond::ipc_constants::kServiceName;
 using std::unique_ptr;
 
@@ -99,9 +97,7 @@ void RegisterServiceOrCrash(const android::sp<android::IBinder>& service) {
   android::sp<android::IServiceManager> sm = android::defaultServiceManager();
   CHECK_EQ(sm != NULL, true) << "Could not obtain IServiceManager";
 
-  const int8_t dev_mode_on = property_get_bool(kDevModePropertyKey, 0);
-  const char* service_name = (dev_mode_on) ? kDevModeServiceName : kServiceName;
-  CHECK_EQ(sm->addService(android::String16(service_name), service),
+  CHECK_EQ(sm->addService(android::String16(kServiceName), service),
            android::NO_ERROR);
 }
 
