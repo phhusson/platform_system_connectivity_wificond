@@ -45,6 +45,8 @@ namespace integration {
 // }
 class ScopedDevModeWificond final {
  public:
+  static const uint32_t kSystemServerDeathTimeoutSeconds;
+  static const uint32_t kSystemServerStartTimeoutSeconds;
   static const uint32_t kWificondDeathTimeoutSeconds;
   static const uint32_t kWificondStartTimeoutSeconds;
 
@@ -76,6 +78,12 @@ bool WaitForTrue(std::function<bool()> condition, time_t timeout_seconds);
 // Returns true iff a service is registered as |service_name| with the Binder
 // service manager.
 bool IsBinderServiceRegistered(const char* service_name);
+
+// Returns true iff the system_server process is running on the system.
+bool SystemServerIsRunning();
+
+// Convenient alias for !SystemServerIsRunning
+bool SystemServerIsDead();
 
 // Returns true iff the wificond process is running on the system.
 bool WificondIsRunning();
