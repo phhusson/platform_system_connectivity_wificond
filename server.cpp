@@ -30,6 +30,8 @@ using std::unique_ptr;
 using android::net::wifi::IApInterface;
 using android::net::wifi::IClientInterface;
 using android::net::wifi::IInterfaceEventCallback;
+using android::net::wifi::IRttClient;
+using android::net::wifi::IRttController;
 using android::wifi_hal::DriverTool;
 using android::wifi_system::HalTool;
 using android::wifi_system::HostapdManager;
@@ -82,6 +84,24 @@ Status Server::UnregisterCallback(const sp<IInterfaceEventCallback>& callback) {
   return Status::ok();
 }
 
+Status Server::registerRttClient(const sp<IRttClient>& rtt_client,
+                                 sp<IRttController>* out_rtt_controller) {
+  if (rtt_controller_ == nullptr) {
+    rtt_controller_.reset(new RttControllerImpl());
+  }
+  rtt_controller_->RegisterRttClient(rtt_client);
+
+  *out_rtt_controller = rtt_controller_->GetBinder();
+  return Status::ok();
+}
+
+Status Server::unregisterRttClient(const sp<IRttClient>& rttClient) {
+  rtt_controller_->UnregisterRttClient(rttClient);
+  if (rtt_controller_->GetClientCount() == 0) {
+    rtt_controller_.reset();
+  }
+  return Status::ok();
+}
 
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
   string interface_name;
