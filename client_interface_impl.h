@@ -25,13 +25,27 @@
 #include <wifi_system/supplicant_manager.h>
 
 #include "android/net/wifi/IClientInterface.h"
+#include "wificond/net/mlme_event_handler.h"
 
 namespace android {
 namespace wificond {
 
 class ClientInterfaceBinder;
+class ClientInterfaceImpl;
 class NetlinkUtils;
 class ScanUtils;
+
+class MlmeEventHandlerImpl : public MlmeEventHandler {
+ public:
+  MlmeEventHandlerImpl(ClientInterfaceImpl* client_interface);
+  ~MlmeEventHandlerImpl() override;
+  void OnConnect(std::unique_ptr<MlmeConnectEvent> event) override;
+  void OnRoam(std::unique_ptr<MlmeRoamEvent> event) override;
+  void OnAssociate(std::unique_ptr<MlmeAssociateEvent> event) override;
+
+ private:
+  ClientInterfaceImpl* client_interface_;
+};
 
 // Holds the guts of how we control network interfaces capable of connecting to
 // access points via wpa_supplicant.
@@ -70,6 +84,7 @@ class ClientInterfaceImpl {
                           std::vector<std::vector<uint8_t>>& ssids,
                           std::vector<uint32_t>& frequencies);
   void OnSchedScanResultsReady(uint32_t interface_index);
+  bool RefreshAssociateFreq();
 
   const std::string interface_name_;
   const uint32_t interface_index_;
@@ -78,9 +93,14 @@ class ClientInterfaceImpl {
   android::wifi_system::SupplicantManager* const supplicant_manager_;
   NetlinkUtils* const netlink_utils_;
   ScanUtils* const scan_utils_;
+  const std::unique_ptr<MlmeEventHandlerImpl> mlme_event_handler_;
   const android::sp<ClientInterfaceBinder> binder_;
 
+  std::vector<uint8_t> bssid_;
+  uint32_t associate_freq_;
+
   DISALLOW_COPY_AND_ASSIGN(ClientInterfaceImpl);
+  friend class MlmeEventHandlerImpl;
 };
 
 }  // namespace wificond
