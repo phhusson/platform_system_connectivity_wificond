@@ -132,7 +132,7 @@ bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters
 bool ClientInterfaceImpl::SignalPoll(vector<int32_t>* out_signal_poll_results) {
   StationInfo station_info;
   if (!netlink_utils_->GetStationInfo(interface_index_,
-                                      interface_mac_addr_,
+                                      bssid_,
                                       &station_info)) {
     return false;
   }
