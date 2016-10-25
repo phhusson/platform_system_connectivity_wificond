@@ -79,6 +79,7 @@ struct StationInfo {
   // We will add them once we find them useful.
 };
 
+class MlmeEventHandler;
 class NetlinkManager;
 class NL80211Packet;
 
@@ -116,6 +117,20 @@ class NetlinkUtils {
   virtual bool GetStationInfo(uint32_t interface_index,
                               const std::vector<uint8_t>& mac_address,
                               StationInfo* out_station_info);
+
+  // Sign up to be notified when there is MLME event.
+  // Only one handler can be registered per interface index.
+  // New handler will replace the registered handler if they are for the
+  // same interface index.
+  // NetlinkUtils is not going to take ownership of this pointer, and that it
+  // is the caller's responsibility to make sure that the object exists for the
+  // duration of the subscription.
+  virtual void SubscribeMlmeEvent(uint32_t interface_index,
+                                  MlmeEventHandler* handler);
+
+  // Cancel the sign-up of receiving MLME event notification
+  // from interface with index |interface_index|.
+  virtual void UnsubscribeMlmeEvent(uint32_t interface_index);
 
  private:
   bool ParseBandInfo(const NL80211Packet* const packet,
