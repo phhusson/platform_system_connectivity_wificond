@@ -77,6 +77,7 @@ LOCAL_MODULE := libwificond_nl
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
+    net/mlme_event.cpp \
     net/netlink_manager.cpp \
     net/netlink_utils.cpp \
     net/nl80211_attribute.cpp \
