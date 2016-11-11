@@ -29,6 +29,7 @@
 #include "wificond/scanning/scan_utils.h"
 
 using android::net::wifi::IClientInterface;
+using com::android::server::wifi::wificond::NativeScanResult;
 using android::sp;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
@@ -158,7 +159,7 @@ void ClientInterfaceImpl::OnScanResultsReady(
     LOG(ERROR) << "Scan aborted";
     return;
   }
-  vector<ScanResult> scan_results;
+  vector<NativeScanResult> scan_results;
   // TODO(nywang): Find a way to differentiate scan results for
   // internel/external scan request. This is useful when location is
   // scanning using regular NL80211 commands.
@@ -168,7 +169,7 @@ void ClientInterfaceImpl::OnScanResultsReady(
 
 void ClientInterfaceImpl::OnSchedScanResultsReady(
                          uint32_t interface_index) {
-  vector<ScanResult> scan_results;
+  vector<NativeScanResult> scan_results;
   scan_utils_->GetScanResult(interface_index, &scan_results);
   // TODO(nywang): Send these scan results back to java framework.
 }
@@ -183,7 +184,7 @@ bool ClientInterfaceImpl::requestANQP(
 bool ClientInterfaceImpl::RefreshAssociateFreq() {
   // wpa_supplicant fetches associate frequency using the latest scan result.
   // We should follow the same method here before we find a better solution.
-  std::vector<ScanResult> scan_results;
+  std::vector<NativeScanResult> scan_results;
   if (!scan_utils_->GetScanResult(interface_index_, &scan_results)) {
     return false;
   }
