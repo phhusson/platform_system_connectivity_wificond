@@ -19,21 +19,30 @@
 
 #include <vector>
 
+#include <binder/Parcel.h>
+#include <binder/Parcelable.h>
+
+namespace com {
 namespace android {
+namespace server {
+namespace wifi {
 namespace wificond {
 
 // This is the class to represent a scan result for wificond internal use.
-class ScanResult {
+class NativeScanResult : public ::android::Parcelable {
  public:
-  ScanResult() = default;
-  ScanResult(std::vector<uint8_t>& ssid,
-             std::vector<uint8_t>& bssid,
-             std::vector<uint8_t>& info_element,
-             uint32_t frequency,
-             int32_t signal_mbm,
-             uint64_t tsf,
-             uint16_t capability,
-             bool associated);
+  NativeScanResult() = default;
+  NativeScanResult(std::vector<uint8_t>& ssid,
+                   std::vector<uint8_t>& bssid,
+                   std::vector<uint8_t>& info_element,
+                   uint32_t frequency,
+                   int32_t signal_mbm,
+                   uint64_t tsf,
+                   uint16_t capability,
+                   bool associated);
+  ::android::status_t writeToParcel(::android::Parcel* parcel) const override;
+  ::android::status_t readFromParcel(const ::android::Parcel* parcel) override;
+
   void DebugLog();
 
   // SSID of the BSS.
@@ -68,10 +77,13 @@ class ScanResult {
   // Bit 14 - Delayed Block Ack
   // Bit 15 - Immediate Block Ack
   uint16_t capability;
-  uint32_t associated;
+  bool associated;
 };
 
 }  // namespace wificond
+}  // namespace wifi
+}  // namespace server
 }  // namespace android
+}  // namespace com
 
 #endif  // WIFICOND_SCANNING_SCAN_RESULT_H_
