@@ -27,6 +27,7 @@
 #include "wificond/net/nl80211_packet.h"
 #include "wificond/scanning/scan_result.h"
 
+using com::android::server::wifi::wificond::NativeScanResult;
 using std::unique_ptr;
 using std::vector;
 
@@ -70,7 +71,7 @@ void ScanUtils::UnsubscribeSchedScanResultNotification(
 }
 
 bool ScanUtils::GetScanResult(uint32_t interface_index,
-                              vector<ScanResult>* out_scan_results) {
+                              vector<NativeScanResult>* out_scan_results) {
   NL80211Packet get_scan(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_GET_SCAN,
@@ -90,7 +91,7 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
     return false;
   }
 
-  vector<ScanResult> scan_results;
+  vector<NativeScanResult> scan_results;
   for (auto& packet : response) {
     if (packet->GetMessageType() == NLMSG_ERROR) {
       LOG(ERROR) << "Receive ERROR message: "
@@ -112,7 +113,7 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
       continue;
     }
 
-    ScanResult scan_result;
+    NativeScanResult scan_result;
     if (!ParseScanResult(std::move(packet), &scan_result)) {
       LOG(WARNING) << "Ignore invalid scan result";
       continue;
@@ -123,7 +124,8 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
   return true;
 }
 
-bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet, ScanResult* scan_result) {
+bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet,
+                                NativeScanResult* scan_result) {
   if (packet->GetCommand() != NL80211_CMD_NEW_SCAN_RESULTS) {
     LOG(ERROR) << "Wrong command command for new scan result message";
     return false;
@@ -175,7 +177,7 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet, ScanResu
     }
 
     *scan_result =
-        ScanResult(ssid, bssid, ie, freq, signal, tsf, capability, associated);
+        NativeScanResult(ssid, bssid, ie, freq, signal, tsf, capability, associated);
   }
   return true;
 }

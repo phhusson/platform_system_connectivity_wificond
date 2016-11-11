@@ -102,7 +102,8 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IInterfaceEventCallback.aidl \
     aidl/android/net/wifi/IRttClient.aidl \
     aidl/android/net/wifi/IRttController.aidl \
-    aidl/android/net/wifi/IWificond.aidl
+    aidl/android/net/wifi/IWificond.aidl \
+    scanning/scan_result.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbinder
 include $(BUILD_STATIC_LIBRARY)
@@ -144,6 +145,7 @@ LOCAL_SRC_FILES := \
     tests/netlink_utils_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \
+    tests/scan_result_unittest.cpp \
     tests/server_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
