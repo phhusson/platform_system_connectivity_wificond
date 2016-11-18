@@ -27,6 +27,7 @@
 #include "wificond/net/netlink_utils.h"
 #include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/scan_utils.h"
+#include "wificond/scanning/scanner_impl.h"
 
 using android::net::wifi::IClientInterface;
 using com::android::server::wifi::wificond::NativeScanResult;
@@ -34,7 +35,6 @@ using android::sp;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
 
-using namespace std::placeholders;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -86,12 +86,8 @@ ClientInterfaceImpl::ClientInterfaceImpl(
       netlink_utils_(netlink_utils),
       scan_utils_(scan_utils),
       mlme_event_handler_(new MlmeEventHandlerImpl(this)),
-      binder_(new ClientInterfaceBinder(this)) {
-  scan_utils_->SubscribeScanResultNotification(
-      interface_index_,
-      std::bind(&ClientInterfaceImpl::OnScanResultsReady,
-                this,
-                _1, _2, _3, _4));
+      binder_(new ClientInterfaceBinder(this)),
+      scanner_(new ScannerImpl(interface_index, scan_utils)) {
   netlink_utils_->SubscribeMlmeEvent(
       interface_index_,
       mlme_event_handler_.get());
@@ -99,8 +95,8 @@ ClientInterfaceImpl::ClientInterfaceImpl(
 
 ClientInterfaceImpl::~ClientInterfaceImpl() {
   binder_->NotifyImplDead();
+  scanner_->Invalidate();
   DisableSupplicant();
-  scan_utils_->UnsubscribeScanResultNotification(interface_index_);
   netlink_utils_->UnsubscribeMlmeEvent(interface_index_);
   if_tool_->SetUpState(interface_name_.c_str(), false);
 }
@@ -151,30 +147,6 @@ bool ClientInterfaceImpl::SignalPoll(vector<int32_t>* out_signal_poll_results) {
 
 const vector<uint8_t>& ClientInterfaceImpl::GetMacAddress() {
   return interface_mac_addr_;
-}
-
-void ClientInterfaceImpl::OnScanResultsReady(
-                         uint32_t interface_index,
-                         bool aborted,
-                         std::vector<std::vector<uint8_t>>& ssids,
-                         std::vector<uint32_t>& frequencies) {
-  if (aborted) {
-    LOG(ERROR) << "Scan aborted";
-    return;
-  }
-  vector<NativeScanResult> scan_results;
-  // TODO(nywang): Find a way to differentiate scan results for
-  // internel/external scan request. This is useful when location is
-  // scanning using regular NL80211 commands.
-  scan_utils_->GetScanResult(interface_index, &scan_results);
-  // TODO(nywang): Send these scan results back to java framework.
-}
-
-void ClientInterfaceImpl::OnSchedScanResultsReady(
-                         uint32_t interface_index) {
-  vector<NativeScanResult> scan_results;
-  scan_utils_->GetScanResult(interface_index, &scan_results);
-  // TODO(nywang): Send these scan results back to java framework.
 }
 
 bool ClientInterfaceImpl::requestANQP(
