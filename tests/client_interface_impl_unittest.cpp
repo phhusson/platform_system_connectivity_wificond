@@ -48,9 +48,6 @@ class ClientInterfaceImplTest : public ::testing::Test {
  protected:
 
   void SetUp() override {
-    EXPECT_CALL(
-        scan_utils_,
-        SubscribeScanResultNotification(kTestInterfaceIndex, _));
     client_interface_.reset(new ClientInterfaceImpl{
         kTestInterfaceName,
         kTestInterfaceIndex,
@@ -64,9 +61,6 @@ class ClientInterfaceImplTest : public ::testing::Test {
   void TearDown() override {
     EXPECT_CALL(*supplicant_manager_, StopSupplicant())
         .WillOnce(Return(false));
-    EXPECT_CALL(
-        scan_utils_,
-        UnsubscribeScanResultNotification(kTestInterfaceIndex));
   }
 
   unique_ptr<NiceMock<MockInterfaceTool>> if_tool_{

@@ -26,6 +26,7 @@
 
 #include "android/net/wifi/IClientInterface.h"
 #include "wificond/net/mlme_event_handler.h"
+#include "wificond/scanning/scanner_impl.h"
 
 namespace android {
 namespace wificond {
@@ -74,16 +75,12 @@ class ClientInterfaceImpl {
   bool SignalPoll(std::vector<int32_t>* out_signal_poll_results);
   const std::vector<uint8_t>& GetMacAddress();
   const std::string& GetInterfaceName() const { return interface_name_; }
+  const android::sp<ScannerImpl> GetScanner() { return scanner_; };
   bool requestANQP(
       const ::std::vector<uint8_t>& bssid,
       const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback);
 
  private:
-  void OnScanResultsReady(uint32_t interface_index,
-                          bool aborted,
-                          std::vector<std::vector<uint8_t>>& ssids,
-                          std::vector<uint32_t>& frequencies);
-  void OnSchedScanResultsReady(uint32_t interface_index);
   bool RefreshAssociateFreq();
 
   const std::string interface_name_;
@@ -95,6 +92,7 @@ class ClientInterfaceImpl {
   ScanUtils* const scan_utils_;
   const std::unique_ptr<MlmeEventHandlerImpl> mlme_event_handler_;
   const android::sp<ClientInterfaceBinder> binder_;
+  const android::sp<ScannerImpl> scanner_;
 
   std::vector<uint8_t> bssid_;
   uint32_t associate_freq_;
