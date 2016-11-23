@@ -24,6 +24,7 @@
 
 using android::binder::Status;
 using android::net::wifi::IANQPDoneCallback;
+using android::net::wifi::IWifiScannerImpl;
 using std::vector;
 
 namespace android {
@@ -77,6 +78,16 @@ Status ClientInterfaceBinder::getInterfaceName(std::string* out_name) {
     return Status::ok();
   }
   *out_name = impl_->GetInterfaceName();
+  return Status::ok();
+}
+
+Status ClientInterfaceBinder::getWifiScannerImpl(
+    sp<IWifiScannerImpl>* out_wifi_scanner_impl) {
+  if (impl_ == nullptr) {
+    *out_wifi_scanner_impl = nullptr;
+    return Status::ok();
+  }
+  *out_wifi_scanner_impl = impl_->GetScanner();
   return Status::ok();
 }
 

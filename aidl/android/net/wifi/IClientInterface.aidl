@@ -17,6 +17,7 @@
 package android.net.wifi;
 
 import android.net.wifi.IANQPDoneCallback;
+import android.net.wifi.IWifiScannerImpl;
 
 // IClientInterface represents a network interface that can be used to connect
 // to access points and obtain internet connectivity.
@@ -52,6 +53,10 @@ interface IClientInterface {
   // IClientInterface instance (e.g. "wlan0")
   @utf8InCpp
   String getInterfaceName();
+
+  // Get a WifiScanner interface associated with this interface.
+  // Returns null when the underlying interface object is destroyed.
+  @nullable IWifiScannerImpl getWifiScannerImpl();
 
   // Query specified ANQP elements from an AP (specified by BSSID)
   // and provide a callback for ANQP response.

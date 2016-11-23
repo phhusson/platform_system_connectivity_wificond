@@ -58,6 +58,7 @@ LOCAL_SRC_FILES := \
     rtt/rtt_controller_impl.cpp \
     scanning/scan_result.cpp \
     scanning/scan_utils.cpp \
+    scanning/scanner_impl.cpp \
     server.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase \
@@ -103,6 +104,7 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IRttClient.aidl \
     aidl/android/net/wifi/IRttController.aidl \
     aidl/android/net/wifi/IWificond.aidl \
+    aidl/android/net/wifi/IWifiScannerImpl.aidl \
     scanning/scan_result.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbinder
