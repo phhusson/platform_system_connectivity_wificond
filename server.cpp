@@ -138,6 +138,7 @@ Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
   }
 
   unique_ptr<ClientInterfaceImpl> client_interface(new ClientInterfaceImpl(
+      wiphy_index_,
       interface_name,
       interface_index,
       interface_mac_addr,
