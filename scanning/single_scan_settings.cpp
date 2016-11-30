@@ -1,0 +1,69 @@
+/*
+ * Copyright (C) 2016 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "wificond/scanning/single_scan_settings.h"
+
+#include <android-base/logging.h>
+
+#include "wificond/parcelable_utils.h"
+
+using android::status_t;
+
+namespace com {
+namespace android {
+namespace server {
+namespace wifi {
+namespace wificond {
+
+status_t SingleScanSettings::writeToParcel(::android::Parcel* parcel) const {
+  RETURN_IF_FAILED(parcel->writeInt32(is_full_scan_ ? 1 : 0));
+  RETURN_IF_FAILED(parcel->writeInt32(channel_settings_.size()));
+  for (const auto& channel : channel_settings_) {
+    RETURN_IF_FAILED(channel.writeToParcel(parcel));
+  }
+  RETURN_IF_FAILED(parcel->writeInt32(hidden_networks_.size()));
+  for (const auto& network : hidden_networks_) {
+    RETURN_IF_FAILED(network.writeToParcel(parcel));
+  }
+  return ::android::OK;
+}
+
+status_t SingleScanSettings::readFromParcel(const ::android::Parcel* parcel) {
+  int32_t is_full_scan_int = 0;
+  RETURN_IF_FAILED(parcel->readInt32(&is_full_scan_int));
+  is_full_scan_ = (is_full_scan_int != 0);
+  int32_t num_channels = 0;
+  RETURN_IF_FAILED(parcel->readInt32(&num_channels));
+  for (int i = 0; i < num_channels; i++) {
+    ChannelSettings channel;
+    RETURN_IF_FAILED(channel.readFromParcel(parcel));
+    channel_settings_.push_back(channel);
+  }
+  int32_t num_hidden_networks = 0;
+  RETURN_IF_FAILED(parcel->readInt32(&num_hidden_networks));
+  for (int i = 0; i < num_hidden_networks; i++) {
+    HiddenNetwork network;
+    RETURN_IF_FAILED(network.readFromParcel(parcel));
+    hidden_networks_.push_back(network);
+  }
+  return ::android::OK;
+}
+
+}  // namespace wificond
+}  // namespace wifi
+}  // namespace server
+}  // namespace android
+}  // namespace com
