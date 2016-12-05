@@ -177,7 +177,8 @@ bool NetlinkUtils::GetInterfaceInfo(uint32_t wiphy_index,
 bool NetlinkUtils::GetWiphyInfo(
     uint32_t wiphy_index,
     BandInfo* out_band_info,
-    ScanCapabilities* out_scan_capabilities) {
+    ScanCapabilities* out_scan_capabilities,
+    WiphyFeatures* out_wiphy_features) {
   NL80211Packet get_wiphy(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_GET_WIPHY,
@@ -199,6 +200,13 @@ bool NetlinkUtils::GetWiphyInfo(
       !ParseScanCapabilities(response.get(), out_scan_capabilities)) {
     return false;
   }
+  uint32_t feature_flags;
+  if (!response->GetAttributeValue(NL80211_ATTR_FEATURE_FLAGS,
+                                   &feature_flags)) {
+    LOG(ERROR) << "Failed to get NL80211_ATTR_FEATURE_FLAGS";
+    return false;
+  }
+  *out_wiphy_features = WiphyFeatures(feature_flags);
   return true;
 }
 

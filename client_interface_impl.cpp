@@ -71,6 +71,7 @@ void MlmeEventHandlerImpl::OnAssociate(unique_ptr<MlmeAssociateEvent> event) {
 }
 
 ClientInterfaceImpl::ClientInterfaceImpl(
+    uint32_t wiphy_index,
     const std::string& interface_name,
     uint32_t interface_index,
     const std::vector<uint8_t>& interface_mac_addr,
@@ -78,7 +79,8 @@ ClientInterfaceImpl::ClientInterfaceImpl(
     SupplicantManager* supplicant_manager,
     NetlinkUtils* netlink_utils,
     ScanUtils* scan_utils)
-    : interface_name_(interface_name),
+    : wiphy_index_(wiphy_index),
+      interface_name_(interface_name),
       interface_index_(interface_index),
       interface_mac_addr_(interface_mac_addr),
       if_tool_(if_tool),
@@ -86,11 +88,19 @@ ClientInterfaceImpl::ClientInterfaceImpl(
       netlink_utils_(netlink_utils),
       scan_utils_(scan_utils),
       mlme_event_handler_(new MlmeEventHandlerImpl(this)),
-      binder_(new ClientInterfaceBinder(this)),
-      scanner_(new ScannerImpl(interface_index, scan_utils)) {
+      binder_(new ClientInterfaceBinder(this)) {
   netlink_utils_->SubscribeMlmeEvent(
       interface_index_,
       mlme_event_handler_.get());
+  netlink_utils_->GetWiphyInfo(wiphy_index_,
+                               &band_info_,
+                               &scan_capabilities_,
+                               &wiphy_features_);
+  scanner_ = new ScannerImpl(interface_index_,
+                             band_info_,
+                             scan_capabilities_,
+                             wiphy_features_,
+                             scan_utils_);
 }
 
 ClientInterfaceImpl::~ClientInterfaceImpl() {
