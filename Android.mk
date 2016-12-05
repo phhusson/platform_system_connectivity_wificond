@@ -56,6 +56,7 @@ LOCAL_SRC_FILES := \
     looper_backed_event_loop.cpp \
     rtt/rtt_controller_binder.cpp \
     rtt/rtt_controller_impl.cpp \
+    scanning/channel_settings.cpp \
     scanning/scan_result.cpp \
     scanning/scan_utils.cpp \
     scanning/scanner_impl.cpp \
@@ -105,6 +106,7 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IRttController.aidl \
     aidl/android/net/wifi/IWificond.aidl \
     aidl/android/net/wifi/IWifiScannerImpl.aidl \
+    scanning/channel_settings.cpp \
     scanning/scan_result.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbinder
@@ -148,6 +150,7 @@ LOCAL_SRC_FILES := \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \
     tests/scan_result_unittest.cpp \
+    tests/scan_settings_unittest.cpp \
     tests/server_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
