@@ -21,6 +21,8 @@
 
 #include <android-base/logging.h>
 
+#include "wificond/parcelable_utils.h"
+
 using android::status_t;
 using android::OK;
 using std::string;
@@ -31,16 +33,6 @@ namespace android {
 namespace server {
 namespace wifi {
 namespace wificond {
-
-#define RETURN_IF_FAILED(calledOnce)                                     \
-    {                                                                    \
-        status_t returnStatus = calledOnce;                              \
-        if (returnStatus) {                                              \
-            LOG(ERROR) << "Failed to parse binder parcelable object at " \
-                       << __FILE__ << ":" << __LINE__;                   \
-            return returnStatus;                                         \
-        }                                                                \
-    }
 
 NativeScanResult::NativeScanResult(std::vector<uint8_t>& ssid_,
                                    std::vector<uint8_t>& bssid_,
