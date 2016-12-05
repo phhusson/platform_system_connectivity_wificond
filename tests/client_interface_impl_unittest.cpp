@@ -41,6 +41,7 @@ namespace android {
 namespace wificond {
 namespace {
 
+const uint32_t kTestWiphyIndex = 2;
 const char kTestInterfaceName[] = "testwifi0";
 const uint32_t kTestInterfaceIndex = 42;
 
@@ -48,17 +49,24 @@ class ClientInterfaceImplTest : public ::testing::Test {
  protected:
 
   void SetUp() override {
+    EXPECT_CALL(*netlink_utils_,
+                SubscribeMlmeEvent(kTestInterfaceIndex, _));
+    EXPECT_CALL(*netlink_utils_,
+                GetWiphyInfo(kTestWiphyIndex, _, _, _));
     client_interface_.reset(new ClientInterfaceImpl{
+        kTestWiphyIndex,
         kTestInterfaceName,
         kTestInterfaceIndex,
         vector<uint8_t>{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
         if_tool_.get(),
         supplicant_manager_.get(),
-        &netlink_utils_,
-        &scan_utils_});
+        netlink_utils_.get(),
+        scan_utils_.get()});
   }
 
   void TearDown() override {
+    EXPECT_CALL(*netlink_utils_,
+                UnsubscribeMlmeEvent(kTestInterfaceIndex));
     EXPECT_CALL(*supplicant_manager_, StopSupplicant())
         .WillOnce(Return(false));
   }
@@ -69,8 +77,10 @@ class ClientInterfaceImplTest : public ::testing::Test {
       new NiceMock<MockSupplicantManager>};
   unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_{
       new NiceMock<MockNetlinkManager>()};
-  MockNetlinkUtils netlink_utils_{netlink_manager_.get()};
-  MockScanUtils scan_utils_{netlink_manager_.get()};
+  unique_ptr<NiceMock<MockNetlinkUtils>> netlink_utils_{
+      new NiceMock<MockNetlinkUtils>(netlink_manager_.get())};
+  unique_ptr<NiceMock<MockScanUtils>> scan_utils_{
+      new NiceMock<MockScanUtils>(netlink_manager_.get())};
   unique_ptr<ClientInterfaceImpl> client_interface_;
 };  // class ClientInterfaceImplTest
 

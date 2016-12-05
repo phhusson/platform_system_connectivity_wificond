@@ -26,6 +26,7 @@
 
 #include "android/net/wifi/IClientInterface.h"
 #include "wificond/net/mlme_event_handler.h"
+#include "wificond/net/netlink_utils.h"
 #include "wificond/scanning/scanner_impl.h"
 
 namespace android {
@@ -33,7 +34,6 @@ namespace wificond {
 
 class ClientInterfaceBinder;
 class ClientInterfaceImpl;
-class NetlinkUtils;
 class ScanUtils;
 
 class MlmeEventHandlerImpl : public MlmeEventHandler {
@@ -57,6 +57,7 @@ class MlmeEventHandlerImpl : public MlmeEventHandler {
 class ClientInterfaceImpl {
  public:
   ClientInterfaceImpl(
+      uint32_t wiphy_index,
       const std::string& interface_name,
       uint32_t interface_index,
       const std::vector<uint8_t>& interface_mac_addr,
@@ -83,6 +84,7 @@ class ClientInterfaceImpl {
  private:
   bool RefreshAssociateFreq();
 
+  const uint32_t wiphy_index_;
   const std::string interface_name_;
   const uint32_t interface_index_;
   const std::vector<uint8_t> interface_mac_addr_;
@@ -92,10 +94,16 @@ class ClientInterfaceImpl {
   ScanUtils* const scan_utils_;
   const std::unique_ptr<MlmeEventHandlerImpl> mlme_event_handler_;
   const android::sp<ClientInterfaceBinder> binder_;
-  const android::sp<ScannerImpl> scanner_;
+  android::sp<ScannerImpl> scanner_;
 
+  // Cached information for this connection.
   std::vector<uint8_t> bssid_;
   uint32_t associate_freq_;
+
+  // Capability information for this wiphy/interface.
+  BandInfo band_info_;
+  ScanCapabilities scan_capabilities_;
+  WiphyFeatures wiphy_features_;
 
   DISALLOW_COPY_AND_ASSIGN(ClientInterfaceImpl);
   friend class MlmeEventHandlerImpl;
