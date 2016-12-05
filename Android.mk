@@ -59,6 +59,7 @@ LOCAL_SRC_FILES := \
     scanning/channel_settings.cpp \
     scanning/hidden_network.cpp \
     scanning/scan_result.cpp \
+    scanning/single_scan_settings.cpp \
     scanning/scan_utils.cpp \
     scanning/scanner_impl.cpp \
     server.cpp
@@ -109,7 +110,8 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IWifiScannerImpl.aidl \
     scanning/channel_settings.cpp \
     scanning/hidden_network.cpp \
-    scanning/scan_result.cpp
+    scanning/scan_result.cpp \
+    scanning/single_scan_settings.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbinder
 include $(BUILD_STATIC_LIBRARY)
