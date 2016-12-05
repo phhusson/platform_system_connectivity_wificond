@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 
+#include <linux/nl80211.h>
+
 #include <android-base/macros.h>
 
 namespace android {
@@ -55,6 +57,25 @@ struct ScanCapabilities {
   uint8_t max_num_sched_scan_ssids;
   // Maximum number of sets that can be used with NL80211_ATTR_SCHED_SCAN_MATCH.
   uint8_t max_match_sets;
+};
+
+struct WiphyFeatures {
+  WiphyFeatures()
+      : supports_random_mac_oneshot_scan(false),
+        supports_random_mac_sched_scan(false) {}
+  WiphyFeatures(uint32_t feature_flags)
+      : supports_random_mac_oneshot_scan(
+            feature_flags & NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR),
+        supports_random_mac_sched_scan(
+            feature_flags & NL80211_FEATURE_SCHED_SCAN_RANDOM_MAC_ADDR) {}
+  // This device/driver supports using a random MAC address during scan
+  // (while not associated).
+  bool supports_random_mac_oneshot_scan;
+  // This device/driver supports using a random MAC address for every
+  // scan iteration during scheduled scan (while not associated).
+  bool supports_random_mac_sched_scan;
+  // There are other flags included in NL80211_ATTR_FEATURE_FLAGS.
+  // We will add them once we find them useful.
 };
 
 struct StationInfo {
@@ -102,14 +123,12 @@ class NetlinkUtils {
                                 uint32_t* index,
                                 std::vector<uint8_t>* mac_addr);
 
-  // Get wifi wiphy info from kernel.
-  // |*out_band_info| is the lists of frequencies in specific bands.
-  // |*out_scan_capabilities| is the lists of parameters specifying the
-  // scanning capability of underlying implementation.
+  // Get wiphy capability information from kernel.
   // Returns true on success.
   virtual bool GetWiphyInfo(uint32_t wiphy_index,
                             BandInfo* out_band_info,
-                            ScanCapabilities* out_scan_capabilities);
+                            ScanCapabilities* out_scan_capabilities,
+                            WiphyFeatures* out_wiphy_features);
 
   // Get station info from kernel.
   // |*out_station_info]| is the struct of available station information.
