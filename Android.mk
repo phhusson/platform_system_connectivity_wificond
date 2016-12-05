@@ -57,6 +57,7 @@ LOCAL_SRC_FILES := \
     rtt/rtt_controller_binder.cpp \
     rtt/rtt_controller_impl.cpp \
     scanning/channel_settings.cpp \
+    scanning/hidden_network.cpp \
     scanning/scan_result.cpp \
     scanning/scan_utils.cpp \
     scanning/scanner_impl.cpp \
@@ -107,6 +108,7 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IWificond.aidl \
     aidl/android/net/wifi/IWifiScannerImpl.aidl \
     scanning/channel_settings.cpp \
+    scanning/hidden_network.cpp \
     scanning/scan_result.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbinder
