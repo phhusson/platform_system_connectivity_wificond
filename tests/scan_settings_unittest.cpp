@@ -17,13 +17,18 @@
 #include <gtest/gtest.h>
 
 #include "wificond/scanning/channel_settings.h"
+#include "wificond/scanning/hidden_network.h"
 
 using ::com::android::server::wifi::wificond::ChannelSettings;
+using ::com::android::server::wifi::wificond::HiddenNetwork;
 
 namespace android {
 namespace wificond {
 
 namespace {
+
+const uint8_t kFakeSsid[] =
+    {'G', 'o', 'o', 'g', 'l', 'e', 'G', 'u', 'e', 's', 't'};
 
 constexpr uint32_t kFakeFrequency = 5260;
 
@@ -45,6 +50,22 @@ TEST_F(ScanSettingsTest, ChannelSettingsParcelableTest) {
 
   EXPECT_EQ(channel_settings, channel_settings_copy);
 }
+
+TEST_F(ScanSettingsTest, HiddenNetworkParcelableTest) {
+  HiddenNetwork hidden_network;
+  hidden_network.ssid_ =
+      std::vector<uint8_t>(kFakeSsid, kFakeSsid + sizeof(kFakeSsid));
+
+  Parcel parcel;
+  EXPECT_EQ(::android::OK, hidden_network.writeToParcel(&parcel));
+
+  HiddenNetwork hidden_network_copy;
+  parcel.setDataPosition(0);
+  EXPECT_EQ(::android::OK, hidden_network_copy.readFromParcel(&parcel));
+
+  EXPECT_EQ(hidden_network, hidden_network_copy);
+}
+
 
 }  // namespace wificond
 }  // namespace android
