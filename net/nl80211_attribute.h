@@ -178,7 +178,7 @@ class NL80211NestedAttr : public BaseNL80211Attr {
   // Calling GetAttributeValue() from '0 to n' results a n^2 time complexity.
   // This function get a list of attribute values in one pass.
   //
-  // Returns true one success.
+  // Returns true on success.
   template <typename T>
   bool GetListOfAttributeValues(std::vector<T>* value) const {
     const uint8_t* ptr = data_.data() + NLA_HDRLEN;
