@@ -90,7 +90,7 @@ unique_ptr<MlmeConnectEvent> MlmeConnectEvent::InitFromPacket(
 
 unique_ptr<MlmeRoamEvent> MlmeRoamEvent::InitFromPacket(
     const NL80211Packet* packet) {
-  if (packet->GetCommand() != NL80211_CMD_CONNECT) {
+  if (packet->GetCommand() != NL80211_CMD_ROAM) {
     return nullptr;
   }
   unique_ptr<MlmeRoamEvent> roam_event(new MlmeRoamEvent());
