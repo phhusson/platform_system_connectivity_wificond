@@ -61,6 +61,7 @@ LOCAL_SRC_FILES := \
     scanning/channel_settings.cpp \
     scanning/hidden_network.cpp \
     scanning/pno_network.cpp \
+    scanning/pno_settings.cpp \
     scanning/scan_result.cpp \
     scanning/single_scan_settings.cpp \
     scanning/scan_utils.cpp \
