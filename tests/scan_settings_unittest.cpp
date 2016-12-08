@@ -20,10 +20,12 @@
 
 #include "wificond/scanning/channel_settings.h"
 #include "wificond/scanning/hidden_network.h"
+#include "wificond/scanning/pno_network.h"
 #include "wificond/scanning/single_scan_settings.h"
 
 using ::com::android::server::wifi::wificond::ChannelSettings;
 using ::com::android::server::wifi::wificond::HiddenNetwork;
+using ::com::android::server::wifi::wificond::PnoNetwork;
 using ::com::android::server::wifi::wificond::SingleScanSettings;
 using std::vector;
 
@@ -99,6 +101,22 @@ TEST_F(ScanSettingsTest, SingleScanSettingsParcelableTest) {
 
   EXPECT_EQ(scan_settings, scan_settings_copy);
 }
+
+TEST_F(ScanSettingsTest, PnoNetworkParcelableTest) {
+  PnoNetwork pno_network;
+  pno_network.ssid_ =
+      vector<uint8_t>(kFakeSsid, kFakeSsid + sizeof(kFakeSsid));
+
+  Parcel parcel;
+  EXPECT_EQ(::android::OK, pno_network.writeToParcel(&parcel));
+
+  PnoNetwork pno_network_copy;
+  parcel.setDataPosition(0);
+  EXPECT_EQ(::android::OK, pno_network_copy.readFromParcel(&parcel));
+
+  EXPECT_EQ(pno_network, pno_network_copy);
+}
+
 
 }  // namespace wificond
 }  // namespace android
