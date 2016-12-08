@@ -21,11 +21,13 @@
 #include "wificond/scanning/channel_settings.h"
 #include "wificond/scanning/hidden_network.h"
 #include "wificond/scanning/pno_network.h"
+#include "wificond/scanning/pno_settings.h"
 #include "wificond/scanning/single_scan_settings.h"
 
 using ::com::android::server::wifi::wificond::ChannelSettings;
 using ::com::android::server::wifi::wificond::HiddenNetwork;
 using ::com::android::server::wifi::wificond::PnoNetwork;
+using ::com::android::server::wifi::wificond::PnoSettings;
 using ::com::android::server::wifi::wificond::SingleScanSettings;
 using std::vector;
 
@@ -36,6 +38,12 @@ namespace {
 
 const uint8_t kFakeSsid[] =
     {'G', 'o', 'o', 'g', 'l', 'e', 'G', 'u', 'e', 's', 't'};
+const uint8_t kFakeSsid1[] =
+    {'A', 'n', 'd', 'r', 'o', 'i', 'd', 'A', 'P', 'T', 'e', 's', 't'};
+
+constexpr int32_t kFakePnoIntervalMs = 20000;
+constexpr int32_t kFakePnoMin2gRssi = -80;
+constexpr int32_t kFakePnoMin5gRssi = -85;
 
 constexpr bool kFakeIsFullScan = false;
 constexpr uint32_t kFakeFrequency = 5260;
@@ -116,6 +124,32 @@ TEST_F(ScanSettingsTest, PnoNetworkParcelableTest) {
 
   EXPECT_EQ(pno_network, pno_network_copy);
 }
+
+TEST_F(ScanSettingsTest, PnoSettingsParcelableTest) {
+  PnoSettings pno_settings;
+
+  PnoNetwork network, network1;
+  network.ssid_ =
+      vector<uint8_t>(kFakeSsid, kFakeSsid + sizeof(kFakeSsid));
+  network1.ssid_ =
+      vector<uint8_t>(kFakeSsid1, kFakeSsid1 + sizeof(kFakeSsid1));
+
+  pno_settings.interval_ms_ = kFakePnoIntervalMs;
+  pno_settings.min_2g_rssi_ = kFakePnoMin2gRssi;
+  pno_settings.min_5g_rssi_ = kFakePnoMin5gRssi;
+
+  pno_settings.pno_networks_ = {network, network1};
+
+  Parcel parcel;
+  EXPECT_EQ(::android::OK, pno_settings.writeToParcel(&parcel));
+
+  PnoSettings pno_settings_copy;
+  parcel.setDataPosition(0);
+  EXPECT_EQ(::android::OK, pno_settings_copy.readFromParcel(&parcel));
+
+  EXPECT_EQ(pno_settings, pno_settings_copy);
+}
+
 
 
 }  // namespace wificond
