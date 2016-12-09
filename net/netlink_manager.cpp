@@ -216,11 +216,9 @@ bool NetlinkManager::Start() {
   if (!WatchSocket(&async_netlink_fd_)) {
     return false;
   }
-  // TODO(nywang): Uncomment the following lines to enable wificond scan
-  // result monitoring, after we finish the integration.
-  //  if (!SubscribeToEvents(NL80211_MULTICAST_GROUP_SCAN)) {
-  //    return false;
-  //  }
+  if (!SubscribeToEvents(NL80211_MULTICAST_GROUP_SCAN)) {
+    return false;
+  }
   if (!SubscribeToEvents(NL80211_MULTICAST_GROUP_MLME)) {
     return false;
   }
