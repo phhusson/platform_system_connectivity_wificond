@@ -28,7 +28,9 @@ using android::net::wifi::IScanEvent;
 using android::String16;
 using android::sp;
 using com::android::server::wifi::wificond::NativeScanResult;
+using com::android::server::wifi::wificond::PnoSettings;
 using com::android::server::wifi::wificond::SingleScanSettings;
+
 using std::string;
 using std::vector;
 
@@ -136,7 +138,45 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
   return Status::ok();
 }
 
-Status ScannerImpl::SubscribeScanEvents(const sp<IScanEvent>& handler) {
+Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
+                                 bool* out_success) {
+  // An empty ssid for a wild card scan.
+  vector<vector<uint8_t>> scan_ssids = {{0}};
+  vector<vector<uint8_t>> match_ssids;
+  // Empty frequency list: scan all frequencies.
+  vector<uint32_t> freqs;
+
+  for (auto& network : pno_settings.pno_networks_) {
+    match_ssids.push_back(network.ssid_);
+    // Add hidden network ssid.
+    if (network.is_hidden_) {
+      scan_ssids.push_back(network.ssid_);
+    }
+  }
+  bool random_mac = wiphy_features_.supports_random_mac_sched_scan;
+
+  if (!scan_utils_->StartScheduledScan(interface_index_,
+                                       pno_settings.interval_ms_,
+                                       // TODO: honor both rssi thresholds.
+                                       pno_settings.min_2g_rssi_,
+                                       random_mac,
+                                       scan_ssids,
+                                       match_ssids,
+                                       freqs)) {
+    *out_success = false;
+    LOG(ERROR) << "Failed to start scheduled scan";
+    return Status::ok();
+  }
+  *out_success = true;
+  return Status::ok();
+}
+
+Status ScannerImpl::stopPnoScan(bool* out_success) {
+  *out_success = scan_utils_->StopScheduledScan(interface_index_);
+  return Status::ok();
+}
+
+Status ScannerImpl::subscribeScanEvents(const sp<IScanEvent>& handler) {
   if (scan_event_handler_ != nullptr) {
     LOG(ERROR) << "Found existing scan events subscriber."
                << " This subscription request will unsubscribe it";
@@ -151,7 +191,7 @@ Status ScannerImpl::SubscribeScanEvents(const sp<IScanEvent>& handler) {
   return Status::ok();
 }
 
-Status ScannerImpl::UnsubscribeScanEvents() {
+Status ScannerImpl::unsubscribeScanEvents() {
   scan_utils_->UnsubscribeScanResultNotification(interface_index_);
   scan_event_handler_ = nullptr;
   return Status::ok();
