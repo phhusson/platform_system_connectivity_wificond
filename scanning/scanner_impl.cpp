@@ -23,10 +23,13 @@
 
 #include "wificond/client_interface_impl.h"
 #include "wificond/scanning/scan_utils.h"
+#include "wificond/scanning/offload/offload_service_utils.h"
+#include "wificond/scanning/offload/offload_scan_manager.h"
 
 using android::binder::Status;
 using android::net::wifi::IPnoScanEvent;
 using android::net::wifi::IScanEvent;
+using android::hardware::wifi::offload::V1_0::IOffload;
 using android::sp;
 using com::android::server::wifi::wificond::NativeScanResult;
 using com::android::server::wifi::wificond::PnoSettings;
@@ -72,6 +75,10 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index,
       std::bind(&ScannerImpl::OnSchedScanResultsReady,
                 this,
                 _1, _2));
+  offload_scan_manager_.reset(
+      new OffloadScanManager(new OffloadServiceUtils(),
+          std::bind(&ScannerImpl::OnOffloadScanResult,
+              this, _1)));
 }
 
 ScannerImpl::~ScannerImpl() {
@@ -376,6 +383,16 @@ void ScannerImpl::LogSsidList(vector<vector<uint8_t>>& ssid_list,
     }
   }
   LOG(WARNING) << prefix << ": " << ssid_list_string;
+}
+
+void ScannerImpl::OnOffloadScanResult(
+    std::vector<NativeScanResult> scanResult) {
+  // TODO: Process scan result
+  if (scan_event_handler_ != nullptr) {
+    scan_event_handler_->OnScanResultReady();
+  } else {
+    LOG(WARNING) << "No scan event handler Offload Scan result";
+  }
 }
 
 }  // namespace wificond
