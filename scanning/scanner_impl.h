@@ -38,9 +38,20 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
               const WiphyFeatures& wiphy_features,
               ScanUtils* scan_utils_);
   ~ScannerImpl();
+  // Returns a vector of available frequencies for 2.4GHz channels.
+  ::android::binder::Status getAvailable2gChannels(
+      ::std::vector<int32_t>* out_frequencies) override;
+  // Returns a vector of available frequencies for 5GHz non-DFS channels.
+  ::android::binder::Status getAvailable5gNonDFSChannels(
+      ::std::vector<int32_t>* out_frequencies) override;
+  // Returns a vector of available frequencies for DFS channels.
+  ::android::binder::Status getAvailableDFSChannels(
+      ::std::vector<int32_t>* out_frequencies) override;
   void Invalidate() { valid_ = false; }
 
  private:
+  bool CheckIsValid();
+
   bool valid_;
   uint32_t interface_index_;
 
