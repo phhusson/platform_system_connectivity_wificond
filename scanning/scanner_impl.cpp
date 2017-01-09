@@ -22,6 +22,9 @@
 
 #include "wificond/scanning/scan_utils.h"
 
+using android::binder::Status;
+using std::vector;
+
 namespace android {
 namespace wificond {
 
@@ -39,6 +42,42 @@ ScannerImpl::ScannerImpl(uint32_t interface_index,
 }
 
 ScannerImpl::~ScannerImpl() {
+}
+
+bool ScannerImpl::CheckIsValid() {
+  if (!valid_) {
+    LOG(DEBUG) << "Calling on a invalid scanner object."
+               << "Underlying client interface object was destroyed.";
+  }
+  return valid_;
+}
+
+Status ScannerImpl::getAvailable2gChannels(vector<int32_t>* out_frequencies) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+  *out_frequencies = vector<int32_t>(band_info_.band_2g.begin(),
+                                     band_info_.band_2g.end());
+  return Status::ok();
+}
+
+Status ScannerImpl::getAvailable5gNonDFSChannels(
+    vector<int32_t>* out_frequencies) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+  *out_frequencies = vector<int32_t>(band_info_.band_5g.begin(),
+                                     band_info_.band_5g.end());
+  return Status::ok();
+}
+
+Status ScannerImpl::getAvailableDFSChannels(vector<int32_t>* out_frequencies) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+  *out_frequencies = vector<int32_t>(band_info_.band_dfs.begin(),
+                                     band_info_.band_dfs.end());
+  return Status::ok();
 }
 
 }  // namespace wificond
