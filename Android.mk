@@ -187,6 +187,7 @@ LOCAL_SRC_FILES := \
     tests/integration/ap_interface_test.cpp \
     tests/integration/client_interface_test.cpp \
     tests/integration/life_cycle_test.cpp \
+    tests/integration/scanner_test.cpp \
     tests/integration/service_test.cpp \
     tests/main.cpp \
     tests/shell_unittest.cpp
