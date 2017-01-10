@@ -213,6 +213,12 @@ bool ScanUtils::GetSSIDFromInfoElement(const vector<uint8_t>& ie,
   return false;
 }
 
+bool ScanUtils::StartFullScan(uint32_t interface_index) {
+  // Using empty SSID for a wildcard scan.
+  vector<vector<uint8_t>> ssids{vector<uint8_t>{0}};
+  return Scan(interface_index, ssids, vector<uint32_t>());
+}
+
 bool ScanUtils::Scan(uint32_t interface_index,
                      const vector<vector<uint8_t>>& ssids,
                      const vector<uint32_t>& freqs) {
