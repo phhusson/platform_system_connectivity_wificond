@@ -53,17 +53,8 @@ NativeScanResult::NativeScanResult(std::vector<uint8_t>& ssid_,
 }
 
 status_t NativeScanResult::writeToParcel(::android::Parcel* parcel) const {
-  // Although writeByteVector() writes the vector length in the parcel and
-  // readByteVector() handles that properly, we still need to book the length
-  // here explicitly because the Java version of readByteArray() does not use
-  // the vector length provided by writeByteVector() to initialize a byte array.
-  // We need an explicit length here to initialize a byte array before calling
-  // readByteArray()
-  RETURN_IF_FAILED(parcel->writeInt32(ssid.size()));
   RETURN_IF_FAILED(parcel->writeByteVector(ssid));
-  RETURN_IF_FAILED(parcel->writeInt32(bssid.size()));
   RETURN_IF_FAILED(parcel->writeByteVector(bssid));
-  RETURN_IF_FAILED(parcel->writeInt32(info_element.size()));
   RETURN_IF_FAILED(parcel->writeByteVector(info_element));
   RETURN_IF_FAILED(parcel->writeUint32(frequency));
   RETURN_IF_FAILED(parcel->writeInt32(signal_mbm));
@@ -76,11 +67,8 @@ status_t NativeScanResult::writeToParcel(::android::Parcel* parcel) const {
 }
 
 status_t NativeScanResult::readFromParcel(const ::android::Parcel* parcel) {
-  parcel->readInt32();
   RETURN_IF_FAILED(parcel->readByteVector(&ssid));
-  parcel->readInt32();
   RETURN_IF_FAILED(parcel->readByteVector(&bssid));
-  parcel->readInt32();
   RETURN_IF_FAILED(parcel->readByteVector(&info_element));
   RETURN_IF_FAILED(parcel->readUint32(&frequency));
   RETURN_IF_FAILED(parcel->readInt32(&signal_mbm));
