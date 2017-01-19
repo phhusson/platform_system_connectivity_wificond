@@ -13,7 +13,7 @@
 # limitations under the License.
 
 LOCAL_PATH := $(call my-dir)
-wificond_cpp_flags := -std=c++11 -Wall -Werror -Wno-unused-parameter
+wificond_cpp_flags := -Wall -Werror -Wno-unused-parameter
 # TODO(b/33211652): Remove once ScannerImpl is fleshed out.
 wificond_cpp_flags += -Wno-unused-private-field
 wificond_parent_dir := $(LOCAL_PATH)/../
@@ -159,6 +159,7 @@ LOCAL_SRC_FILES := \
     tests/nl80211_packet_unittest.cpp \
     tests/scan_result_unittest.cpp \
     tests/scan_settings_unittest.cpp \
+    tests/scan_utils_unittest.cpp \
     tests/server_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \
     libgmock \

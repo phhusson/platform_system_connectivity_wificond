@@ -88,7 +88,7 @@ class ScanUtils {
   // Only BSSs match the |match_ssids| and |rssi_threshold| will be returned as
   // scan results.
   // Returns true on success.
-  bool StartScheduledScan(
+  virtual bool StartScheduledScan(
       uint32_t interface_index,
       uint32_t interval_ms,
       int32_t rssi_threshold,
