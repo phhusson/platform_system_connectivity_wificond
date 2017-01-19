@@ -47,6 +47,10 @@ status_t SingleScanSettings::readFromParcel(const ::android::Parcel* parcel) {
   is_full_scan_ = (is_full_scan_int != 0);
   int32_t num_channels = 0;
   RETURN_IF_FAILED(parcel->readInt32(&num_channels));
+  // Convention used by Java side writeTypedList():
+  // -1 means a null list.
+  // 0 means an empty list.
+  // Both are mapped to an empty vector in C++ code.
   for (int i = 0; i < num_channels; i++) {
     ChannelSettings channel;
     RETURN_IF_FAILED(channel.readFromParcel(parcel));
@@ -54,6 +58,10 @@ status_t SingleScanSettings::readFromParcel(const ::android::Parcel* parcel) {
   }
   int32_t num_hidden_networks = 0;
   RETURN_IF_FAILED(parcel->readInt32(&num_hidden_networks));
+  // Convention used by Java side writeTypedList():
+  // -1 means a null list.
+  // 0 means an empty list.
+  // Both are mapped to an empty vector in C++ code.
   for (int i = 0; i < num_hidden_networks; i++) {
     HiddenNetwork network;
     RETURN_IF_FAILED(network.readFromParcel(parcel));
