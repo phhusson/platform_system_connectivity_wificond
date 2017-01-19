@@ -29,17 +29,11 @@ namespace wifi {
 namespace wificond {
 
 status_t HiddenNetwork::writeToParcel(::android::Parcel* parcel) const {
-  // This redundant writing of vector length is needed by Java side parsing.
-  // See writeToPracel() in wificond/scanning/scan_result.cpp for detailed
-  // explanation.
-  RETURN_IF_FAILED(parcel->writeInt32(ssid_.size()));
   RETURN_IF_FAILED(parcel->writeByteVector(ssid_));
   return ::android::OK;
 }
 
 status_t HiddenNetwork::readFromParcel(const ::android::Parcel* parcel) {
-  int32_t ignored = 0;
-  RETURN_IF_FAILED(parcel->readInt32(&ignored));
   RETURN_IF_FAILED(parcel->readByteVector(&ssid_));
   return ::android::OK;
 }
