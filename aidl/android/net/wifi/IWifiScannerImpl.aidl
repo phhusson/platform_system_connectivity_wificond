@@ -25,5 +25,7 @@ interface IWifiScannerImpl {
   int[] getAvailable5gNonDFSChannels();
   // Returns an array of available frequencies for DFS channels.
   int[] getAvailableDFSChannels();
+  // Get the latest scan results from kernel.
+  NativeScanResult[] getScanResults();
   // TODO(nywang) add more interfaces.
 }
