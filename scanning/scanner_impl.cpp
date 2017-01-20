@@ -24,11 +24,15 @@
 #include "wificond/scanning/scan_utils.h"
 
 using android::binder::Status;
+using android::net::wifi::IScanEvent;
 using android::String16;
+using android::sp;
 using com::android::server::wifi::wificond::NativeScanResult;
 using com::android::server::wifi::wificond::SingleScanSettings;
 using std::string;
 using std::vector;
+
+using namespace std::placeholders;
 
 namespace android {
 namespace wificond {
@@ -43,10 +47,13 @@ ScannerImpl::ScannerImpl(uint32_t interface_index,
       band_info_(band_info),
       scan_capabilities_(scan_capabilities),
       wiphy_features_(wiphy_features),
-      scan_utils_(scan_utils) {
-}
+      scan_utils_(scan_utils),
+      scan_event_handler_(nullptr) {}
 
 ScannerImpl::~ScannerImpl() {
+  if (scan_event_handler_ != nullptr) {
+    scan_utils_->UnsubscribeScanResultNotification(interface_index_);
+  }
 }
 
 bool ScannerImpl::CheckIsValid() {
@@ -124,6 +131,38 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
   }
   *out_success = true;
   return Status::ok();
+}
+
+Status ScannerImpl::SubscribeScanEvents(const sp<IScanEvent>& handler) {
+  if (scan_event_handler_ != nullptr) {
+    LOG(ERROR) << "Found existing scan events subscriber."
+               << " This subscription request will unsubscribe it";
+  }
+  scan_event_handler_ = handler;
+  scan_utils_->SubscribeScanResultNotification(
+      interface_index_,
+      std::bind(&ScannerImpl::OnScanResultsReady,
+                this,
+                _1, _2, _3, _4));
+
+  return Status::ok();
+}
+
+Status ScannerImpl::UnsubscribeScanEvents() {
+  scan_utils_->UnsubscribeScanResultNotification(interface_index_);
+  scan_event_handler_ = nullptr;
+  return Status::ok();
+}
+
+void ScannerImpl::OnScanResultsReady(
+    uint32_t interface_index,
+    bool aborted,
+    vector<vector<uint8_t>>& ssids,
+    vector<uint32_t>& frequencies) {
+  if (scan_event_handler_ != nullptr) {
+    // TODO: Pass other parameters back once we find framework needs them.
+    scan_event_handler_->OnScanResultReady();
+  }
 }
 
 }  // namespace wificond
