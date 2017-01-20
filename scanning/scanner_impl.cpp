@@ -16,6 +16,7 @@
 
 #include "wificond/scanning/scanner_impl.h"
 
+#include <string>
 #include <vector>
 
 #include <android-base/logging.h>
@@ -23,7 +24,10 @@
 #include "wificond/scanning/scan_utils.h"
 
 using android::binder::Status;
+using android::String16;
 using com::android::server::wifi::wificond::NativeScanResult;
+using com::android::server::wifi::wificond::SingleScanSettings;
+using std::string;
 using std::vector;
 
 namespace android {
@@ -88,6 +92,37 @@ Status ScannerImpl::getScanResults(vector<NativeScanResult>* out_scan_results) {
   if (!scan_utils_->GetScanResult(interface_index_, out_scan_results)) {
     LOG(ERROR) << "Failed to get scan results via NL80211";
   }
+  return Status::ok();
+}
+
+Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
+                         bool* out_success) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+  if (scan_settings.is_full_scan_) {
+    if (!scan_utils_->StartFullScan(interface_index_)) {
+      *out_success = false;
+      return Status::ok();
+    }
+  }
+
+  // Initialize it with an empty ssid for a wild card scan.
+  vector<vector<uint8_t>> ssids = {{0}};
+  for (auto& network : scan_settings.hidden_networks_) {
+    ssids.push_back(network.ssid_);
+  }
+  vector<uint32_t> freqs;
+  for (auto& channel : scan_settings.channel_settings_) {
+    freqs.push_back(channel.frequency_);
+  }
+
+  if (!scan_utils_->Scan(interface_index_, ssids, freqs)) {
+    *out_success = false;
+    LOG(ERROR) << "Failed to start a scan";
+    return Status::ok();
+  }
+  *out_success = true;
   return Status::ok();
 }
 
