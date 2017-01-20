@@ -23,6 +23,7 @@
 #include "wificond/scanning/scan_utils.h"
 
 using android::binder::Status;
+using com::android::server::wifi::wificond::NativeScanResult;
 using std::vector;
 
 namespace android {
@@ -77,6 +78,16 @@ Status ScannerImpl::getAvailableDFSChannels(vector<int32_t>* out_frequencies) {
   }
   *out_frequencies = vector<int32_t>(band_info_.band_dfs.begin(),
                                      band_info_.band_dfs.end());
+  return Status::ok();
+}
+
+Status ScannerImpl::getScanResults(vector<NativeScanResult>* out_scan_results) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+  if (!scan_utils_->GetScanResult(interface_index_, out_scan_results)) {
+    LOG(ERROR) << "Failed to get scan results via NL80211";
+  }
   return Status::ok();
 }
 
