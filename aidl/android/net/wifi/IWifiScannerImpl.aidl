@@ -17,6 +17,7 @@
 package android.net.wifi;
 
 import com.android.server.wifi.wificond.NativeScanResult;
+import com.android.server.wifi.wificond.SingleScanSettings;
 
 interface IWifiScannerImpl {
   // Returns an array of available frequencies for 2.4GHz channels.
@@ -27,5 +28,7 @@ interface IWifiScannerImpl {
   int[] getAvailableDFSChannels();
   // Get the latest scan results from kernel.
   NativeScanResult[] getScanResults();
+  // Request a single scan using a SingleScanSettings parcelable object.
+  boolean scan(in SingleScanSettings scanSettings);
   // TODO(nywang) add more interfaces.
 }
