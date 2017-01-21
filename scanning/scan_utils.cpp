@@ -213,13 +213,15 @@ bool ScanUtils::GetSSIDFromInfoElement(const vector<uint8_t>& ie,
   return false;
 }
 
-bool ScanUtils::StartFullScan(uint32_t interface_index) {
+bool ScanUtils::StartFullScan(uint32_t interface_index,
+                              bool request_random_mac) {
   // Using empty SSID for a wildcard scan.
   vector<vector<uint8_t>> ssids{vector<uint8_t>{0}};
-  return Scan(interface_index, ssids, vector<uint32_t>());
+  return Scan(interface_index, request_random_mac, ssids, vector<uint32_t>());
 }
 
 bool ScanUtils::Scan(uint32_t interface_index,
+                     bool request_random_mac,
                      const vector<vector<uint8_t>>& ssids,
                      const vector<uint32_t>& freqs) {
   NL80211Packet trigger_scan(
@@ -253,6 +255,11 @@ bool ScanUtils::Scan(uint32_t interface_index,
     trigger_scan.AddAttribute(freqs_attr);
   }
 
+  if (request_random_mac) {
+    trigger_scan.AddAttribute(
+        NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,
+                              NL80211_SCAN_FLAG_RANDOM_ADDR));
+  }
   // We are receiving an ERROR/ACK message instead of the actual
   // scan results here, so it is OK to expect a timely response because
   // kernel is supposed to send the ERROR/ACK back before the scan starts.
@@ -297,6 +304,7 @@ bool ScanUtils::StartScheduledScan(
     uint32_t interface_index,
     uint32_t interval_ms,
     int32_t rssi_threshold,
+    bool request_random_mac,
     const std::vector<std::vector<uint8_t>>& scan_ssids,
     const std::vector<std::vector<uint8_t>>& match_ssids,
     const std::vector<uint32_t>& freqs) {
@@ -347,6 +355,11 @@ bool ScanUtils::StartScheduledScan(
   start_sched_scan.AddAttribute(
       NL80211Attr<uint32_t>(NL80211_ATTR_SCHED_SCAN_INTERVAL, interval_ms));
   start_sched_scan.AddAttribute(scan_match_attr);
+  if (request_random_mac) {
+    start_sched_scan.AddAttribute(
+        NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,
+                              NL80211_SCAN_FLAG_RANDOM_ADDR));
+  }
 
   vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetAck(start_sched_scan)) {
