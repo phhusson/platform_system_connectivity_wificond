@@ -49,6 +49,7 @@ constexpr uint32_t kFakeScheduledScanIntervalMs = 20000;
 constexpr uint32_t kFakeSequenceNumber = 1984;
 constexpr int kFakeErrorCode = EIO;
 constexpr int32_t kFakeRssiThreshold = -80;
+constexpr bool kFakeUseRandomMAC = true;
 
 // Currently, control messages are only created by the kernel and sent to us.
 // Therefore NL80211Packet doesn't have corresponding constructor.
@@ -129,7 +130,7 @@ TEST_F(ScanUtilsTest, CanSendScanRequest) {
               WillOnce(Invoke(bind(
                   AppendMessageAndReturn, response, true, _1, _2)));
 
-  EXPECT_TRUE(scan_utils_.Scan(kFakeInterfaceIndex, {}, {}));
+  EXPECT_TRUE(scan_utils_.Scan(kFakeInterfaceIndex, kFakeUseRandomMAC, {}, {}));
   // TODO(b/34231420): Add validation of requested scan ssids, threshold,
   // and frequencies.
 }
@@ -142,7 +143,7 @@ TEST_F(ScanUtilsTest, CanHandleScanRequestFailure) {
           DoesNL80211PacketMatchCommand(NL80211_CMD_TRIGGER_SCAN), _)).
               WillOnce(Invoke(bind(
                   AppendMessageAndReturn, response, true, _1, _2)));
-  EXPECT_FALSE(scan_utils_.Scan(kFakeInterfaceIndex, {}, {}));
+  EXPECT_FALSE(scan_utils_.Scan(kFakeInterfaceIndex, kFakeUseRandomMAC, {}, {}));
 }
 
 TEST_F(ScanUtilsTest, CanSendSchedScanRequest) {
@@ -155,7 +156,8 @@ TEST_F(ScanUtilsTest, CanSendSchedScanRequest) {
                   AppendMessageAndReturn, response, true, _1, _2)));
   EXPECT_TRUE(scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
-      kFakeScheduledScanIntervalMs, kFakeRssiThreshold, {}, {}, {}));
+      kFakeScheduledScanIntervalMs,
+      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}));
   // TODO(b/34231420): Add validation of requested scan ssids, threshold,
   // and frequencies.
 }
@@ -170,7 +172,8 @@ TEST_F(ScanUtilsTest, CanHandleSchedScanRequestFailure) {
                   AppendMessageAndReturn, response, true, _1, _2)));
   EXPECT_FALSE(scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
-      kFakeScheduledScanIntervalMs, kFakeRssiThreshold, {}, {}, {}));
+      kFakeScheduledScanIntervalMs,
+      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}));
 }
 
 TEST_F(ScanUtilsTest, CanSendFullScanRequest) {
@@ -181,7 +184,7 @@ TEST_F(ScanUtilsTest, CanSendFullScanRequest) {
           DoesNL80211PacketMatchCommand(NL80211_CMD_TRIGGER_SCAN), _)).
               WillOnce(Invoke(bind(
                   AppendMessageAndReturn, response, true, _1, _2)));
-  EXPECT_TRUE(scan_utils_.StartFullScan(kFakeInterfaceIndex));
+  EXPECT_TRUE(scan_utils_.StartFullScan(kFakeInterfaceIndex, kFakeUseRandomMAC));
 }
 
 TEST_F(ScanUtilsTest, CanHandleFullScanRequestFailure) {
@@ -192,7 +195,7 @@ TEST_F(ScanUtilsTest, CanHandleFullScanRequestFailure) {
           DoesNL80211PacketMatchCommand(NL80211_CMD_TRIGGER_SCAN), _)).
               WillOnce(Invoke(bind(
                   AppendMessageAndReturn, response, true, _1, _2)));
-  EXPECT_FALSE(scan_utils_.StartFullScan(kFakeInterfaceIndex));
+  EXPECT_FALSE(scan_utils_.StartFullScan(kFakeInterfaceIndex, kFakeUseRandomMAC));
 }
 
 }  // namespace wificond
