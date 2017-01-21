@@ -114,6 +114,7 @@ TEST_F(ScanSettingsTest, PnoNetworkParcelableTest) {
   PnoNetwork pno_network;
   pno_network.ssid_ =
       vector<uint8_t>(kFakeSsid, kFakeSsid + sizeof(kFakeSsid));
+  pno_network.is_hidden_ = true;
 
   Parcel parcel;
   EXPECT_EQ(::android::OK, pno_network.writeToParcel(&parcel));
@@ -131,8 +132,10 @@ TEST_F(ScanSettingsTest, PnoSettingsParcelableTest) {
   PnoNetwork network, network1;
   network.ssid_ =
       vector<uint8_t>(kFakeSsid, kFakeSsid + sizeof(kFakeSsid));
+  network.is_hidden_ = true;
   network1.ssid_ =
       vector<uint8_t>(kFakeSsid1, kFakeSsid1 + sizeof(kFakeSsid1));
+  network1.is_hidden_ = false;
 
   pno_settings.interval_ms_ = kFakePnoIntervalMs;
   pno_settings.min_2g_rssi_ = kFakePnoMin2gRssi;
