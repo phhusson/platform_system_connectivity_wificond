@@ -32,11 +32,13 @@ class PnoNetwork : public ::android::Parcelable {
  public:
   PnoNetwork() = default;
   bool operator==(const PnoNetwork& rhs) const {
-    return ssid_ == rhs.ssid_;
+    return is_hidden_ == rhs.is_hidden_ &&
+           ssid_ == rhs.ssid_;
   }
   ::android::status_t writeToParcel(::android::Parcel* parcel) const override;
   ::android::status_t readFromParcel(const ::android::Parcel* parcel) override;
 
+  bool is_hidden_;
   std::vector<uint8_t> ssid_;
 };
 
