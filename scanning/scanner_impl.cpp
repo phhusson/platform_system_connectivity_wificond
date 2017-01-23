@@ -46,6 +46,7 @@ ScannerImpl::ScannerImpl(uint32_t interface_index,
                          const WiphyFeatures& wiphy_features,
                          ScanUtils* scan_utils)
     : valid_(true),
+      pno_scan_started_(false),
       interface_index_(interface_index),
       band_info_(band_info),
       scan_capabilities_(scan_capabilities),
@@ -141,6 +142,11 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
 
 Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                  bool* out_success) {
+  if (pno_scan_started_) {
+    LOG(ERROR) << "Pno scan already started";
+    *out_success = false;
+    return Status::ok();
+  }
   // An empty ssid for a wild card scan.
   vector<vector<uint8_t>> scan_ssids = {{0}};
   vector<vector<uint8_t>> match_ssids;
@@ -168,12 +174,23 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
     LOG(ERROR) << "Failed to start scheduled scan";
     return Status::ok();
   }
+  pno_scan_started_ = true;
   *out_success = true;
   return Status::ok();
 }
 
 Status ScannerImpl::stopPnoScan(bool* out_success) {
-  *out_success = scan_utils_->StopScheduledScan(interface_index_);
+  if (!pno_scan_started_) {
+    LOG(ERROR) << "No pno scan started";
+    *out_success = false;
+    return Status::ok();
+  }
+  if (!scan_utils_->StopScheduledScan(interface_index_)) {
+    *out_success = false;
+    return Status::ok();
+  }
+  pno_scan_started_ = false;
+  *out_success = true;
   return Status::ok();
 }
 
@@ -213,7 +230,7 @@ Status ScannerImpl::subscribePnoScanEvents(const sp<IPnoScanEvent>& handler) {
       interface_index_,
       std::bind(&ScannerImpl::OnSchedScanResultsReady,
                 this,
-                _1));
+                _1, _2));
 
   return Status::ok();
 }
@@ -239,9 +256,19 @@ void ScannerImpl::OnScanResultsReady(
   }
 }
 
-void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index) {
+void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
+                                          bool scan_stopped) {
   if (pno_scan_event_handler_ != nullptr) {
-    pno_scan_event_handler_->OnPnoNetworkFound();
+    if (scan_stopped) {
+      // If |pno_scan_started_| is false.
+      // This stop notification might result from our own request.
+      // See the document for NL80211_CMD_SCHED_SCAN_STOPPED in nl80211.h.
+      if (pno_scan_started_) {
+        pno_scan_event_handler_->OnPnoScanFailed();
+      }
+    } else {
+      pno_scan_event_handler_->OnPnoNetworkFound();
+    }
   }
 }
 
