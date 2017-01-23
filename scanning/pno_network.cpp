@@ -29,11 +29,15 @@ namespace wifi {
 namespace wificond {
 
 status_t PnoNetwork::writeToParcel(::android::Parcel* parcel) const {
+  RETURN_IF_FAILED(parcel->writeInt32(is_hidden_ ? 1 : 0));
   RETURN_IF_FAILED(parcel->writeByteVector(ssid_));
   return ::android::OK;
 }
 
 status_t PnoNetwork::readFromParcel(const ::android::Parcel* parcel) {
+  int32_t is_hidden = 0;
+  RETURN_IF_FAILED(parcel->readInt32(&is_hidden));
+  is_hidden_ = (is_hidden != 0);
   RETURN_IF_FAILED(parcel->readByteVector(&ssid_));
   return ::android::OK;
 }
