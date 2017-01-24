@@ -34,6 +34,9 @@ status_t PnoSettings::writeToParcel(::android::Parcel* parcel) const {
   RETURN_IF_FAILED(parcel->writeInt32(min_5g_rssi_));
   RETURN_IF_FAILED(parcel->writeInt32(pno_networks_.size()));
   for (const auto& network : pno_networks_) {
+    // For Java readTypedList():
+    // A leading number 1 means this object is not null.
+    RETURN_IF_FAILED(parcel->writeInt32(1));
     RETURN_IF_FAILED(network.writeToParcel(parcel));
   }
   return ::android::OK;
@@ -47,6 +50,16 @@ status_t PnoSettings::readFromParcel(const ::android::Parcel* parcel) {
   RETURN_IF_FAILED(parcel->readInt32(&num_pno_networks));
   for (int i = 0; i < num_pno_networks; i++) {
     PnoNetwork network;
+    // From Java writeTypedList():
+    // A leading number 1 means this object is not null.
+    // We never expect a 0 or other values here.
+    int32_t leading_number = 0;
+    RETURN_IF_FAILED(parcel->readInt32(&leading_number));
+    if (leading_number != 1) {
+      LOG(ERROR) << "Unexpected leading number before an object: "
+                 << leading_number;
+      return ::android::BAD_VALUE;
+    }
     RETURN_IF_FAILED(network.readFromParcel(parcel));
     pno_networks_.push_back(network);
   }
