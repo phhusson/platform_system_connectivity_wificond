@@ -115,6 +115,8 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IWifiScannerImpl.aidl \
     scanning/channel_settings.cpp \
     scanning/hidden_network.cpp \
+    scanning/pno_network.cpp \
+    scanning/pno_settings.cpp \
     scanning/scan_result.cpp \
     scanning/single_scan_settings.cpp
 LOCAL_SHARED_LIBRARIES := \
