@@ -32,10 +32,16 @@ status_t SingleScanSettings::writeToParcel(::android::Parcel* parcel) const {
   RETURN_IF_FAILED(parcel->writeInt32(is_full_scan_ ? 1 : 0));
   RETURN_IF_FAILED(parcel->writeInt32(channel_settings_.size()));
   for (const auto& channel : channel_settings_) {
+    // For Java readTypedList():
+    // A leading number 1 means this object is not null.
+    RETURN_IF_FAILED(parcel->writeInt32(1));
     RETURN_IF_FAILED(channel.writeToParcel(parcel));
   }
   RETURN_IF_FAILED(parcel->writeInt32(hidden_networks_.size()));
   for (const auto& network : hidden_networks_) {
+    // For Java readTypedList():
+    // A leading number 1 means this object is not null.
+    RETURN_IF_FAILED(parcel->writeInt32(1));
     RETURN_IF_FAILED(network.writeToParcel(parcel));
   }
   return ::android::OK;
@@ -53,6 +59,16 @@ status_t SingleScanSettings::readFromParcel(const ::android::Parcel* parcel) {
   // Both are mapped to an empty vector in C++ code.
   for (int i = 0; i < num_channels; i++) {
     ChannelSettings channel;
+    // From Java writeTypedList():
+    // A leading number 1 means this object is not null.
+    // We never expect a 0 or other values here.
+    int32_t leading_number = 0;
+    RETURN_IF_FAILED(parcel->readInt32(&leading_number));
+    if (leading_number != 1) {
+      LOG(ERROR) << "Unexpected leading number before an object: "
+                 << leading_number;
+      return ::android::BAD_VALUE;
+    }
     RETURN_IF_FAILED(channel.readFromParcel(parcel));
     channel_settings_.push_back(channel);
   }
@@ -64,6 +80,16 @@ status_t SingleScanSettings::readFromParcel(const ::android::Parcel* parcel) {
   // Both are mapped to an empty vector in C++ code.
   for (int i = 0; i < num_hidden_networks; i++) {
     HiddenNetwork network;
+    // From Java writeTypedList():
+    // A leading number 1 means this object is not null.
+    // We never expect a 0 or other values here.
+    int32_t leading_number = 0;
+    RETURN_IF_FAILED(parcel->readInt32(&leading_number));
+    if (leading_number != 1) {
+      LOG(ERROR) << "Unexpected leading number before an object: "
+                 << leading_number;
+      return ::android::BAD_VALUE;
+    }
     RETURN_IF_FAILED(network.readFromParcel(parcel));
     hidden_networks_.push_back(network);
   }
