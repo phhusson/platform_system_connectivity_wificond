@@ -75,15 +75,20 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
       bool aborted,
       std::vector<std::vector<uint8_t>>& ssids,
       std::vector<uint32_t>& frequencies);
-  void OnSchedScanResultsReady(uint32_t interface_index);
+  void OnSchedScanResultsReady(uint32_t interface_index, bool scan_stopped);
 
+
+  // Boolean variables describing current scanner status.
   bool valid_;
+  bool pno_scan_started_;
+
   uint32_t interface_index_;
 
   // Scanning relevant capability information for this wiphy/interface.
   const BandInfo band_info_;
   const ScanCapabilities scan_capabilities_;
   const WiphyFeatures wiphy_features_;
+
 
   ScanUtils* scan_utils_;
   ::android::sp<::android::net::wifi::IPnoScanEvent> pno_scan_event_handler_;
