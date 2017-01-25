@@ -55,13 +55,17 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
       const ::com::android::server::wifi::wificond::SingleScanSettings&
           scan_settings,
       bool* out_success) override;
-  ::android::binder::Status subscribeScanEvents(
-      const ::android::sp<::android::net::wifi::IScanEvent>& handler) override;
-  ::android::binder::Status unsubscribeScanEvents() override;
   ::android::binder::Status startPnoScan(
       const ::com::android::server::wifi::wificond::PnoSettings& pno_settings,
       bool* out_success) override;
   ::android::binder::Status stopPnoScan(bool* out_success) override;
+
+  ::android::binder::Status subscribeScanEvents(
+      const ::android::sp<::android::net::wifi::IScanEvent>& handler) override;
+  ::android::binder::Status unsubscribeScanEvents() override;
+  ::android::binder::Status subscribePnoScanEvents(
+      const ::android::sp<::android::net::wifi::IPnoScanEvent>& handler) override;
+  ::android::binder::Status unsubscribePnoScanEvents() override;
   void Invalidate() { valid_ = false; }
 
  private:
@@ -71,6 +75,7 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
       bool aborted,
       std::vector<std::vector<uint8_t>>& ssids,
       std::vector<uint32_t>& frequencies);
+  void OnSchedScanResultsReady(uint32_t interface_index);
 
   bool valid_;
   uint32_t interface_index_;
@@ -81,6 +86,7 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
   const WiphyFeatures wiphy_features_;
 
   ScanUtils* scan_utils_;
+  ::android::sp<::android::net::wifi::IPnoScanEvent> pno_scan_event_handler_;
   ::android::sp<::android::net::wifi::IScanEvent> scan_event_handler_;
 
   DISALLOW_COPY_AND_ASSIGN(ScannerImpl);
