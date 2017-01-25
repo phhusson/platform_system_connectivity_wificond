@@ -204,7 +204,11 @@ void ScannerImpl::OnScanResultsReady(
     vector<uint32_t>& frequencies) {
   if (scan_event_handler_ != nullptr) {
     // TODO: Pass other parameters back once we find framework needs them.
-    scan_event_handler_->OnScanResultReady();
+    if (aborted) {
+      scan_event_handler_->OnScanFailed();
+    } else {
+      scan_event_handler_->OnScanResultReady();
+    }
   }
 }
 
