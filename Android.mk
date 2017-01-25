@@ -14,8 +14,6 @@
 
 LOCAL_PATH := $(call my-dir)
 wificond_cpp_flags := -Wall -Werror -Wno-unused-parameter
-# TODO(b/33211652): Remove once ScannerImpl is fleshed out.
-wificond_cpp_flags += -Wno-unused-private-field
 wificond_parent_dir := $(LOCAL_PATH)/../
 wificond_includes := \
     $(wificond_parent_dir)
