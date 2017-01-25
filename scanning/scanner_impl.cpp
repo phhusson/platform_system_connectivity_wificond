@@ -24,6 +24,7 @@
 #include "wificond/scanning/scan_utils.h"
 
 using android::binder::Status;
+using android::net::wifi::IPnoScanEvent;
 using android::net::wifi::IScanEvent;
 using android::String16;
 using android::sp;
@@ -182,6 +183,7 @@ Status ScannerImpl::subscribeScanEvents(const sp<IScanEvent>& handler) {
                << " This subscription request will unsubscribe it";
   }
   scan_event_handler_ = handler;
+  // Subscribe one-shot scan result notification.
   scan_utils_->SubscribeScanResultNotification(
       interface_index_,
       std::bind(&ScannerImpl::OnScanResultsReady,
@@ -192,8 +194,33 @@ Status ScannerImpl::subscribeScanEvents(const sp<IScanEvent>& handler) {
 }
 
 Status ScannerImpl::unsubscribeScanEvents() {
+
   scan_utils_->UnsubscribeScanResultNotification(interface_index_);
   scan_event_handler_ = nullptr;
+  return Status::ok();
+}
+
+
+Status ScannerImpl::subscribePnoScanEvents(const sp<IPnoScanEvent>& handler) {
+  if (pno_scan_event_handler_ != nullptr) {
+    LOG(ERROR) << "Found existing pno scan events subscriber."
+               << " This subscription request will unsubscribe it";
+  }
+  pno_scan_event_handler_ = handler;
+
+  // Subscribe scheduled scan result notification.
+  scan_utils_->SubscribeSchedScanResultNotification(
+      interface_index_,
+      std::bind(&ScannerImpl::OnSchedScanResultsReady,
+                this,
+                _1));
+
+  return Status::ok();
+}
+
+Status ScannerImpl::unsubscribePnoScanEvents() {
+  scan_utils_->UnsubscribeSchedScanResultNotification(interface_index_);
+  pno_scan_event_handler_ = nullptr;
   return Status::ok();
 }
 
@@ -204,7 +231,17 @@ void ScannerImpl::OnScanResultsReady(
     vector<uint32_t>& frequencies) {
   if (scan_event_handler_ != nullptr) {
     // TODO: Pass other parameters back once we find framework needs them.
-    scan_event_handler_->OnScanResultReady();
+    if (aborted) {
+      scan_event_handler_->OnScanFailed();
+    } else {
+      scan_event_handler_->OnScanResultReady();
+    }
+  }
+}
+
+void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index) {
+  if (pno_scan_event_handler_ != nullptr) {
+    pno_scan_event_handler_->OnPnoNetworkFound();
   }
 }
 
