@@ -108,6 +108,7 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IANQPDoneCallback.aidl \
     aidl/android/net/wifi/IClientInterface.aidl \
     aidl/android/net/wifi/IInterfaceEventCallback.aidl \
+    aidl/android/net/wifi/IPnoScanEvent.aidl \
     aidl/android/net/wifi/IRttClient.aidl \
     aidl/android/net/wifi/IRttController.aidl \
     aidl/android/net/wifi/IScanEvent.aidl \
