@@ -470,7 +470,8 @@ void NetlinkManager::BroadcastHandler(unique_ptr<const NL80211Packet> packet) {
     return;
   }
 
-  if (command == NL80211_CMD_SCHED_SCAN_RESULTS) {
+  if (command == NL80211_CMD_SCHED_SCAN_RESULTS ||
+      command == NL80211_CMD_SCHED_SCAN_STOPPED) {
     OnSchedScanResultsReady(std::move(packet));
     return;
   }
@@ -542,7 +543,7 @@ void NetlinkManager::OnSchedScanResultsReady(unique_ptr<const NL80211Packet> pac
     return;
   }
   // Run scan result notification handler.
-  handler->second(if_index);
+  handler->second(if_index, packet->GetCommand() == NL80211_CMD_SCHED_SCAN_STOPPED);
 }
 
 void NetlinkManager::OnScanResultsReady(unique_ptr<const NL80211Packet> packet) {

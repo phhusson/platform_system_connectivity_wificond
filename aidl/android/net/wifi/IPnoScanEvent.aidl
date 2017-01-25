@@ -19,4 +19,5 @@ package android.net.wifi;
 // A callback for receiving pno scanning events.
 interface IPnoScanEvent {
   oneway void OnPnoNetworkFound();
+  oneway void OnPnoScanFailed();
 }

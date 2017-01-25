@@ -49,7 +49,9 @@ struct MessageType {
 // This describes a type of function handling scan results ready notification.
 // |interface_index| is the index of interface which the scan results
 // are from.
-// |aborted| is a boolean indicating if this scan request was aborted or not.
+// |aborted| is a boolean indicating if this scan was aborted or not.
+// According to nl80211.h document, part of the scan result might still be
+// available even when the scan was aborted.
 // |ssids| is a vector of scan ssids associated with the corresponding
 // scan request.
 // |frequencies| is a vector of scan frequencies associated with the
@@ -60,8 +62,16 @@ typedef std::function<void(
     std::vector<std::vector<uint8_t>>& ssids,
     std::vector<uint32_t>& frequencies)> OnScanResultsReadyHandler;
 
+// This describes a type of function handling scheduled scan results ready
+// notification. This can also be used for notificating the stopping of a
+// scheduled scan.
+// |interface_index| is the index of interface which the scan results
+// are from.
+// |scan_stopped| is a boolean indicating if this scheduled scan was stopped
+// or not.
 typedef std::function<void(
-    uint32_t interface_index)> OnSchedScanResultsReadyHandler;
+    uint32_t interface_index,
+    bool scan_stopped)> OnSchedScanResultsReadyHandler;
 
 class NetlinkManager {
  public:
