@@ -19,4 +19,5 @@ package android.net.wifi;
 // A callback for receiving scanning events.
 interface IScanEvent {
   oneway void OnScanResultReady();
+  oneway void OnScanFailed();
 }
