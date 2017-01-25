@@ -16,6 +16,7 @@
 
 package android.net.wifi;
 
+import android.net.wifi.IPnoScanEvent;
 import android.net.wifi.IScanEvent;
 import com.android.server.wifi.wificond.NativeScanResult;
 import com.android.server.wifi.wificond.PnoSettings;
@@ -37,13 +38,21 @@ interface IWifiScannerImpl {
   // Request a single scan using a SingleScanSettings parcelable object.
   boolean scan(in SingleScanSettings scanSettings);
 
-  // Subscribe the scanning events.
+  // Subscribe single scanning events.
   // Scanner assumes there is only one subscriber.
   // This call will replace any existing |handler|.
   void subscribeScanEvents(IScanEvent handler);
 
-  // Unsubscribe the scanning events .
+  // Unsubscribe single scanning events .
   void unsubscribeScanEvents();
+
+  // Subscribe Pno scanning events.
+  // Scanner assumes there is only one subscriber.
+  // This call will replace any existing |handler|.
+  void subscribePnoScanEvents(IPnoScanEvent handler);
+
+  // Unsubscribe Pno scanning events .
+  void unsubscribePnoScanEvents();
 
   // Request a scheduled scan.
   boolean startPnoScan(in PnoSettings pnoSettings);
