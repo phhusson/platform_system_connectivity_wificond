@@ -91,7 +91,6 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
     return false;
   }
 
-  vector<NativeScanResult> scan_results;
   for (auto& packet : response) {
     if (packet->GetMessageType() == NLMSG_ERROR) {
       LOG(ERROR) << "Receive ERROR message: "
@@ -118,9 +117,8 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
       LOG(WARNING) << "Ignore invalid scan result";
       continue;
     }
-    scan_results.push_back(scan_result);
+    out_scan_results->push_back(std::move(scan_result));
   }
-  *out_scan_results = scan_results;
   return true;
 }
 

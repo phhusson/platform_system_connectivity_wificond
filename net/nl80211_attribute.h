@@ -67,7 +67,7 @@ class NL80211Attr : public BaseNL80211Attr {
     T* storage = reinterpret_cast<T*>(data_.data() + NLA_HDRLEN);
     *storage = value;
   }
-  // Caller is a responsible for ensuring that |data| is:
+  // Caller is responsible for ensuring that |data| is:
   //   1) Is at least NLA_HDRLEN long.
   //   2) That *data when interpreted as a nlattr is internally consistent.
   // (e.g. data.size() == NLA_ALIGN(nlattr.nla_len)
