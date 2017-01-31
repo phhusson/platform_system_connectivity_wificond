@@ -80,6 +80,7 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
 
   // Boolean variables describing current scanner status.
   bool valid_;
+  bool scan_started_;
   bool pno_scan_started_;
 
   uint32_t interface_index_;
