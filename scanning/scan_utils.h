@@ -92,7 +92,7 @@ class ScanUtils {
   // |request_random_mac| is used for asking device/driver to use a random MAC
   // address during scan.
   // This flag should only be set if kernel supports this feature as
-  // as |supports_random_mac_sched_scan| indicates.
+  // |supports_random_mac_sched_scan| indicates.
   // If |scan_ssids| is an empty vector, it will do a passive scan.
   // If |scan_ssids| contains an empty string, it will a scan for all ssids.
   // |freqs| is a vector of frequencies we request to scan.
