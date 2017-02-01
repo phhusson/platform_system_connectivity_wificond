@@ -26,7 +26,6 @@
 using android::binder::Status;
 using android::net::wifi::IPnoScanEvent;
 using android::net::wifi::IScanEvent;
-using android::String16;
 using android::sp;
 using com::android::server::wifi::wificond::NativeScanResult;
 using com::android::server::wifi::wificond::PnoSettings;
@@ -142,8 +141,14 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
   // Initialize it with an empty ssid for a wild card scan.
   vector<vector<uint8_t>> ssids = {{0}};
   for (auto& network : scan_settings.hidden_networks_) {
+    if (ssids.size() + 1 > scan_capabilities_.max_num_scan_ssids) {
+      LOG(WARNING) << "Skip scan ssid for single scan: "
+                   << string(network.ssid_.begin(), network.ssid_.end());
+      continue;
+    }
     ssids.push_back(network.ssid_);
   }
+
   vector<uint32_t> freqs;
   for (auto& channel : scan_settings.channel_settings_) {
     freqs.push_back(channel.frequency_);
@@ -160,6 +165,9 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
 
 Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                  bool* out_success) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
   if (pno_scan_started_) {
     LOG(WARNING) << "Pno scan already started";
   }
@@ -170,12 +178,24 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
   vector<uint32_t> freqs;
 
   for (auto& network : pno_settings.pno_networks_) {
-    match_ssids.push_back(network.ssid_);
     // Add hidden network ssid.
     if (network.is_hidden_) {
+      if (scan_ssids.size() + 1 > scan_capabilities_.max_num_sched_scan_ssids) {
+        LOG(WARNING) << "Skip scan ssid for pno scan: "
+                     << string(network.ssid_.begin(), network.ssid_.end());
+        continue;
+      }
       scan_ssids.push_back(network.ssid_);
     }
+
+    if (match_ssids.size() + 1 > scan_capabilities_.max_match_sets) {
+      LOG(WARNING) << "Skip match ssid for pno scan: "
+                   << string(network.ssid_.begin(), network.ssid_.end());
+      continue;
+    }
+    match_ssids.push_back(network.ssid_);
   }
+
   bool random_mac = wiphy_features_.supports_random_mac_sched_scan;
 
   if (!scan_utils_->StartScheduledScan(interface_index_,
@@ -196,6 +216,10 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
 }
 
 Status ScannerImpl::stopPnoScan(bool* out_success) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+
   if (!pno_scan_started_) {
     LOG(WARNING) << "No pno scan started";
   }
@@ -209,6 +233,10 @@ Status ScannerImpl::stopPnoScan(bool* out_success) {
 }
 
 Status ScannerImpl::subscribeScanEvents(const sp<IScanEvent>& handler) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+
   if (scan_event_handler_ != nullptr) {
     LOG(ERROR) << "Found existing scan events subscriber."
                << " This subscription request will unsubscribe it";
@@ -224,6 +252,10 @@ Status ScannerImpl::unsubscribeScanEvents() {
 
 
 Status ScannerImpl::subscribePnoScanEvents(const sp<IPnoScanEvent>& handler) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+
   if (pno_scan_event_handler_ != nullptr) {
     LOG(ERROR) << "Found existing pno scan events subscriber."
                << " This subscription request will unsubscribe it";
