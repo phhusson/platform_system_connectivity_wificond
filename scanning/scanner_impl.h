@@ -83,15 +83,14 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
   bool scan_started_;
   bool pno_scan_started_;
 
-  uint32_t interface_index_;
+  const uint32_t interface_index_;
 
   // Scanning relevant capability information for this wiphy/interface.
   const BandInfo band_info_;
   const ScanCapabilities scan_capabilities_;
   const WiphyFeatures wiphy_features_;
 
-
-  ScanUtils* scan_utils_;
+  ScanUtils* const scan_utils_;
   ::android::sp<::android::net::wifi::IPnoScanEvent> pno_scan_event_handler_;
   ::android::sp<::android::net::wifi::IScanEvent> scan_event_handler_;
 
