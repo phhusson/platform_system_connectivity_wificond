@@ -129,15 +129,6 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
   }
   bool random_mac =  wiphy_features_.supports_random_mac_oneshot_scan;
 
-  if (scan_settings.is_full_scan_) {
-    if (!scan_utils_->StartFullScan(interface_index_, random_mac)) {
-      *out_success = false;
-      return Status::ok();
-    }
-    scan_started_ = true;
-    return Status::ok();
-  }
-
   // Initialize it with an empty ssid for a wild card scan.
   vector<vector<uint8_t>> ssids = {{0}};
   for (auto& network : scan_settings.hidden_networks_) {
