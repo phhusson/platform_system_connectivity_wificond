@@ -29,7 +29,6 @@ namespace wifi {
 namespace wificond {
 
 status_t SingleScanSettings::writeToParcel(::android::Parcel* parcel) const {
-  RETURN_IF_FAILED(parcel->writeInt32(is_full_scan_ ? 1 : 0));
   RETURN_IF_FAILED(parcel->writeInt32(channel_settings_.size()));
   for (const auto& channel : channel_settings_) {
     // For Java readTypedList():
@@ -48,9 +47,6 @@ status_t SingleScanSettings::writeToParcel(::android::Parcel* parcel) const {
 }
 
 status_t SingleScanSettings::readFromParcel(const ::android::Parcel* parcel) {
-  int32_t is_full_scan_int = 0;
-  RETURN_IF_FAILED(parcel->readInt32(&is_full_scan_int));
-  is_full_scan_ = (is_full_scan_int != 0);
   int32_t num_channels = 0;
   RETURN_IF_FAILED(parcel->readInt32(&num_channels));
   // Convention used by Java side writeTypedList():
