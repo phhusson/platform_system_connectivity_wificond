@@ -45,7 +45,6 @@ constexpr int32_t kFakePnoIntervalMs = 20000;
 constexpr int32_t kFakePnoMin2gRssi = -80;
 constexpr int32_t kFakePnoMin5gRssi = -85;
 
-constexpr bool kFakeIsFullScan = false;
 constexpr uint32_t kFakeFrequency = 5260;
 constexpr uint32_t kFakeFrequency1 = 2460;
 constexpr uint32_t kFakeFrequency2 = 2500;
@@ -86,7 +85,6 @@ TEST_F(ScanSettingsTest, HiddenNetworkParcelableTest) {
 
 TEST_F(ScanSettingsTest, SingleScanSettingsParcelableTest) {
   SingleScanSettings scan_settings;
-  scan_settings.is_full_scan_ = kFakeIsFullScan;
 
   ChannelSettings channel, channel1, channel2;
   channel.frequency_ = kFakeFrequency;

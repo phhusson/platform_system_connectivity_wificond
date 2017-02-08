@@ -33,17 +33,14 @@ namespace wificond {
 
 class SingleScanSettings : public ::android::Parcelable {
  public:
-  SingleScanSettings()
-      : is_full_scan_(false) {}
+  SingleScanSettings() = default;
   bool operator==(const SingleScanSettings& rhs) const {
-    return (is_full_scan_ == rhs.is_full_scan_ &&
-            channel_settings_ == rhs.channel_settings_ &&
+    return (channel_settings_ == rhs.channel_settings_ &&
             hidden_networks_ == rhs.hidden_networks_);
   }
   ::android::status_t writeToParcel(::android::Parcel* parcel) const override;
   ::android::status_t readFromParcel(const ::android::Parcel* parcel) override;
 
-  bool is_full_scan_;
   std::vector<ChannelSettings> channel_settings_;
   std::vector<HiddenNetwork> hidden_networks_;
 };
