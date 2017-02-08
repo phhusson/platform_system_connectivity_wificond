@@ -211,13 +211,6 @@ bool ScanUtils::GetSSIDFromInfoElement(const vector<uint8_t>& ie,
   return false;
 }
 
-bool ScanUtils::StartFullScan(uint32_t interface_index,
-                              bool request_random_mac) {
-  // Using empty SSID for a wildcard scan.
-  vector<vector<uint8_t>> ssids{vector<uint8_t>{0}};
-  return Scan(interface_index, request_random_mac, ssids, vector<uint32_t>());
-}
-
 bool ScanUtils::Scan(uint32_t interface_index,
                      bool request_random_mac,
                      const vector<vector<uint8_t>>& ssids,
