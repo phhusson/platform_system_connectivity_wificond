@@ -29,10 +29,6 @@ class MockScanUtils : public ScanUtils {
   MockScanUtils(NetlinkManager* netlink_manager);
   ~MockScanUtils() override = default;
 
-  MOCK_METHOD2(StartFullScan, bool(
-      uint32_t interface_index,
-      bool random_mac));
-
   MOCK_METHOD2(GetScanResult, bool(
       uint32_t interface_index,
       std::vector<::com::android::server::wifi::wificond::NativeScanResult>* out_scan_results));
