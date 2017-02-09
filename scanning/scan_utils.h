@@ -58,15 +58,6 @@ class ScanUtils {
       uint32_t interface_index,
       std::vector<::com::android::server::wifi::wificond::NativeScanResult>* out_scan_results);
 
-  // Start a full scan on interface with index |interface_index|.
-  // This will scan for all ssids and frequencies.
-  // |request_random_mac| is used for asking device/driver to use a random MAC
-  // address during scan.
-  // This flag should only be set if kernel supports this feature as
-  // |supports_random_mac_oneshot_scan| indicates.
-  // Returns true on success.
-  virtual bool StartFullScan(uint32_t interface_index, bool request_random_mac);
-
   // Send scan request to kernel for interface with index |interface_index|.
   // |request_random_mac| is used for asking device/driver to use a random MAC
   // address during scan.
