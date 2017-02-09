@@ -176,27 +176,5 @@ TEST_F(ScanUtilsTest, CanHandleSchedScanRequestFailure) {
       kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}));
 }
 
-TEST_F(ScanUtilsTest, CanSendFullScanRequest) {
-  NL80211Packet response = CreateControlMessageAck();
-  EXPECT_CALL(
-      netlink_manager_,
-      SendMessageAndGetResponses(
-          DoesNL80211PacketMatchCommand(NL80211_CMD_TRIGGER_SCAN), _)).
-              WillOnce(Invoke(bind(
-                  AppendMessageAndReturn, response, true, _1, _2)));
-  EXPECT_TRUE(scan_utils_.StartFullScan(kFakeInterfaceIndex, kFakeUseRandomMAC));
-}
-
-TEST_F(ScanUtilsTest, CanHandleFullScanRequestFailure) {
-  NL80211Packet response = CreateControlMessageError(kFakeErrorCode);
-  EXPECT_CALL(
-      netlink_manager_,
-      SendMessageAndGetResponses(
-          DoesNL80211PacketMatchCommand(NL80211_CMD_TRIGGER_SCAN), _)).
-              WillOnce(Invoke(bind(
-                  AppendMessageAndReturn, response, true, _1, _2)));
-  EXPECT_FALSE(scan_utils_.StartFullScan(kFakeInterfaceIndex, kFakeUseRandomMAC));
-}
-
 }  // namespace wificond
 }  // namespace android
