@@ -260,7 +260,7 @@ bool NetlinkUtils::ParseBandInfo(const NL80211Packet* const packet,
   for (unsigned int band_index = 0; band_index < bands.size(); band_index++) {
     NL80211NestedAttr freqs_attr(0);
     if (!bands[band_index].GetAttribute(NL80211_BAND_ATTR_FREQS, &freqs_attr)) {
-      LOG(ERROR) << "Failed to get NL80211_BAND_ATTR_FREQS";
+      LOG(DEBUG) << "Failed to get NL80211_BAND_ATTR_FREQS";
       continue;
     }
     vector<NL80211NestedAttr> freqs;
