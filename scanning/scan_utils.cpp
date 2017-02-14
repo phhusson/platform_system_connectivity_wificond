@@ -114,7 +114,7 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
 
     NativeScanResult scan_result;
     if (!ParseScanResult(std::move(packet), &scan_result)) {
-      LOG(WARNING) << "Ignore invalid scan result";
+      LOG(DEBUG) << "Ignore invalid scan result";
       continue;
     }
     out_scan_results->push_back(std::move(scan_result));
@@ -147,9 +147,15 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet,
     }
     vector<uint8_t> ssid;
     if (!GetSSIDFromInfoElement(ie, &ssid)) {
-      // Hidden wireless network has no SSID in IE.
-      LOG(DEBUG) << "Failed to get SSID from Information Element. "
-                 << "This might be a hidden network";
+      // Skip BSS without SSID IE.
+      // It might be from a hidden network. Framework doesn't need it.
+      return false;
+    }
+    if (ssid.empty() ||
+        std::all_of(ssid.begin(), ssid.end(), [](uint8_t c) {return c == 0;})) {
+      // Skip BSS with empty or all-zero SSID.
+      // It might be from a hidden network. Framework doesn't need it.
+      return false;
     }
     uint64_t tsf;
     if (!bss.GetAttributeValue(NL80211_BSS_TSF, &tsf)) {
