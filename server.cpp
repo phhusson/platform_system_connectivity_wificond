@@ -16,6 +16,8 @@
 
 #include "wificond/server.h"
 
+#include <sstream>
+
 #include <android-base/logging.h>
 
 #include "wificond/net/netlink_utils.h"
@@ -24,9 +26,6 @@
 using android::binder::Status;
 using android::sp;
 using android::IBinder;
-using std::string;
-using std::vector;
-using std::unique_ptr;
 using android::net::wifi::IApInterface;
 using android::net::wifi::IClientInterface;
 using android::net::wifi::IInterfaceEventCallback;
@@ -37,6 +36,12 @@ using android::wifi_system::HalTool;
 using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
+
+using std::placeholders::_1;
+using std::string;
+using std::stringstream;
+using std::unique_ptr;
+using std::vector;
 
 namespace android {
 namespace wificond {
@@ -164,6 +169,8 @@ Status Server::tearDownInterfaces() {
   }
   ap_interfaces_.clear();
 
+  netlink_utils_->UnsubscribeRegDomainChange(wiphy_index_);
+
   if (!driver_tool_->UnloadDriver()) {
     LOG(ERROR) << "Failed to unload WiFi driver!";
   }
@@ -234,6 +241,12 @@ bool Server::SetupInterfaceForMode(int mode,
     return false;
   }
 
+  netlink_utils_->SubscribeRegDomainChange(
+          wiphy_index_,
+          std::bind(&Server::OnRegDomainChanged,
+          this,
+          _1));
+
   if (!netlink_utils_->GetInterfaceInfo(wiphy_index_,
                                         interface_name,
                                         interface_index,
@@ -251,6 +264,43 @@ bool Server::RefreshWiphyIndex() {
     return false;
   }
   return true;
+}
+
+void Server::OnRegDomainChanged(std::string& country_code) {
+  if (country_code.empty()) {
+    LOG(INFO) << "Regulatory domain changed";
+  } else {
+    LOG(INFO) << "Regulatory domain changed to country: " << country_code;
+  }
+  LogSupportedBands();
+}
+
+void Server::LogSupportedBands() {
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities;
+  WiphyFeatures wiphy_features;
+  netlink_utils_->GetWiphyInfo(wiphy_index_,
+                               &band_info,
+                               &scan_capabilities,
+                               &wiphy_features);
+
+  stringstream ss;
+  for (unsigned int i = 0; i < band_info.band_2g.size(); i++) {
+    ss << " " << band_info.band_2g[i];
+  }
+  LOG(INFO) << "2.4Ghz frequencies:"<< ss.str();
+  ss.str("");
+
+  for (unsigned int i = 0; i < band_info.band_5g.size(); i++) {
+    ss << " " << band_info.band_5g[i];
+  }
+  LOG(INFO) << "5Ghz non-DFS frequencies:"<< ss.str();
+  ss.str("");
+
+  for (unsigned int i = 0; i < band_info.band_dfs.size(); i++) {
+    ss << " " << band_info.band_dfs[i];
+  }
+  LOG(INFO) << "5Ghz DFS frequencies:"<< ss.str();
 }
 
 void Server::BroadcastClientInterfaceReady(
