@@ -130,7 +130,7 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
   bool random_mac =  wiphy_features_.supports_random_mac_oneshot_scan;
 
   // Initialize it with an empty ssid for a wild card scan.
-  vector<vector<uint8_t>> ssids = {{0}};
+  vector<vector<uint8_t>> ssids = {{}};
   for (auto& network : scan_settings.hidden_networks_) {
     if (ssids.size() + 1 > scan_capabilities_.max_num_scan_ssids) {
       LOG(WARNING) << "Skip scan ssid for single scan: "
@@ -163,7 +163,7 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
     LOG(WARNING) << "Pno scan already started";
   }
   // An empty ssid for a wild card scan.
-  vector<vector<uint8_t>> scan_ssids = {{0}};
+  vector<vector<uint8_t>> scan_ssids = {{}};
   vector<vector<uint8_t>> match_ssids;
   // Empty frequency list: scan all frequencies.
   vector<uint32_t> freqs;
