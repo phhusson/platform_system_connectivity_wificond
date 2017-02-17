@@ -103,6 +103,7 @@ TEST_F(ServerTest, CanSetUpApInterface) {
   EXPECT_CALL(*netlink_utils_, GetWiphyIndex(_))
       .InSequence(sequence)
       .WillOnce(Return(true));
+  EXPECT_CALL(*netlink_utils_, SubscribeRegDomainChange(_, _));
   EXPECT_CALL(*netlink_utils_, GetInterfaceInfo(_, _, _, _))
       .InSequence(sequence)
       .WillOnce(Return(true));
@@ -133,8 +134,10 @@ TEST_F(ServerTest, CanDestroyInterfaces) {
   EXPECT_CALL(*driver_tool_, UnloadDriver()).Times(0);
 
   EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
+
   // When we tear down the interface, we expect the driver to be unloaded.
   EXPECT_CALL(*driver_tool_, UnloadDriver()).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(*netlink_utils_, UnsubscribeRegDomainChange(_));
   EXPECT_TRUE(server_.tearDownInterfaces().isOk());
   // After a teardown, we should be able to create another interface.
   EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
