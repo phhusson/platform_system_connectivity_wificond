@@ -24,6 +24,8 @@
 
 #include <android-base/macros.h>
 
+#include "wificond/net/netlink_manager.h"
+
 namespace android {
 namespace wificond {
 
@@ -150,6 +152,17 @@ class NetlinkUtils {
   // Cancel the sign-up of receiving MLME event notification
   // from interface with index |interface_index|.
   virtual void UnsubscribeMlmeEvent(uint32_t interface_index);
+
+  // Sign up to be notified when there is an regulatory domain change.
+  // Only one handler can be registered per wiphy index.
+  // New handler will replace the registered handler if they are for the
+  // same wiphy index.
+  virtual void SubscribeRegDomainChange(uint32_t wiphy_index,
+                                        OnRegDomainChangedHandler handler);
+
+  // Cancel the sign-up of receiving regulatory domain change notification
+  // from wiphy with index |wiphy_index|.
+  virtual void UnsubscribeRegDomainChange(uint32_t wiphy_index);
 
  private:
   bool ParseBandInfo(const NL80211Packet* const packet,
