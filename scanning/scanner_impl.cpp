@@ -70,6 +70,9 @@ ScannerImpl::ScannerImpl(uint32_t interface_index,
 }
 
 ScannerImpl::~ScannerImpl() {
+}
+
+void ScannerImpl::Invalidate() {
   LOG(INFO) << "Unsubscribe scan result for interface with index: "
             << (int)interface_index_;
   scan_utils_->UnsubscribeScanResultNotification(interface_index_);
