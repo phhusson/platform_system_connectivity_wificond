@@ -614,8 +614,8 @@ void NetlinkManager::OnScanResultsReady(unique_ptr<const NL80211Packet> packet) 
 
   auto handler = on_scan_result_ready_handler_.find(if_index);
   if (handler == on_scan_result_ready_handler_.end()) {
-    LOG(DEBUG) << "No handler for scan result notification from interface"
-               << " with index: " << if_index;
+    LOG(WARNING) << "No handler for scan result notification from interface"
+                 << " with index: " << if_index;
     return;
   }
 
