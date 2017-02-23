@@ -54,6 +54,8 @@ ScannerImpl::ScannerImpl(uint32_t interface_index,
       scan_utils_(scan_utils),
       scan_event_handler_(nullptr) {
   // Subscribe one-shot scan result notification from kernel.
+  LOG(INFO) << "subscribe scan result for interface with index: "
+            << (int)interface_index_;
   scan_utils_->SubscribeScanResultNotification(
       interface_index_,
       std::bind(&ScannerImpl::OnScanResultsReady,
@@ -68,6 +70,8 @@ ScannerImpl::ScannerImpl(uint32_t interface_index,
 }
 
 ScannerImpl::~ScannerImpl() {
+  LOG(INFO) << "Unsubscribe scan result for interface with index: "
+            << (int)interface_index_;
   scan_utils_->UnsubscribeScanResultNotification(interface_index_);
   scan_utils_->UnsubscribeSchedScanResultNotification(interface_index_);
 }
@@ -266,14 +270,18 @@ void ScannerImpl::OnScanResultsReady(
     bool aborted,
     vector<vector<uint8_t>>& ssids,
     vector<uint32_t>& frequencies) {
+  LOG(INFO) << "Received scan result notification from kernel.";
   scan_started_ = false;
   if (scan_event_handler_ != nullptr) {
     // TODO: Pass other parameters back once we find framework needs them.
     if (aborted) {
+      LOG(WARNING) << "Scan aborted";
       scan_event_handler_->OnScanFailed();
     } else {
       scan_event_handler_->OnScanResultReady();
     }
+  } else {
+    LOG(WARNING) << "No scan event handler found.";
   }
 }
 
