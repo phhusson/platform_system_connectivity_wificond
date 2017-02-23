@@ -100,10 +100,11 @@ ClientInterfaceImpl::ClientInterfaceImpl(
   }
   LOG(INFO) << "create scanner for interface with index: "
             << (int)interface_index_;
-  scanner_ = new ScannerImpl(interface_index_,
-                             band_info_,
+  scanner_ = new ScannerImpl(wiphy_index,
+                             interface_index_,
                              scan_capabilities_,
                              wiphy_features_,
+                             netlink_utils_,
                              scan_utils_);
 }
 
