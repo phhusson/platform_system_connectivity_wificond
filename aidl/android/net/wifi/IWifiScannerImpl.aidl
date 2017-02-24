@@ -41,18 +41,18 @@ interface IWifiScannerImpl {
   // Subscribe single scanning events.
   // Scanner assumes there is only one subscriber.
   // This call will replace any existing |handler|.
-  void subscribeScanEvents(IScanEvent handler);
+  oneway void subscribeScanEvents(IScanEvent handler);
 
   // Unsubscribe single scanning events .
-  void unsubscribeScanEvents();
+  oneway void unsubscribeScanEvents();
 
   // Subscribe Pno scanning events.
   // Scanner assumes there is only one subscriber.
   // This call will replace any existing |handler|.
-  void subscribePnoScanEvents(IPnoScanEvent handler);
+  oneway void subscribePnoScanEvents(IPnoScanEvent handler);
 
   // Unsubscribe Pno scanning events .
-  void unsubscribePnoScanEvents();
+  oneway void unsubscribePnoScanEvents();
 
   // Request a scheduled scan.
   boolean startPnoScan(in PnoSettings pnoSettings);
