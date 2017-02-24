@@ -24,13 +24,16 @@ import com.android.server.wifi.wificond.SingleScanSettings;
 
 interface IWifiScannerImpl {
   // Returns an array of available frequencies for 2.4GHz channels.
-  int[] getAvailable2gChannels();
+  // Returrns null on failure.
+  @nullable int[] getAvailable2gChannels();
 
   // Returns an array of available frequencies for 5GHz non-DFS channels.
-  int[] getAvailable5gNonDFSChannels();
+  // Returrns null on failure.
+  @nullable int[] getAvailable5gNonDFSChannels();
 
   // Returns an array of available frequencies for DFS channels.
-  int[] getAvailableDFSChannels();
+  // Returrns null on failure.
+  @nullable int[] getAvailableDFSChannels();
 
   // Get the latest scan results from kernel.
   NativeScanResult[] getScanResults();
