@@ -28,6 +28,7 @@ using android::net::wifi::IClientInterface;
 using android::net::wifi::IWificond;
 using android::net::wifi::IWifiScannerImpl;
 using android::wificond::tests::integration::ScopedDevModeWificond;
+using std::unique_ptr;
 using std::vector;
 
 namespace android {
@@ -66,15 +67,15 @@ TEST(ScannerTest, CanGetAvailableChannels) {
   sp<IWifiScannerImpl> scanner = InitInterfaceAndReturnScanner(service);
   ASSERT_NE(nullptr, scanner.get());
 
-  vector<int32_t> freqs_2g;
+  unique_ptr<vector<int32_t>> freqs_2g(new vector<int32_t>());
   ASSERT_TRUE(scanner->getAvailable2gChannels(&freqs_2g).isOk());
-  EXPECT_TRUE(freqs_2g.size() != 0);
+  EXPECT_TRUE(freqs_2g->size() != 0);
 
-  vector<int32_t> freqs_5g;
+  unique_ptr<vector<int32_t>> freqs_5g(new vector<int32_t>());
   ASSERT_TRUE(scanner->getAvailable5gNonDFSChannels(&freqs_5g).isOk());
-  EXPECT_TRUE(freqs_5g.size() != 0);
+  EXPECT_TRUE(freqs_5g->size() != 0);
 
-  vector<int32_t> freqs_dfs;
+  unique_ptr<vector<int32_t>> freqs_dfs(new vector<int32_t>());
   ASSERT_TRUE(scanner->getAvailableDFSChannels(&freqs_dfs).isOk());
   // DFS support should be enabled explicitly, so we don't expect a non-empty
   // DFS frequency list here.
