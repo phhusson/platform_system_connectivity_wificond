@@ -252,11 +252,6 @@ bool ScanUtils::Scan(uint32_t interface_index,
     trigger_scan.AddAttribute(freqs_attr);
   }
 
-  if (request_random_mac) {
-    trigger_scan.AddAttribute(
-        NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,
-                              NL80211_SCAN_FLAG_RANDOM_ADDR));
-  }
   // We are receiving an ERROR/ACK message instead of the actual
   // scan results here, so it is OK to expect a timely response because
   // kernel is supposed to send the ERROR/ACK back before the scan starts.
@@ -352,11 +347,6 @@ bool ScanUtils::StartScheduledScan(
   start_sched_scan.AddAttribute(
       NL80211Attr<uint32_t>(NL80211_ATTR_SCHED_SCAN_INTERVAL, interval_ms));
   start_sched_scan.AddAttribute(scan_match_attr);
-  if (request_random_mac) {
-    start_sched_scan.AddAttribute(
-        NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,
-                              NL80211_SCAN_FLAG_RANDOM_ADDR));
-  }
 
   vector<unique_ptr<const NL80211Packet>> response;
   if (!netlink_manager_->SendMessageAndGetAck(start_sched_scan)) {
