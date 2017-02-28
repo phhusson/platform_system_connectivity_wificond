@@ -492,7 +492,9 @@ void NetlinkManager::BroadcastHandler(unique_ptr<const NL80211Packet> packet) {
   // connection state better.
   if (command == NL80211_CMD_CONNECT ||
       command == NL80211_CMD_ASSOCIATE ||
-      command == NL80211_CMD_ROAM) {
+      command == NL80211_CMD_ROAM ||
+      command == NL80211_CMD_DISCONNECT ||
+      command == NL80211_CMD_DISASSOCIATE) {
       OnMlmeEvent(std::move(packet));
      return;
   }
@@ -564,24 +566,39 @@ void NetlinkManager::OnMlmeEvent(unique_ptr<const NL80211Packet> packet) {
   if (command == NL80211_CMD_CONNECT) {
     auto event = MlmeConnectEvent::InitFromPacket(packet.get());
     if (event != nullptr) {
-       handler->second->OnConnect(std::move(event));
+      handler->second->OnConnect(std::move(event));
     }
     return;
   }
   if (command == NL80211_CMD_ASSOCIATE) {
     auto event = MlmeAssociateEvent::InitFromPacket(packet.get());
     if (event != nullptr) {
-       handler->second->OnAssociate(std::move(event));
+      handler->second->OnAssociate(std::move(event));
     }
     return;
   }
   if (command == NL80211_CMD_ROAM) {
     auto event = MlmeRoamEvent::InitFromPacket(packet.get());
     if (event != nullptr) {
-       handler->second->OnRoam(std::move(event));
+      handler->second->OnRoam(std::move(event));
     }
     return;
   }
+  if (command == NL80211_CMD_DISCONNECT) {
+    auto event = MlmeDisconnectEvent::InitFromPacket(packet.get());
+    if (event != nullptr) {
+      handler->second->OnDisconnect(std::move(event));
+    }
+    return;
+  }
+  if (command == NL80211_CMD_DISASSOCIATE) {
+    auto event = MlmeDisassociateEvent::InitFromPacket(packet.get());
+    if (event != nullptr) {
+      handler->second->OnDisassociate(std::move(event));
+    }
+    return;
+  }
+
 }
 
 void NetlinkManager::OnSchedScanResultsReady(unique_ptr<const NL80211Packet> packet) {

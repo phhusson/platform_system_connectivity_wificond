@@ -33,6 +33,8 @@ class MlmeEventHandler {
   virtual void OnConnect(std::unique_ptr<MlmeConnectEvent> event) = 0;
   virtual void OnRoam(const std::unique_ptr<MlmeRoamEvent> event) = 0;
   virtual void OnAssociate(std::unique_ptr<MlmeAssociateEvent> event) = 0;
+  virtual void OnDisconnect(std::unique_ptr<MlmeDisconnectEvent> event) = 0;
+  virtual void OnDisassociate(std::unique_ptr<MlmeDisassociateEvent> event) = 0;
 
 };
 
