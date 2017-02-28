@@ -28,6 +28,7 @@
 namespace android {
 namespace wificond {
 
+class ClientInterfaceImpl;
 class ScanUtils;
 
 class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
@@ -36,6 +37,7 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
               uint32_t interface_index,
               const ScanCapabilities& scan_capabilities,
               const WiphyFeatures& wiphy_features,
+              ClientInterfaceImpl* client_interface,
               NetlinkUtils* netlink_utils,
               ScanUtils* scan_utils);
   ~ScannerImpl();
@@ -91,6 +93,7 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
   ScanCapabilities scan_capabilities_;
   WiphyFeatures wiphy_features_;
 
+  ClientInterfaceImpl* client_interface_;
   NetlinkUtils* const netlink_utils_;
   ScanUtils* const scan_utils_;
   ::android::sp<::android::net::wifi::IPnoScanEvent> pno_scan_event_handler_;

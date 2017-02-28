@@ -51,24 +51,47 @@ MlmeEventHandlerImpl::~MlmeEventHandlerImpl() {
 
 void MlmeEventHandlerImpl::OnConnect(unique_ptr<MlmeConnectEvent> event) {
   if (event->GetStatusCode() == 0) {
+    client_interface_->is_associated_ = true;
     client_interface_->RefreshAssociateFreq();
     client_interface_->bssid_ = event->GetBSSID();
+  } else {
+    client_interface_->is_associated_ = false;
+    client_interface_->bssid_.clear();
   }
 }
 
 void MlmeEventHandlerImpl::OnRoam(unique_ptr<MlmeRoamEvent> event) {
   if (event->GetStatusCode() == 0) {
+    client_interface_->is_associated_ = true;
     client_interface_->RefreshAssociateFreq();
     client_interface_->bssid_ = event->GetBSSID();
+  } else {
+    client_interface_->is_associated_ = false;
+    client_interface_->bssid_.clear();
   }
 }
 
 void MlmeEventHandlerImpl::OnAssociate(unique_ptr<MlmeAssociateEvent> event) {
   if (event->GetStatusCode() == 0) {
+    client_interface_->is_associated_ = true;
     client_interface_->RefreshAssociateFreq();
     client_interface_->bssid_ = event->GetBSSID();
+  } else {
+    client_interface_->is_associated_ = false;
+    client_interface_->bssid_.clear();
   }
 }
+
+void MlmeEventHandlerImpl::OnDisconnect(unique_ptr<MlmeDisconnectEvent> event) {
+  client_interface_->is_associated_ = false;
+  client_interface_->bssid_.clear();
+}
+
+void MlmeEventHandlerImpl::OnDisassociate(unique_ptr<MlmeDisassociateEvent> event) {
+  client_interface_->is_associated_ = false;
+  client_interface_->bssid_.clear();
+}
+
 
 ClientInterfaceImpl::ClientInterfaceImpl(
     uint32_t wiphy_index,
@@ -88,7 +111,8 @@ ClientInterfaceImpl::ClientInterfaceImpl(
       netlink_utils_(netlink_utils),
       scan_utils_(scan_utils),
       mlme_event_handler_(new MlmeEventHandlerImpl(this)),
-      binder_(new ClientInterfaceBinder(this)) {
+      binder_(new ClientInterfaceBinder(this)),
+      is_associated_(false) {
   netlink_utils_->SubscribeMlmeEvent(
       interface_index_,
       mlme_event_handler_.get());
@@ -104,6 +128,7 @@ ClientInterfaceImpl::ClientInterfaceImpl(
                              interface_index_,
                              scan_capabilities_,
                              wiphy_features_,
+                             this,
                              netlink_utils_,
                              scan_utils_);
 }
@@ -184,6 +209,10 @@ bool ClientInterfaceImpl::RefreshAssociateFreq() {
     }
   }
   return false;
+}
+
+bool ClientInterfaceImpl::IsAssociated() {
+  return is_associated_;
 }
 
 }  // namespace wificond

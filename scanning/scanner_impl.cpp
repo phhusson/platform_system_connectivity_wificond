@@ -21,6 +21,7 @@
 
 #include <android-base/logging.h>
 
+#include "wificond/client_interface_impl.h"
 #include "wificond/scanning/scan_utils.h"
 
 using android::binder::Status;
@@ -43,6 +44,7 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index,
                          uint32_t interface_index,
                          const ScanCapabilities& scan_capabilities,
                          const WiphyFeatures& wiphy_features,
+                         ClientInterfaceImpl* client_interface,
                          NetlinkUtils* netlink_utils,
                          ScanUtils* scan_utils)
     : valid_(true),
@@ -52,6 +54,7 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index,
       interface_index_(interface_index),
       scan_capabilities_(scan_capabilities),
       wiphy_features_(wiphy_features),
+      client_interface_(client_interface),
       netlink_utils_(netlink_utils),
       scan_utils_(scan_utils),
       scan_event_handler_(nullptr) {
@@ -168,7 +171,9 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
   if (scan_started_) {
     LOG(WARNING) << "Scan already started";
   }
-  bool random_mac =  wiphy_features_.supports_random_mac_oneshot_scan;
+  // Only request MAC address randomization when station is not associated.
+  bool request_random_mac =  wiphy_features_.supports_random_mac_oneshot_scan &&
+      !client_interface_->IsAssociated();
 
   // Initialize it with an empty ssid for a wild card scan.
   vector<vector<uint8_t>> ssids = {{}};
@@ -186,7 +191,7 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
     freqs.push_back(channel.frequency_);
   }
 
-  if (!scan_utils_->Scan(interface_index_, random_mac, ssids, freqs)) {
+  if (!scan_utils_->Scan(interface_index_, request_random_mac, ssids, freqs)) {
     *out_success = false;
     return Status::ok();
   }
@@ -228,13 +233,15 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
     match_ssids.push_back(network.ssid_);
   }
 
-  bool random_mac = wiphy_features_.supports_random_mac_sched_scan;
+  // Only request MAC address randomization when station is not associated.
+  bool request_random_mac = wiphy_features_.supports_random_mac_sched_scan &&
+      !client_interface_->IsAssociated();
 
   if (!scan_utils_->StartScheduledScan(interface_index_,
                                        pno_settings.interval_ms_,
                                        // TODO: honor both rssi thresholds.
                                        pno_settings.min_2g_rssi_,
-                                       random_mac,
+                                       request_random_mac,
                                        scan_ssids,
                                        match_ssids,
                                        freqs)) {
