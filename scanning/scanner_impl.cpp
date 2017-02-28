@@ -103,12 +103,12 @@ Status ScannerImpl::getAvailable2gChannels(
                                &scan_capabilities_,
                                &wiphy_features_)) {
     LOG(ERROR) << "Failed to get wiphy info from kernel";
-    *out_frequencies = nullptr;
+    out_frequencies->reset(nullptr);
     return Status::ok();
   }
 
-  **out_frequencies = vector<int32_t>(band_info.band_2g.begin(),
-                                      band_info.band_2g.end());
+  out_frequencies->reset(new vector<int32_t>(band_info.band_2g.begin(),
+                                             band_info.band_2g.end()));
   return Status::ok();
 }
 
@@ -123,12 +123,12 @@ Status ScannerImpl::getAvailable5gNonDFSChannels(
                                &scan_capabilities_,
                                &wiphy_features_)) {
     LOG(ERROR) << "Failed to get wiphy info from kernel";
-    *out_frequencies = nullptr;
+    out_frequencies->reset(nullptr);
     return Status::ok();
   }
 
-  **out_frequencies = vector<int32_t>(band_info.band_5g.begin(),
-                                      band_info.band_5g.end());
+  out_frequencies->reset(new vector<int32_t>(band_info.band_5g.begin(),
+                                             band_info.band_5g.end()));
   return Status::ok();
 }
 
@@ -143,12 +143,12 @@ Status ScannerImpl::getAvailableDFSChannels(
                                &scan_capabilities_,
                                &wiphy_features_)) {
     LOG(ERROR) << "Failed to get wiphy info from kernel";
-    *out_frequencies = nullptr;
+    out_frequencies->reset(nullptr);
     return Status::ok();
   }
 
-  **out_frequencies = vector<int32_t>(band_info.band_dfs.begin(),
-                                      band_info.band_dfs.end());
+  out_frequencies->reset(new vector<int32_t>(band_info.band_dfs.begin(),
+                                             band_info.band_dfs.end()));
   return Status::ok();
 }
 
