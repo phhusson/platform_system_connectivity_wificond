@@ -74,6 +74,10 @@ NL80211Packet CreateControlMessageError(int error_code) {
   return NL80211Packet(data);
 }
 
+NL80211Packet CreateControlMessageAck() {
+  return CreateControlMessageError(0);
+}
+
 }  // namespace
 
 class NetlinkUtilsTest : public ::testing::Test {
@@ -130,6 +134,28 @@ TEST_F(NetlinkUtilsTest, CanHandleGetWiphyIndexError) {
 
   uint32_t wiphy_index;
   EXPECT_FALSE(netlink_utils_->GetWiphyIndex(&wiphy_index));
+}
+
+TEST_F(NetlinkUtilsTest, CanSetIntrerfaceMode) {
+  // Mock a ACK response from kernel.
+  vector<NL80211Packet> response = {CreateControlMessageAck()};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+
+  EXPECT_TRUE(netlink_utils_->SetInterfaceMode(kFakeInterfaceIndex,
+                                               NetlinkUtils::STATION_MODE));
+}
+
+TEST_F(NetlinkUtilsTest, CanHandleSetIntrerfaceModeError) {
+  // Mock an error response from kernel.
+  vector<NL80211Packet> response = {CreateControlMessageError(kFakeErrorCode)};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+
+  EXPECT_FALSE(netlink_utils_->SetInterfaceMode(kFakeInterfaceIndex,
+                                                NetlinkUtils::STATION_MODE));
 }
 
 TEST_F(NetlinkUtilsTest, CanGetInterfaceInfo) {

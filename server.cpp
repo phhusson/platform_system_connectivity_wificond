@@ -122,6 +122,7 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
   unique_ptr<ApInterfaceImpl> ap_interface(new ApInterfaceImpl(
       interface_name,
       interface_index,
+      netlink_utils_,
       if_tool_.get(),
       hostapd_manager_.get()));
   *created_interface = ap_interface->GetBinder();
