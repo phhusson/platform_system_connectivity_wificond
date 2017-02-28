@@ -93,6 +93,35 @@ class MlmeRoamEvent {
   DISALLOW_COPY_AND_ASSIGN(MlmeRoamEvent);
 };
 
+
+class MlmeDisconnectEvent {
+ public:
+  static std::unique_ptr<MlmeDisconnectEvent> InitFromPacket(
+      const NL80211Packet* packet);
+  uint32_t GetInterfaceIndex() const { return interface_index_; }
+ private:
+  MlmeDisconnectEvent() = default;
+
+  uint32_t interface_index_;
+  std::vector<uint8_t> bssid_;
+
+  DISALLOW_COPY_AND_ASSIGN(MlmeDisconnectEvent);
+};
+
+class MlmeDisassociateEvent {
+ public:
+  static std::unique_ptr<MlmeDisassociateEvent> InitFromPacket(
+      const NL80211Packet* packet);
+  uint32_t GetInterfaceIndex() const { return interface_index_; }
+ private:
+  MlmeDisassociateEvent() = default;
+
+  uint32_t interface_index_;
+  std::vector<uint8_t> bssid_;
+
+  DISALLOW_COPY_AND_ASSIGN(MlmeDisassociateEvent);
+};
+
 }  // namespace wificond
 }  // namespace android
 
