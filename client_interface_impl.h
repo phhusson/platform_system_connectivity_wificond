@@ -43,6 +43,8 @@ class MlmeEventHandlerImpl : public MlmeEventHandler {
   void OnConnect(std::unique_ptr<MlmeConnectEvent> event) override;
   void OnRoam(std::unique_ptr<MlmeRoamEvent> event) override;
   void OnAssociate(std::unique_ptr<MlmeAssociateEvent> event) override;
+  void OnDisconnect(std::unique_ptr<MlmeDisconnectEvent> event) override;
+  void OnDisassociate(std::unique_ptr<MlmeDisassociateEvent> event) override;
 
  private:
   ClientInterfaceImpl* client_interface_;
@@ -80,6 +82,7 @@ class ClientInterfaceImpl {
   bool requestANQP(
       const ::std::vector<uint8_t>& bssid,
       const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback);
+  bool IsAssociated();
 
  private:
   bool RefreshAssociateFreq();
@@ -97,6 +100,7 @@ class ClientInterfaceImpl {
   android::sp<ScannerImpl> scanner_;
 
   // Cached information for this connection.
+  bool is_associated_;
   std::vector<uint8_t> bssid_;
   uint32_t associate_freq_;
 
