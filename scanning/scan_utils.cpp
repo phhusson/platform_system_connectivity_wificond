@@ -162,6 +162,12 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet,
       LOG(ERROR) << "Failed to get TSF from scan result packet";
       return false;
     }
+    uint64_t beacon_tsf;
+    if (bss.GetAttributeValue(NL80211_BSS_BEACON_TSF, &beacon_tsf)) {
+      if (beacon_tsf > tsf) {
+        tsf = beacon_tsf;
+      }
+    }
     int32_t signal;
     if (!bss.GetAttributeValue(NL80211_BSS_SIGNAL_MBM, &signal)) {
       LOG(ERROR) << "Failed to get Signal Strength from scan result packet";
