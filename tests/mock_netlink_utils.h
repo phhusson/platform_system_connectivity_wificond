@@ -32,6 +32,8 @@ class MockNetlinkUtils : public NetlinkUtils {
   MOCK_METHOD1(GetWiphyIndex, bool(uint32_t* out_wiphy_index));
   MOCK_METHOD1(UnsubscribeMlmeEvent, void(uint32_t interface_index));
   MOCK_METHOD1(UnsubscribeRegDomainChange, void(uint32_t wiphy_index));
+  MOCK_METHOD2(SetInterfaceMode,
+               bool(uint32_t interface_index, InterfaceMode mode));
   MOCK_METHOD2(SubscribeMlmeEvent,
                void(uint32_t interface_index,
                     MlmeEventHandler* handler));

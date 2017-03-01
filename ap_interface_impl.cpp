@@ -18,6 +18,8 @@
 
 #include <android-base/logging.h>
 
+#include "wificond/net/netlink_utils.h"
+
 #include "wificond/ap_interface_binder.h"
 
 using android::net::wifi::IApInterface;
@@ -34,10 +36,12 @@ namespace wificond {
 
 ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
                                  uint32_t interface_index,
+                                 NetlinkUtils* netlink_utils,
                                  InterfaceTool* if_tool,
                                  HostapdManager* hostapd_manager)
     : interface_name_(interface_name),
       interface_index_(interface_index),
+      netlink_utils_(netlink_utils),
       if_tool_(if_tool),
       hostapd_manager_(hostapd_manager),
       binder_(new ApInterfaceBinder(this)) {
@@ -61,14 +65,28 @@ bool ApInterfaceImpl::StartHostapd() {
 
 bool ApInterfaceImpl::StopHostapd() {
   // Drop SIGKILL on hostapd.
-  bool success = hostapd_manager_->StopHostapd();
+  if (!hostapd_manager_->StopHostapd()) {
+    // Logging was done internally.
+    return false;
+  }
 
-  // Take down the interface.  This has the pleasant side effect of
-  // letting the driver know that we don't want any lingering AP logic
-  // running in the driver.
-  success = if_tool_->SetUpState(interface_name_.c_str(), false) && success;
+  // Take down the interface.
+  if (!if_tool_->SetUpState(interface_name_.c_str(), false)) {
+    // Logging was done internally.
+    return false;
+  }
 
-  return success;
+  // Since wificond SIGKILLs hostapd, hostapd has no chance to handle
+  // the cleanup.
+  // Besides taking down the interface, we also need to set the interface mode
+  // back to station mode for the cleanup.
+  if (!netlink_utils_->SetInterfaceMode(interface_index_,
+                                        NetlinkUtils::STATION_MODE)) {
+    LOG(ERROR) << "Failed to set interface back to station mode";
+    return false;
+  }
+
+  return true;
 }
 
 bool ApInterfaceImpl::WriteHostapdConfig(const vector<uint8_t>& ssid,

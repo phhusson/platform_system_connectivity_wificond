@@ -172,6 +172,36 @@ bool NetlinkUtils::GetInterfaceInfo(uint32_t wiphy_index,
   return false;
 }
 
+bool NetlinkUtils::SetInterfaceMode(uint32_t interface_index,
+                                    InterfaceMode mode) {
+  uint32_t set_to_mode = NL80211_IFTYPE_UNSPECIFIED;
+  if (mode == STATION_MODE) {
+    set_to_mode = NL80211_IFTYPE_STATION;
+  } else {
+    LOG(ERROR) << "Unexpected mode for interface with index: "
+               << interface_index;
+    return false;
+  }
+  NL80211Packet set_interface_mode(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_SET_INTERFACE,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  // Force an ACK response upon success.
+  set_interface_mode.AddFlag(NLM_F_ACK);
+
+  set_interface_mode.AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_IFINDEX, interface_index));
+  set_interface_mode.AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_IFTYPE, set_to_mode));
+
+  if (!netlink_manager_->SendMessageAndGetAck(set_interface_mode)) {
+    LOG(ERROR) << "NL80211_CMD_SET_INTERFACE failed";
+    return false;
+  }
+
+  return true;
+}
 
 bool NetlinkUtils::GetWiphyInfo(
     uint32_t wiphy_index,
