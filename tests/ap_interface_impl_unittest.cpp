@@ -22,6 +22,9 @@
 #include <wifi_system_test/mock_hostapd_manager.h>
 #include <wifi_system_test/mock_interface_tool.h>
 
+#include "wificond/tests/mock_netlink_manager.h"
+#include "wificond/tests/mock_netlink_utils.h"
+
 #include "wificond/ap_interface_impl.h"
 
 using android::wifi_system::HostapdManager;
@@ -48,8 +51,14 @@ class ApInterfaceImplTest : public ::testing::Test {
       new NiceMock<MockInterfaceTool>};
   unique_ptr<NiceMock<MockHostapdManager>> hostapd_manager_{
       new NiceMock<MockHostapdManager>};
+  unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_{
+      new NiceMock<MockNetlinkManager>()};
+  unique_ptr<NiceMock<MockNetlinkUtils>> netlink_utils_{
+      new NiceMock<MockNetlinkUtils>(netlink_manager_.get())};
+
   ApInterfaceImpl ap_interface_{kTestInterfaceName,
                                 kTestInterfaceIndex,
+                                netlink_utils_.get(),
                                 if_tool_.get(),
                                 hostapd_manager_.get()};
 };  // class ApInterfaceImplTest
@@ -79,6 +88,9 @@ TEST_F(ApInterfaceImplTest, ShouldReportStopSuccess) {
       .WillOnce(Return(true));
   EXPECT_CALL(*if_tool_, SetUpState(StrEq(kTestInterfaceName), false))
       .WillOnce(Return(true));
+  EXPECT_CALL(*netlink_utils_, SetInterfaceMode(
+      kTestInterfaceIndex,
+      NetlinkUtils::STATION_MODE)).WillOnce(Return(true));
   EXPECT_TRUE(ap_interface_.StopHostapd());
   testing::Mock::VerifyAndClearExpectations(if_tool_.get());
 }
