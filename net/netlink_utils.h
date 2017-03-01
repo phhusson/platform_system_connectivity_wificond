@@ -109,6 +109,12 @@ class NL80211Packet;
 // Provides NL80211 helper functions.
 class NetlinkUtils {
  public:
+  // Currently we only support setting the interface to STATION mode.
+  // This is used for cleaning up interface after KILLING hostapd.
+  enum InterfaceMode{
+      STATION_MODE
+  };
+
   explicit NetlinkUtils(NetlinkManager* netlink_manager);
   virtual ~NetlinkUtils();
 
@@ -124,6 +130,13 @@ class NetlinkUtils {
                                 std::string* name,
                                 uint32_t* index,
                                 std::vector<uint8_t>* mac_addr);
+
+  // Set the mode of interface.
+  // |interface_index| is the interface index.
+  // |mode| is one of the values in |enum InterfaceMode|.
+  // Returns true on success.
+  virtual bool SetInterfaceMode(uint32_t interface_index,
+                                InterfaceMode mode);
 
   // Get wiphy capability information from kernel.
   // Returns true on success.

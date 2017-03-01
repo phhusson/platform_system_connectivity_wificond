@@ -30,6 +30,7 @@ namespace android {
 namespace wificond {
 
 class ApInterfaceBinder;
+class NetlinkUtils;
 
 // Holds the guts of how we control network interfaces capable of exposing an AP
 // via hostapd.  Because remote processes may hold on to the corresponding
@@ -39,6 +40,7 @@ class ApInterfaceImpl {
  public:
   ApInterfaceImpl(const std::string& interface_name,
                   uint32_t interface_index,
+                  NetlinkUtils* netlink_utils,
                   wifi_system::InterfaceTool* if_tool,
                   wifi_system::HostapdManager* hostapd_manager);
   ~ApInterfaceImpl();
@@ -59,6 +61,7 @@ class ApInterfaceImpl {
  private:
   const std::string interface_name_;
   const uint32_t interface_index_;
+  NetlinkUtils* const netlink_utils_;
   wifi_system::InterfaceTool* const if_tool_;
   wifi_system::HostapdManager* const hostapd_manager_;
   const android::sp<ApInterfaceBinder> binder_;
