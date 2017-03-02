@@ -22,8 +22,6 @@
 #include <vector>
 
 #include <android-base/macros.h>
-#include <wifi_hal/driver_tool.h>
-#include <wifi_system/hal_tool.h>
 #include <wifi_system/interface_tool.h>
 
 #include "android/net/wifi/BnWificond.h"
@@ -44,9 +42,7 @@ class ScanUtils;
 
 class Server : public android::net::wifi::BnWificond {
  public:
-  Server(std::unique_ptr<wifi_system::HalTool> hal_tool,
-         std::unique_ptr<wifi_system::InterfaceTool> if_tool,
-         std::unique_ptr<wifi_hal::DriverTool> driver_tool,
+  Server(std::unique_ptr<wifi_system::InterfaceTool> if_tool,
          std::unique_ptr<wifi_system::SupplicantManager> supplicant_man,
          std::unique_ptr<wifi_system::HostapdManager> hostapd_man,
          NetlinkUtils* netlink_utils,
@@ -90,17 +86,14 @@ class Server : public android::net::wifi::BnWificond {
   void CleanUpSystemState();
 
  private:
-  // Does the actual work of setting up an interface for a particular mode.
-  //
-  // |mode| is one of WIFI_GET_FW_PATH_* defined in hardware_legacy/wifi.h.
-  // |interface_name| is a pointer to a string to store the name of Linux
-  //     network interface that has been setup.
-  //
+  // Request interface information from kernel and setup local interface object.
+  // This assumes that interface should be in STATION mode. Even if we setup
+  // interface on behalf of createApInterace(), it is Hostapd that configure
+  // the interface to Ap mode later.
   // Returns true on success, false otherwise.
-  bool SetupInterfaceForMode(int mode,
-                             std::string* interface_name,
-                             uint32_t* interface_index,
-                             std::vector<uint8_t>* interface_mac_addr);
+  bool SetupInterface(std::string* interface_name,
+                      uint32_t* interface_index,
+                      std::vector<uint8_t>* interface_mac_addr);
   bool RefreshWiphyIndex();
   void LogSupportedBands();
   void OnRegDomainChanged(std::string& country_code);
@@ -113,9 +106,7 @@ class Server : public android::net::wifi::BnWificond {
   void BroadcastApInterfaceTornDown(
       android::sp<android::net::wifi::IApInterface> network_interface);
 
-  const std::unique_ptr<wifi_system::HalTool> hal_tool_;
   const std::unique_ptr<wifi_system::InterfaceTool> if_tool_;
-  const std::unique_ptr<wifi_hal::DriverTool> driver_tool_;
   const std::unique_ptr<wifi_system::SupplicantManager> supplicant_manager_;
   const std::unique_ptr<wifi_system::HostapdManager> hostapd_manager_;
   NetlinkUtils* const netlink_utils_;
