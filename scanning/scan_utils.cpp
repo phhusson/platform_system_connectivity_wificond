@@ -88,7 +88,7 @@ bool ScanUtils::GetScanResult(uint32_t interface_index,
   }
   if (response.empty()) {
     LOG(INFO) << "Unexpected empty scan result!";
-    return false;
+    return true;
   }
 
   for (auto& packet : response) {
