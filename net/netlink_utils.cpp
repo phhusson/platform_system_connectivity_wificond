@@ -301,7 +301,7 @@ bool NetlinkUtils::ParseBandInfo(const NL80211Packet* const packet,
       uint32_t frequency_value;
       if (!freq.GetAttributeValue(NL80211_FREQUENCY_ATTR_FREQ,
                                   &frequency_value)) {
-        LOG(ERROR) << "Failed to get NL80211_FREQUENCY_ATTR_FREQ";
+        LOG(DEBUG) << "Failed to get NL80211_FREQUENCY_ATTR_FREQ";
         continue;
       }
       // Channel is disabled in current regulatory domain.
