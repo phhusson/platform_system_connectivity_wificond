@@ -165,6 +165,7 @@ Status ScannerImpl::getScanResults(vector<NativeScanResult>* out_scan_results) {
 Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
                          bool* out_success) {
   if (!CheckIsValid()) {
+    *out_success = false;
     return Status::ok();
   }
 
@@ -203,6 +204,7 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
 Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                  bool* out_success) {
   if (!CheckIsValid()) {
+    *out_success = false;
     return Status::ok();
   }
   if (pno_scan_started_) {
@@ -256,6 +258,7 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
 
 Status ScannerImpl::stopPnoScan(bool* out_success) {
   if (!CheckIsValid()) {
+    *out_success = false;
     return Status::ok();
   }
 
