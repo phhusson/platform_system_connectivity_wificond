@@ -337,14 +337,10 @@ bool ScanUtils::StartScheduledScan(
     NL80211NestedAttr match_group(i);
     match_group.AddAttribute(
         NL80211Attr<vector<uint8_t>>(NL80211_SCHED_SCAN_MATCH_ATTR_SSID, match_ssids[i]));
-    // TODO(nywang): Add RSSI threshold for every SSID respectively.
+    match_group.AddAttribute(
+        NL80211Attr<int32_t>(NL80211_SCHED_SCAN_MATCH_ATTR_RSSI, rssi_threshold));
     scan_match_attr.AddAttribute(match_group);
   }
-  // Global RSSI threshold.
-  NL80211NestedAttr global_rssi_match_group(match_ssids.size());
-  global_rssi_match_group.AddAttribute(
-      NL80211Attr<int32_t>(NL80211_SCHED_SCAN_MATCH_ATTR_RSSI, rssi_threshold));
-  scan_match_attr.AddAttribute(global_rssi_match_group);
 
   // Append all attributes to the NL80211_CMD_START_SCHED_SCAN packet.
   start_sched_scan.AddAttribute(
