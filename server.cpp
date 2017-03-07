@@ -31,8 +31,6 @@ using android::net::wifi::IClientInterface;
 using android::net::wifi::IInterfaceEventCallback;
 using android::net::wifi::IRttClient;
 using android::net::wifi::IRttController;
-using android::wifi_hal::DriverTool;
-using android::wifi_system::HalTool;
 using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
@@ -46,16 +44,12 @@ using std::vector;
 namespace android {
 namespace wificond {
 
-Server::Server(unique_ptr<HalTool> hal_tool,
-               unique_ptr<InterfaceTool> if_tool,
-               unique_ptr<DriverTool> driver_tool,
+Server::Server(unique_ptr<InterfaceTool> if_tool,
                unique_ptr<SupplicantManager> supplicant_manager,
                unique_ptr<HostapdManager> hostapd_manager,
                NetlinkUtils* netlink_utils,
                ScanUtils* scan_utils)
-    : hal_tool_(std::move(hal_tool)),
-      if_tool_(std::move(if_tool)),
-      driver_tool_(std::move(driver_tool)),
+    : if_tool_(std::move(if_tool)),
       supplicant_manager_(std::move(supplicant_manager)),
       hostapd_manager_(std::move(hostapd_manager)),
       netlink_utils_(netlink_utils),
@@ -112,8 +106,7 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
   string interface_name;
   uint32_t interface_index;
   vector<uint8_t> interface_mac_addr;
-  if (!SetupInterfaceForMode(DriverTool::kFirmwareModeAp,
-                             &interface_name,
+  if (!SetupInterface(&interface_name,
                              &interface_index,
                              &interface_mac_addr)) {
     return Status::ok();  // Logging was done internally
@@ -136,8 +129,7 @@ Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
   string interface_name;
   uint32_t interface_index;
   vector<uint8_t> interface_mac_addr;
-  if (!SetupInterfaceForMode(DriverTool::kFirmwareModeSta,
-                             &interface_name,
+  if (!SetupInterface(&interface_name,
                              &interface_index,
                              &interface_mac_addr)) {
     return Status::ok();  // Logging was done internally
@@ -172,9 +164,6 @@ Status Server::tearDownInterfaces() {
 
   netlink_utils_->UnsubscribeRegDomainChange(wiphy_index_);
 
-  if (!driver_tool_->UnloadDriver()) {
-    LOG(ERROR) << "Failed to unload WiFi driver!";
-  }
   return Status::ok();
 }
 
@@ -212,29 +201,15 @@ void Server::CleanUpSystemState() {
     // as a client.
     if_tool_->SetUpState(if_name.c_str(), false);
   }
-  // "unloading the driver" is frequently a no-op in systems that
-  // don't have kernel modules, but just in case.
-  driver_tool_->UnloadDriver();
 }
 
-bool Server::SetupInterfaceForMode(int mode,
-                                   string* interface_name,
-                                   uint32_t* interface_index,
-                                   vector<uint8_t>* interface_mac_addr) {
+bool Server::SetupInterface(string* interface_name,
+                            uint32_t* interface_index,
+                            vector<uint8_t>* interface_mac_addr) {
   if (!ap_interfaces_.empty() || !client_interfaces_.empty()) {
     // In the future we may support multiple interfaces at once.  However,
     // today, we support just one.
     LOG(ERROR) << "Cannot create AP interface when other interfaces exist";
-    return false;
-  }
-
-  string result;
-  if (!driver_tool_->LoadDriver()) {
-    LOG(ERROR) << "Failed to load WiFi driver!";
-    return false;
-  }
-  if (!driver_tool_->ChangeFirmwareMode(mode)) {
-    LOG(ERROR) << "Failed to change WiFi firmware mode!";
     return false;
   }
 
