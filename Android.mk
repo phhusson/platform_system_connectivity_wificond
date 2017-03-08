@@ -166,11 +166,17 @@ LOCAL_SRC_FILES := \
     tests/main.cpp \
     tests/mock_netlink_manager.cpp \
     tests/mock_netlink_utils.cpp \
+    tests/mock_offload.cpp \
+    tests/mock_offload_service_utils.cpp \
     tests/mock_scan_utils.cpp \
     tests/netlink_manager_unittest.cpp \
     tests/netlink_utils_unittest.cpp \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \
+    tests/offload_callback_test.cpp \
+    tests/offload_scan_manager_test.cpp \
+    tests/offload_scan_utils_test.cpp \
+    tests/offload_test_utils.cpp \
     tests/scan_result_unittest.cpp \
     tests/scan_settings_unittest.cpp \
     tests/scan_utils_unittest.cpp \
