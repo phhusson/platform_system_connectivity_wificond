@@ -24,6 +24,8 @@
 #include <wifi_system/hostapd_manager.h>
 #include <wifi_system/interface_tool.h>
 
+#include "wificond/net/netlink_manager.h"
+
 #include "android/net/wifi/IApInterface.h"
 
 namespace android {
@@ -65,6 +67,9 @@ class ApInterfaceImpl {
   wifi_system::InterfaceTool* const if_tool_;
   wifi_system::HostapdManager* const hostapd_manager_;
   const android::sp<ApInterfaceBinder> binder_;
+
+  void OnStationEvent(StationEvent event,
+                      const std::vector<uint8_t>& mac_address);
 
   DISALLOW_COPY_AND_ASSIGN(ApInterfaceImpl);
 };
