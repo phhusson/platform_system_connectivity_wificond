@@ -65,6 +65,8 @@ unique_ptr<MlmeAssociateEvent> MlmeAssociateEvent::InitFromPacket(
   // TODO(nywang): Parse NL80211_ATTR_FRAME 80211 management frame and get
   // status code.
   associate_event->status_code_ = 0;
+  associate_event->is_timeout_ = packet->HasAttribute(NL80211_ATTR_TIMED_OUT);
+
   return associate_event;
 }
 
@@ -85,6 +87,8 @@ unique_ptr<MlmeConnectEvent> MlmeConnectEvent::InitFromPacket(
     LOG(WARNING) << "Failed to get NL80211_ATTR_STATUS_CODE";
     connect_event->status_code_ = 0;
   }
+  connect_event->is_timeout_ = packet->HasAttribute(NL80211_ATTR_TIMED_OUT);
+
   return connect_event;
 }
 
