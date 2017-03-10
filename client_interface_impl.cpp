@@ -50,11 +50,14 @@ MlmeEventHandlerImpl::~MlmeEventHandlerImpl() {
 }
 
 void MlmeEventHandlerImpl::OnConnect(unique_ptr<MlmeConnectEvent> event) {
-  if (event->GetStatusCode() == 0) {
+  if (!event->IsTimeout() && event->GetStatusCode() == 0) {
     client_interface_->is_associated_ = true;
     client_interface_->RefreshAssociateFreq();
     client_interface_->bssid_ = event->GetBSSID();
   } else {
+    if (event->IsTimeout()) {
+      LOG(INFO) << "Connect timeout";
+    }
     client_interface_->is_associated_ = false;
     client_interface_->bssid_.clear();
   }
@@ -72,11 +75,14 @@ void MlmeEventHandlerImpl::OnRoam(unique_ptr<MlmeRoamEvent> event) {
 }
 
 void MlmeEventHandlerImpl::OnAssociate(unique_ptr<MlmeAssociateEvent> event) {
-  if (event->GetStatusCode() == 0) {
+  if (!event->IsTimeout() && event->GetStatusCode() == 0) {
     client_interface_->is_associated_ = true;
     client_interface_->RefreshAssociateFreq();
     client_interface_->bssid_ = event->GetBSSID();
   } else {
+    if (event->IsTimeout()) {
+      LOG(INFO) << "Associate timeout";
+    }
     client_interface_->is_associated_ = false;
     client_interface_->bssid_.clear();
   }
