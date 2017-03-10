@@ -242,7 +242,7 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
   if (!scan_utils_->StartScheduledScan(interface_index_,
                                        pno_settings.interval_ms_,
                                        // TODO: honor both rssi thresholds.
-                                       pno_settings.min_2g_rssi_,
+                                       pno_settings.min_5g_rssi_,
                                        request_random_mac,
                                        scan_ssids,
                                        match_ssids,
