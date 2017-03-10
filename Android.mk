@@ -35,7 +35,6 @@ LOCAL_SHARED_LIBRARIES := \
     libcutils \
     libminijail \
     libutils \
-    libwifi-hal \
     libwifi-system
 LOCAL_STATIC_LIBRARIES := \
     libwificond
@@ -68,7 +67,6 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES := \
     libbase \
     libutils \
-    libwifi-hal \
     libwifi-system
 LOCAL_WHOLE_STATIC_LIBRARIES := \
     libwificond_ipc \
@@ -166,7 +164,6 @@ LOCAL_SRC_FILES := \
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
     libgtest \
-    libwifi-hal-test \
     libwifi-system-test \
     libwificond \
     libwificond_nl
@@ -175,7 +172,6 @@ LOCAL_SHARED_LIBRARIES := \
     libbinder \
     liblog \
     libutils \
-    libwifi-hal \
     libwifi-system
 include $(BUILD_NATIVE_TEST)
 
@@ -205,32 +201,3 @@ LOCAL_STATIC_LIBRARIES := \
     libwificond_ipc \
     libwificond_test_utils
 include $(BUILD_NATIVE_TEST)
-
-###
-### wpa_supplicant binder integration tests.
-### (Compiled only when wpa_supplicant's binder interface is enabled)
-###
-ifeq ($(WPA_SUPPLICANT_USE_BINDER), y)
-include $(CLEAR_VARS)
-LOCAL_MODULE := wpa_supplicant_binder_test
-LOCAL_CPPFLAGS := $(wificond_cpp_flags)
-LOCAL_SRC_FILES := \
-    tests/integration/wpa_supplicant_binder/connect_tests.cpp \
-    tests/integration/wpa_supplicant_binder/main.cpp \
-    tests/integration/wpa_supplicant_binder/network_params.cpp \
-    tests/integration/wpa_supplicant_binder/test_base.cpp \
-    tests/integration/wpa_supplicant_binder/tests.cpp
-LOCAL_SHARED_LIBRARIES := \
-    libbase \
-    libbinder \
-    libcutils \
-    libutils \
-    libwifi-hal \
-    libwifi-system
-LOCAL_STATIC_LIBRARIES := \
-    libgmock \
-    libjsoncpp \
-    libwificond_test_utils \
-    libwpa_binder_interface
-include $(BUILD_NATIVE_TEST)
-endif # WPA_SUPPLICANT_USE_BINDER == y
