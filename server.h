@@ -40,6 +40,8 @@ class NL80211Packet;
 class NetlinkUtils;
 class ScanUtils;
 
+struct InterfaceInfo;
+
 class Server : public android::net::wifi::BnWificond {
  public:
   Server(std::unique_ptr<wifi_system::InterfaceTool> if_tool,
@@ -91,9 +93,7 @@ class Server : public android::net::wifi::BnWificond {
   // interface on behalf of createApInterace(), it is Hostapd that configure
   // the interface to Ap mode later.
   // Returns true on success, false otherwise.
-  bool SetupInterface(std::string* interface_name,
-                      uint32_t* interface_index,
-                      std::vector<uint8_t>* interface_mac_addr);
+  bool SetupInterface(InterfaceInfo* interface);
   bool RefreshWiphyIndex();
   void LogSupportedBands();
   void OnRegDomainChanged(std::string& country_code);
@@ -105,6 +105,7 @@ class Server : public android::net::wifi::BnWificond {
       android::sp<android::net::wifi::IClientInterface> network_interface);
   void BroadcastApInterfaceTornDown(
       android::sp<android::net::wifi::IApInterface> network_interface);
+  void MarkDownAllInterfaces();
 
   const std::unique_ptr<wifi_system::InterfaceTool> if_tool_;
   const std::unique_ptr<wifi_system::SupplicantManager> supplicant_manager_;
