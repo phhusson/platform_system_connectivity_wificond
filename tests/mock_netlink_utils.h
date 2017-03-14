@@ -41,11 +41,9 @@ class MockNetlinkUtils : public NetlinkUtils {
                void(uint32_t wiphy_index,
                     OnRegDomainChangedHandler handler));
 
-  MOCK_METHOD4(GetInterfaceInfo,
+  MOCK_METHOD2(GetInterfaces,
                bool(uint32_t wiphy_index,
-                    std::string* name,
-                    uint32_t* index,
-                    std::vector<uint8_t>* mac_address));
+                    std::vector<InterfaceInfo>* interfaces));
   MOCK_METHOD4(GetWiphyInfo,
                bool(uint32_t wiphy_index,
                     BandInfo* band_info,

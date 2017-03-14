@@ -103,18 +103,14 @@ Status Server::unregisterRttClient(const sp<IRttClient>& rttClient) {
 }
 
 Status Server::createApInterface(sp<IApInterface>* created_interface) {
-  string interface_name;
-  uint32_t interface_index;
-  vector<uint8_t> interface_mac_addr;
-  if (!SetupInterface(&interface_name,
-                             &interface_index,
-                             &interface_mac_addr)) {
+  InterfaceInfo interface;
+  if (!SetupInterface(&interface)) {
     return Status::ok();  // Logging was done internally
   }
 
   unique_ptr<ApInterfaceImpl> ap_interface(new ApInterfaceImpl(
-      interface_name,
-      interface_index,
+      interface.name,
+      interface.index,
       netlink_utils_,
       if_tool_.get(),
       hostapd_manager_.get()));
@@ -126,20 +122,16 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
 }
 
 Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
-  string interface_name;
-  uint32_t interface_index;
-  vector<uint8_t> interface_mac_addr;
-  if (!SetupInterface(&interface_name,
-                             &interface_index,
-                             &interface_mac_addr)) {
+  InterfaceInfo interface;
+  if (!SetupInterface(&interface)) {
     return Status::ok();  // Logging was done internally
   }
 
   unique_ptr<ClientInterfaceImpl> client_interface(new ClientInterfaceImpl(
       wiphy_index_,
-      interface_name,
-      interface_index,
-      interface_mac_addr,
+      interface.name,
+      interface.index,
+      interface.mac_address,
       if_tool_.get(),
       supplicant_manager_.get(),
       netlink_utils_,
@@ -162,6 +154,8 @@ Status Server::tearDownInterfaces() {
   }
   ap_interfaces_.clear();
 
+  MarkDownAllInterfaces();
+
   netlink_utils_->UnsubscribeRegDomainChange(wiphy_index_);
 
   return Status::ok();
@@ -183,29 +177,24 @@ Status Server::GetApInterfaces(vector<sp<IBinder>>* out_ap_interfaces) {
   return binder::Status::ok();
 }
 
-void Server::CleanUpSystemState() {
-  supplicant_manager_->StopSupplicant();
-  hostapd_manager_->StopHostapd();
-
-  uint32_t phy_index = 0;
-  uint32_t if_index = 0;
-  vector<uint8_t> mac;
-  string if_name;
-  if (netlink_utils_->GetWiphyIndex(&phy_index) &&
-      netlink_utils_->GetInterfaceInfo(phy_index,
-                                       &if_name,
-                                       &if_index,
-                                       &mac)) {
-    // If the kernel knows about a network interface, mark it as down.
-    // This prevents us from beaconing as an AP, or remaining associated
-    // as a client.
-    if_tool_->SetUpState(if_name.c_str(), false);
+void Server::MarkDownAllInterfaces() {
+  uint32_t wiphy_index;
+  vector<InterfaceInfo> interfaces;
+  if (netlink_utils_->GetWiphyIndex(&wiphy_index) &&
+      netlink_utils_->GetInterfaces(wiphy_index, &interfaces)) {
+    for (InterfaceInfo& interface : interfaces) {
+      if_tool_->SetUpState(interface.name.c_str(), false);
+    }
   }
 }
 
-bool Server::SetupInterface(string* interface_name,
-                            uint32_t* interface_index,
-                            vector<uint8_t>* interface_mac_addr) {
+void Server::CleanUpSystemState() {
+  supplicant_manager_->StopSupplicant();
+  hostapd_manager_->StopHostapd();
+  MarkDownAllInterfaces();
+}
+
+bool Server::SetupInterface(InterfaceInfo* interface) {
   if (!ap_interfaces_.empty() || !client_interfaces_.empty()) {
     // In the future we may support multiple interfaces at once.  However,
     // today, we support just one.
@@ -223,15 +212,24 @@ bool Server::SetupInterface(string* interface_name,
           this,
           _1));
 
-  if (!netlink_utils_->GetInterfaceInfo(wiphy_index_,
-                                        interface_name,
-                                        interface_index,
-                                        interface_mac_addr)) {
-    LOG(ERROR) << "Failed to get interface info from kernel";
+  vector<InterfaceInfo> interfaces;
+  if (!netlink_utils_->GetInterfaces(wiphy_index_, &interfaces)) {
+    LOG(ERROR) << "Failed to get interfaces info from kernel";
     return false;
   }
 
-  return true;
+  for (InterfaceInfo& iface : interfaces) {
+    // Some kernel/driver uses station type for p2p interface.
+    // In that case we can only rely on hard-coded name to exclude
+    // p2p interface from station interfaces.
+    if (iface.name != "p2p0") {
+      *interface = iface;
+      return true;
+    }
+  }
+
+  LOG(ERROR) << "No usable interface found";
+  return false;
 }
 
 bool Server::RefreshWiphyIndex() {
