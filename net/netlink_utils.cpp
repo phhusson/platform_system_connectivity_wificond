@@ -90,21 +90,19 @@ bool NetlinkUtils::GetWiphyIndex(uint32_t* out_wiphy_index) {
   return true;
 }
 
-bool NetlinkUtils::GetInterfaceInfo(uint32_t wiphy_index,
-                                    string* name,
-                                    uint32_t* index,
-                                    vector<uint8_t>* mac_addr) {
-  NL80211Packet get_interface(
+bool NetlinkUtils::GetInterfaces(uint32_t wiphy_index,
+                                 vector<InterfaceInfo>* interface_info) {
+  NL80211Packet get_interfaces(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_GET_INTERFACE,
       netlink_manager_->GetSequenceNumber(),
       getpid());
 
-  get_interface.AddFlag(NLM_F_DUMP);
-  NL80211Attr<uint32_t> wiphy(NL80211_ATTR_WIPHY, wiphy_index);
-  get_interface.AddAttribute(wiphy);
+  get_interfaces.AddFlag(NLM_F_DUMP);
+  get_interfaces.AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY, wiphy_index));
   vector<unique_ptr<const NL80211Packet>> response;
-  if (!netlink_manager_->SendMessageAndGetResponses(get_interface, &response)) {
+  if (!netlink_manager_->SendMessageAndGetResponses(get_interfaces, &response)) {
     LOG(ERROR) << "NL80211_CMD_GET_INTERFACE dump failed";
     return false;
   }
@@ -130,6 +128,16 @@ bool NetlinkUtils::GetInterfaceInfo(uint32_t wiphy_index,
       return false;
     }
 
+    // In some situations, it has been observed that the kernel tells us
+    // about a pseudo interface that does not have a real netdev.  In this
+    // case, responses will have a NL80211_ATTR_WDEV, and not the expected
+    // IFNAME/IFINDEX. In this case we just skip these pseudo interfaces.
+    uint32_t if_index;
+    if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+      LOG(DEBUG) << "Failed to get interface index";
+      continue;
+    }
+
     // Today we don't check NL80211_ATTR_IFTYPE because at this point of time
     // driver always reports that interface is in STATION mode. Even when we
     // are asking interfaces infomation on behalf of tethering, it is still so
@@ -137,39 +145,20 @@ bool NetlinkUtils::GetInterfaceInfo(uint32_t wiphy_index,
 
     string if_name;
     if (!packet->GetAttributeValue(NL80211_ATTR_IFNAME, &if_name)) {
-      // In some situations, it has been observed that the kernel tells us
-      // about a pseudo-device that does not have a real netdev.  In this
-      // case, responses will have a NL80211_ATTR_WDEV, and not the expected
-      // IFNAME.
-      LOG(DEBUG) << "Failed to get interface name";
-      continue;
-    }
-    if (if_name == "p2p0") {
-      LOG(DEBUG) << "Driver may tell a lie that p2p0 is in STATION mode,"
-                 <<" we need to blacklist it.";
-      continue;
-    }
-
-    uint32_t if_index;
-    if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
-      LOG(DEBUG) << "Failed to get interface index";
+      LOG(WARNING) << "Failed to get interface name";
       continue;
     }
 
     vector<uint8_t> if_mac_addr;
     if (!packet->GetAttributeValue(NL80211_ATTR_MAC, &if_mac_addr)) {
-      LOG(DEBUG) << "Failed to get interface mac address";
+      LOG(WARNING) << "Failed to get interface mac address";
       continue;
     }
 
-    *name = if_name;
-    *index = if_index;
-    *mac_addr = if_mac_addr;
-    return true;
+    interface_info->emplace_back(if_index, if_name, if_mac_addr);
   }
 
-  LOG(ERROR) << "Failed to get expected interface info from kernel";
-  return false;
+  return true;
 }
 
 bool NetlinkUtils::SetInterfaceMode(uint32_t interface_index,
