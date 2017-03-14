@@ -79,7 +79,8 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
       std::vector<std::vector<uint8_t>>& ssids,
       std::vector<uint32_t>& frequencies);
   void OnSchedScanResultsReady(uint32_t interface_index, bool scan_stopped);
-
+  void LogSsidList(std::vector<std::vector<uint8_t>>& ssid_list,
+                   std::string prefix);
 
   // Boolean variables describing current scanner status.
   bool valid_;
