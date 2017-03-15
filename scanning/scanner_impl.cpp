@@ -178,14 +178,17 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
 
   // Initialize it with an empty ssid for a wild card scan.
   vector<vector<uint8_t>> ssids = {{}};
+
+  vector<vector<uint8_t>> skipped_scan_ssids;
   for (auto& network : scan_settings.hidden_networks_) {
     if (ssids.size() + 1 > scan_capabilities_.max_num_scan_ssids) {
-      LOG(WARNING) << "Skip scan ssid for single scan: "
-                   << string(network.ssid_.begin(), network.ssid_.end());
+      skipped_scan_ssids.emplace_back(network.ssid_);
       continue;
     }
     ssids.push_back(network.ssid_);
   }
+
+  LogSsidList(skipped_scan_ssids, "Skip scan ssid for single scan");
 
   vector<uint32_t> freqs;
   for (auto& channel : scan_settings.channel_settings_) {
@@ -216,24 +219,27 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
   // Empty frequency list: scan all frequencies.
   vector<uint32_t> freqs;
 
+  vector<vector<uint8_t>> skipped_scan_ssids;
+  vector<vector<uint8_t>> skipped_match_ssids;
   for (auto& network : pno_settings.pno_networks_) {
     // Add hidden network ssid.
     if (network.is_hidden_) {
       if (scan_ssids.size() + 1 > scan_capabilities_.max_num_sched_scan_ssids) {
-        LOG(WARNING) << "Skip scan ssid for pno scan: "
-                     << string(network.ssid_.begin(), network.ssid_.end());
+        skipped_scan_ssids.emplace_back(network.ssid_);
         continue;
       }
       scan_ssids.push_back(network.ssid_);
     }
 
     if (match_ssids.size() + 1 > scan_capabilities_.max_match_sets) {
-      LOG(WARNING) << "Skip match ssid for pno scan: "
-                   << string(network.ssid_.begin(), network.ssid_.end());
+      skipped_match_ssids.emplace_back(network.ssid_);
       continue;
     }
     match_ssids.push_back(network.ssid_);
   }
+
+  LogSsidList(skipped_scan_ssids, "Skip scan ssid for pno scan");
+  LogSsidList(skipped_match_ssids, "Skip match ssid for pno scan");
 
   // Only request MAC address randomization when station is not associated.
   bool request_random_mac = wiphy_features_.supports_random_mac_sched_scan &&
@@ -348,6 +354,21 @@ void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
       pno_scan_event_handler_->OnPnoNetworkFound();
     }
   }
+}
+
+void ScannerImpl::LogSsidList(vector<vector<uint8_t>>& ssid_list,
+                              string prefix) {
+  if (ssid_list.empty()) {
+    return;
+  }
+  string ssid_list_string;
+  for (auto& ssid : ssid_list) {
+    ssid_list_string += string(ssid.begin(), ssid.end());
+    if (&ssid != &ssid_list.back()) {
+      ssid_list_string += ", ";
+    }
+  }
+  LOG(WARNING) << prefix << ": " << ssid_list_string;
 }
 
 }  // namespace wificond
