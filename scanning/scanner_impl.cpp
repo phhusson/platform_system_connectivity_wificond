@@ -330,7 +330,9 @@ void ScannerImpl::OnScanResultsReady(
     // TODO: Pass other parameters back once we find framework needs them.
     if (aborted) {
       LOG(WARNING) << "Scan aborted";
-      scan_event_handler_->OnScanFailed();
+      // TODO(b/36231150): Only plumb through scan aborted event when
+      // we make sure WificondScanner.java won't cause a tight loop.
+      // scan_event_handler_->OnScanFailed();
     } else {
       scan_event_handler_->OnScanResultReady();
     }
