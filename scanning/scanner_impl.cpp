@@ -276,6 +276,7 @@ Status ScannerImpl::stopPnoScan(bool* out_success) {
     *out_success = false;
     return Status::ok();
   }
+  LOG(INFO) << "Pno scan stopped";
   pno_scan_started_ = false;
   *out_success = true;
   return Status::ok();
@@ -345,6 +346,7 @@ void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
                                           bool scan_stopped) {
   if (pno_scan_event_handler_ != nullptr) {
     if (scan_stopped) {
+      LOG(INFO) << "Pno scan stopped event";
       // If |pno_scan_started_| is false.
       // This stop notification might result from our own request.
       // See the document for NL80211_CMD_SCHED_SCAN_STOPPED in nl80211.h.
@@ -353,6 +355,7 @@ void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
       }
       pno_scan_started_ = false;
     } else {
+      LOG(INFO) << "Pno scan result ready event";
       pno_scan_event_handler_->OnPnoNetworkFound();
     }
   }
