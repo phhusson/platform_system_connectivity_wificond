@@ -56,11 +56,19 @@ class ApInterfaceImplTest : public ::testing::Test {
   unique_ptr<NiceMock<MockNetlinkUtils>> netlink_utils_{
       new NiceMock<MockNetlinkUtils>(netlink_manager_.get())};
 
-  ApInterfaceImpl ap_interface_{kTestInterfaceName,
-                                kTestInterfaceIndex,
-                                netlink_utils_.get(),
-                                if_tool_.get(),
-                                hostapd_manager_.get()};
+  unique_ptr<ApInterfaceImpl> ap_interface_;
+
+  void SetUp() override {
+    EXPECT_CALL(*netlink_utils_,
+                SubscribeStationEvent(kTestInterfaceIndex, _));
+
+    ap_interface_.reset(new ApInterfaceImpl(
+        kTestInterfaceName,
+        kTestInterfaceIndex,
+        netlink_utils_.get(),
+        if_tool_.get(),
+        hostapd_manager_.get()));
+  }
 };  // class ApInterfaceImplTest
 
 }  // namespace
@@ -68,19 +76,19 @@ class ApInterfaceImplTest : public ::testing::Test {
 TEST_F(ApInterfaceImplTest, ShouldReportStartFailure) {
   EXPECT_CALL(*hostapd_manager_, StartHostapd())
       .WillOnce(Return(false));
-  EXPECT_FALSE(ap_interface_.StartHostapd());
+  EXPECT_FALSE(ap_interface_->StartHostapd());
 }
 
 TEST_F(ApInterfaceImplTest, ShouldReportStartSuccess) {
   EXPECT_CALL(*hostapd_manager_, StartHostapd())
       .WillOnce(Return(true));
-  EXPECT_TRUE(ap_interface_.StartHostapd());
+  EXPECT_TRUE(ap_interface_->StartHostapd());
 }
 
 TEST_F(ApInterfaceImplTest, ShouldReportStopFailure) {
   EXPECT_CALL(*hostapd_manager_, StopHostapd())
       .WillOnce(Return(false));
-  EXPECT_FALSE(ap_interface_.StopHostapd());
+  EXPECT_FALSE(ap_interface_->StopHostapd());
 }
 
 TEST_F(ApInterfaceImplTest, ShouldReportStopSuccess) {
@@ -91,7 +99,7 @@ TEST_F(ApInterfaceImplTest, ShouldReportStopSuccess) {
   EXPECT_CALL(*netlink_utils_, SetInterfaceMode(
       kTestInterfaceIndex,
       NetlinkUtils::STATION_MODE)).WillOnce(Return(true));
-  EXPECT_TRUE(ap_interface_.StopHostapd());
+  EXPECT_TRUE(ap_interface_->StopHostapd());
   testing::Mock::VerifyAndClearExpectations(if_tool_.get());
 }
 
@@ -99,7 +107,7 @@ TEST_F(ApInterfaceImplTest, ShouldRejectInvalidConfig) {
   EXPECT_CALL(*hostapd_manager_, CreateHostapdConfig(_, _, _, _, _, _))
       .WillOnce(Return(""));
   EXPECT_CALL(*hostapd_manager_, WriteHostapdConfig(_)).Times(0);
-  EXPECT_FALSE(ap_interface_.WriteHostapdConfig(
+  EXPECT_FALSE(ap_interface_->WriteHostapdConfig(
         vector<uint8_t>(),
         false,
         0,

@@ -400,5 +400,14 @@ void NetlinkUtils::UnsubscribeRegDomainChange(uint32_t wiphy_index) {
   netlink_manager_->UnsubscribeRegDomainChange(wiphy_index);
 }
 
+void NetlinkUtils::SubscribeStationEvent(uint32_t interface_index,
+                                         OnStationEventHandler handler) {
+  netlink_manager_->SubscribeStationEvent(interface_index, handler);
+}
+
+void NetlinkUtils::UnsubscribeStationEvent(uint32_t interface_index) {
+  netlink_manager_->UnsubscribeStationEvent(interface_index);
+}
+
 }  // namespace wificond
 }  // namespace android

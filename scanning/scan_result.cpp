@@ -16,17 +16,14 @@
 
 #include "wificond/scanning/scan_result.h"
 
-#include <iomanip>
-#include <sstream>
-
 #include <android-base/logging.h>
 
+#include "wificond/logging_utils.h"
 #include "wificond/parcelable_utils.h"
 
 using android::status_t;
 using android::OK;
 using std::string;
-using std::stringstream;
 
 namespace com {
 namespace android {
@@ -86,16 +83,8 @@ void NativeScanResult::DebugLog() {
   string ssid_str(ssid.data(), ssid.data() + ssid.size());
   LOG(INFO) << "SSID: " << ssid_str;
 
-  stringstream ss;
-  string bssid_str;
-  for (uint8_t& b : bssid) {
-    ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(b);
-    if (&b != &bssid.back()) {
-      ss << ":";
-    }
-  }
-  bssid_str = ss.str();
-  LOG(INFO) << "BSSID: " << bssid_str;
+  LOG(INFO) << "BSSID: "
+            << ::android::wificond::LoggingUtils::GetMacString(bssid);
   LOG(INFO) << "FREQUENCY: " << frequency;
   LOG(INFO) << "SIGNAL: " << signal_mbm/100 << "dBm";
   LOG(INFO) << "TSF: " << tsf;

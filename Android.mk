@@ -52,6 +52,7 @@ LOCAL_SRC_FILES := \
     ap_interface_impl.cpp \
     client_interface_binder.cpp \
     client_interface_impl.cpp \
+    logging_utils.cpp \
     looper_backed_event_loop.cpp \
     rtt/rtt_controller_binder.cpp \
     rtt/rtt_controller_impl.cpp \
