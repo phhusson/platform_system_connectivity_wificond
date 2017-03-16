@@ -21,6 +21,7 @@
 #include "wificond/net/netlink_utils.h"
 
 #include "wificond/ap_interface_binder.h"
+#include "wificond/logging_utils.h"
 
 using android::net::wifi::IApInterface;
 using android::wifi_system::HostapdManager;
@@ -30,6 +31,8 @@ using std::unique_ptr;
 using std::vector;
 
 using EncryptionType = android::wifi_system::HostapdManager::EncryptionType;
+
+using namespace std::placeholders;
 
 namespace android {
 namespace wificond {
@@ -48,11 +51,18 @@ ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
   // This log keeps compiler happy.
   LOG(DEBUG) << "Created ap interface " << interface_name_
              << " with index " << interface_index_;
+
+  netlink_utils_->SubscribeStationEvent(
+      interface_index_,
+      std::bind(&ApInterfaceImpl::OnStationEvent,
+                this,
+                _1, _2));
 }
 
 ApInterfaceImpl::~ApInterfaceImpl() {
   binder_->NotifyImplDead();
   if_tool_->SetUpState(interface_name_.c_str(), false);
+  netlink_utils_->UnsubscribeStationEvent(interface_index_);
 }
 
 sp<IApInterface> ApInterfaceImpl::GetBinder() const {
@@ -102,6 +112,19 @@ bool ApInterfaceImpl::WriteHostapdConfig(const vector<uint8_t>& ssid,
   }
 
   return hostapd_manager_->WriteHostapdConfig(config);
+}
+
+void ApInterfaceImpl::OnStationEvent(StationEvent event,
+                                     const vector<uint8_t>& mac_address) {
+  if (event == NEW_STATION) {
+    LOG(INFO) << "New station "
+              << LoggingUtils::GetMacString(mac_address)
+              << " associated with hotspot";
+  } else if (event == DEL_STATION) {
+    LOG(INFO) << "Station "
+              << LoggingUtils::GetMacString(mac_address)
+              << " disassociated from hotspot";
+  }
 }
 
 }  // namespace wificond
