@@ -59,6 +59,7 @@ class ApInterfaceImpl {
       wifi_system::HostapdManager::EncryptionType encryption_type,
       const std::vector<uint8_t>& passphrase);
   std::string GetInterfaceName() { return interface_name_; }
+  int GetNumberOfAssociatedStations() const;
 
  private:
   const std::string interface_name_;
@@ -67,6 +68,9 @@ class ApInterfaceImpl {
   wifi_system::InterfaceTool* const if_tool_;
   wifi_system::HostapdManager* const hostapd_manager_;
   const android::sp<ApInterfaceBinder> binder_;
+
+  // Number of associated stations.
+  int number_of_associated_stations_;
 
   void OnStationEvent(StationEvent event,
                       const std::vector<uint8_t>& mac_address);
