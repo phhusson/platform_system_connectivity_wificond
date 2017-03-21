@@ -47,7 +47,8 @@ ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
       netlink_utils_(netlink_utils),
       if_tool_(if_tool),
       hostapd_manager_(hostapd_manager),
-      binder_(new ApInterfaceBinder(this)) {
+      binder_(new ApInterfaceBinder(this)),
+      number_of_associated_stations_(0) {
   // This log keeps compiler happy.
   LOG(DEBUG) << "Created ap interface " << interface_name_
              << " with index " << interface_index_;
@@ -120,11 +121,22 @@ void ApInterfaceImpl::OnStationEvent(StationEvent event,
     LOG(INFO) << "New station "
               << LoggingUtils::GetMacString(mac_address)
               << " associated with hotspot";
+    number_of_associated_stations_++;
   } else if (event == DEL_STATION) {
     LOG(INFO) << "Station "
               << LoggingUtils::GetMacString(mac_address)
               << " disassociated from hotspot";
+    if (number_of_associated_stations_ <= 0) {
+      LOG(ERROR) << "Received DEL_STATION event when station counter is: "
+                 << number_of_associated_stations_;
+    } else {
+      number_of_associated_stations_--;
+    }
   }
+}
+
+int ApInterfaceImpl::GetNumberOfAssociatedStations() const {
+  return number_of_associated_stations_;
 }
 
 }  // namespace wificond

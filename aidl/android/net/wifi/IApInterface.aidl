@@ -50,4 +50,8 @@ interface IApInterface {
   @utf8InCpp
   String getInterfaceName();
 
+  // @return Returns the number of associated devices to this hotspot.
+  // Returns -1 on failure.
+  int getNumberOfAssociatedStations();
+
 }

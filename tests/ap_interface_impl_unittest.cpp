@@ -30,9 +30,12 @@
 using android::wifi_system::HostapdManager;
 using android::wifi_system::MockHostapdManager;
 using android::wifi_system::MockInterfaceTool;
+using std::placeholders::_1;
+using std::placeholders::_2;
 using std::unique_ptr;
 using std::vector;
 using testing::NiceMock;
+using testing::Invoke;
 using testing::Return;
 using testing::Sequence;
 using testing::StrEq;
@@ -44,6 +47,14 @@ namespace {
 
 const char kTestInterfaceName[] = "testwifi0";
 const uint32_t kTestInterfaceIndex = 42;
+const uint8_t kFakeMacAddress[] = {0x45, 0x54, 0xad, 0x67, 0x98, 0xf6};
+
+void CaptureStationEventHandler(
+    OnStationEventHandler* out_handler,
+    uint32_t interface_index,
+    OnStationEventHandler handler) {
+  *out_handler = handler;
+}
 
 class ApInterfaceImplTest : public ::testing::Test {
  protected:
@@ -59,9 +70,6 @@ class ApInterfaceImplTest : public ::testing::Test {
   unique_ptr<ApInterfaceImpl> ap_interface_;
 
   void SetUp() override {
-    EXPECT_CALL(*netlink_utils_,
-                SubscribeStationEvent(kTestInterfaceIndex, _));
-
     ap_interface_.reset(new ApInterfaceImpl(
         kTestInterfaceName,
         kTestInterfaceIndex,
@@ -113,6 +121,30 @@ TEST_F(ApInterfaceImplTest, ShouldRejectInvalidConfig) {
         0,
         HostapdManager::EncryptionType::kWpa2,
         vector<uint8_t>()));
+}
+
+TEST_F(ApInterfaceImplTest, CanGetNumberOfAssociatedStations) {
+  OnStationEventHandler handler;
+  EXPECT_CALL(*netlink_utils_,
+      SubscribeStationEvent(kTestInterfaceIndex, _)).
+          WillOnce(Invoke(bind(CaptureStationEventHandler, &handler, _1, _2)));
+
+  ap_interface_.reset(new ApInterfaceImpl(
+        kTestInterfaceName,
+        kTestInterfaceIndex,
+        netlink_utils_.get(),
+        if_tool_.get(),
+        hostapd_manager_.get()));
+
+  vector<uint8_t> fake_mac_address(kFakeMacAddress,
+                                   kFakeMacAddress + sizeof(kFakeMacAddress));
+  EXPECT_EQ(0, ap_interface_->GetNumberOfAssociatedStations());
+  handler(NEW_STATION, fake_mac_address);
+  EXPECT_EQ(1, ap_interface_->GetNumberOfAssociatedStations());
+  handler(NEW_STATION, fake_mac_address);
+  EXPECT_EQ(2, ap_interface_->GetNumberOfAssociatedStations());
+  handler(DEL_STATION, fake_mac_address);
+  EXPECT_EQ(1, ap_interface_->GetNumberOfAssociatedStations());
 }
 
 }  // namespace wificond
