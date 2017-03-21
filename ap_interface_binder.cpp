@@ -96,5 +96,17 @@ binder::Status ApInterfaceBinder::getInterfaceName(std::string* out_name) {
   return binder::Status::ok();
 }
 
+binder::Status ApInterfaceBinder::getNumberOfAssociatedStations(
+    int* out_num_of_stations) {
+  if (!impl_) {
+    LOG(WARNING) << "Cannot get number of associated stations "
+                 << "from dead ApInterface";
+    *out_num_of_stations = -1;
+    return binder::Status::ok();
+  }
+  *out_num_of_stations = impl_->GetNumberOfAssociatedStations();
+  return binder::Status::ok();
+}
+
 }  // namespace wificond
 }  // namespace android
