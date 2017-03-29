@@ -23,22 +23,32 @@
 #include "wificond/scanning/scan_result.h"
 
 using ::android::hardware::wifi::offload::V1_0::ScanResult;
+using ::android::hardware::wifi::offload::V1_0::OffloadStatus;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 
 namespace android {
 namespace wificond {
 
-OffloadCallback::OffloadCallback(OnOffloadScanResultsReadyHandler handler)
-    : scan_result_handler_(handler) {
+OffloadCallback::OffloadCallback(OffloadCallbackHandlers* handlers)
+    : handlers_(handlers) {
 }
 
 // Methods from ::android::hardware::wifi::offload::V1_0::IOffloadCallback follow.
 Return<void> OffloadCallback::onScanResult(const hidl_vec<ScanResult>& scan_result) {
-  if (scan_result_handler_ != nullptr) {
-    scan_result_handler_(std::vector<ScanResult>(scan_result));
+  if (handlers_ != nullptr) {
+    handlers_->OnScanResultHandler(std::vector<ScanResult>(scan_result));
   } else {
     LOG(WARNING) << "No handler available for Offload scan results";
+  }
+  return Void();
+}
+
+Return<void> OffloadCallback::onError(OffloadStatus status) {
+  if (handlers_ != nullptr) {
+    handlers_->OnErrorHandler(status);
+  } else {
+    LOG(WARNING) << "No error handler for Offload";
   }
   return Void();
 }

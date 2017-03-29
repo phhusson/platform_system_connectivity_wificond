@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,30 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef WIFICOND_OFFLOAD_SERVICE_UTILS_H_
-#define WIFICOND_OFFLOAD_SERVICE_UTILS_H_
+#ifndef ANDROID_HARDWARE_WIFI_OFFLOAD_V1_0_OFFLOADCALLBACK_HANDLERS_H
+#define ANDROID_HARDWARE_WIFI_OFFLOAD_V1_0_OFFLOADCALLBACK_HANDLERS_H
 
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
-#include "wificond/scanning/offload/offload_callback.h"
-#include "wificond/scanning/offload/offload_callback_handlers.h"
-
-using android::hardware::wifi::offload::V1_0::IOffload;
+#include <vector>
 
 namespace android {
 namespace wificond {
 
-// Provides methods to get Offload HAL service and create callback
-class OffloadServiceUtils {
+using ::android::hardware::wifi::offload::V1_0::OffloadStatus;
+using ::android::hardware::wifi::offload::V1_0::ScanResult;
+
+class OffloadCallbackHandlers {
  public:
-  OffloadServiceUtils() = default;
-  virtual ~OffloadServiceUtils() = default;
-  virtual android::sp<IOffload> GetOffloadService();
-  virtual android::sp<OffloadCallback> GetOffloadCallback(
-     OffloadCallbackHandlers* handlers);
+  virtual ~OffloadCallbackHandlers() {}
+
+  virtual void OnScanResultHandler(const std::vector<ScanResult>& scanResult) = 0;
+  virtual void OnErrorHandler(OffloadStatus status) = 0;
+
 };
 
 }  // namespace wificond
 }  // namespace android
 
-#endif // WIFICOND_OFFLOAD_SERVICE_UTILS_H
-
+#endif  // ANDROID_HARDWARE_WIFI_OFFLOAD_V1_0_OFFLOADCALLBACK_HANDLERS_H

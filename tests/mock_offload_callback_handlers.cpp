@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "wificond/scanning/offload/offload_service_utils.h"
+
+#include "wificond/tests/mock_offload_callback_handlers.h"
 
 namespace android {
 namespace wificond {
 
-android::sp<IOffload> OffloadServiceUtils::GetOffloadService() {
-  return IOffload::getService();
+MockOffloadCallbackHandlers::MockOffloadCallbackHandlers() {
 }
 
-android::sp<OffloadCallback> OffloadServiceUtils::GetOffloadCallback(
-    OffloadCallbackHandlers* handlers) {
-  return new OffloadCallback(handlers);
-}
-
-} // wificond
-} // android
-
+} // namespace wificond
+} // namespace android

@@ -22,6 +22,7 @@
 
 #include "wificond/scanning/offload/offload_callback.h"
 #include "wificond/scanning/offload/offload_service_utils.h"
+#include "wificond/scanning/offload/offload_callback_handlers.h"
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
 
 using android::hardware::wifi::offload::V1_0::IOffload;
@@ -36,7 +37,7 @@ class MockOffloadServiceUtils : public OffloadServiceUtils {
 
   MOCK_METHOD0(GetOffloadService, sp<IOffload>());
   MOCK_METHOD1(GetOffloadCallback, sp<OffloadCallback>(
-      OnOffloadScanResultsReadyHandler handler));
+      OffloadCallbackHandlers* handlers));
 };
 
 } // namespace wificond

@@ -24,25 +24,29 @@
 #include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/offload/offload_callback.h"
 #include "wificond/tests/offload_test_utils.h"
+#include "wificond/tests/mock_offload_callback_handlers.h"
 
 using android::hardware::wifi::offload::V1_0::ScanResult;
+using android::hardware::wifi::offload::V1_0::OffloadStatus;
 using android::hardware::hidl_vec;
+using testing::NiceMock;
 
 namespace android {
 namespace wificond {
 
 class OffloadCallbackTest: public ::testing::Test {
  protected:
-   virtual void SetUp() {
-     dummy_scan_results_ = OffloadTestUtils::createOffloadScanResults();
-   }
+  virtual void SetUp() {
+    dummy_scan_results_ = OffloadTestUtils::createOffloadScanResults();
+  }
 
-   void TearDown() override {
-     dummy_scan_results_.clear();
-   }
+  void TearDown() override {
+    dummy_scan_results_.clear();
+  }
 
-   std::vector<ScanResult> dummy_scan_results_;
-   std::unique_ptr<OffloadCallback> dut_;
+  std::vector<ScanResult> dummy_scan_results_;
+  std::unique_ptr<OffloadCallback> offload_callback_;
+  std::unique_ptr<NiceMock<MockOffloadCallbackHandlers>> handlers_;
 };
 
 /**
@@ -51,13 +55,32 @@ class OffloadCallbackTest: public ::testing::Test {
  */
 TEST_F(OffloadCallbackTest, checkScanResultSize) {
   std::vector<ScanResult> scan_result;
-  dut_.reset(new OffloadCallback(
-    [&scan_result] (std::vector<ScanResult> scanResult) -> void {
-      scan_result = scanResult;
-    }));
+  handlers_.reset(new NiceMock<MockOffloadCallbackHandlers>());
+  ON_CALL(*handlers_, OnScanResultHandler(testing::_))
+      .WillByDefault(testing::Invoke(
+          [&scan_result] (std::vector<ScanResult> scanResult) -> void {
+            scan_result = scanResult;
+          }));
+  offload_callback_.reset(new OffloadCallback(handlers_.get()));
   hidl_vec<ScanResult> offloadScanResult(dummy_scan_results_);
-  dut_->onScanResult(offloadScanResult);
+  offload_callback_->onScanResult(offloadScanResult);
   EXPECT_EQ(dummy_scan_results_.size(), scan_result.size());
+}
+
+/**
+ * Testing OffloadCallback to invoke the registered error handler
+ */
+TEST_F(OffloadCallbackTest, checkErrorStatus) {
+  OffloadStatus status_;
+  handlers_.reset(new NiceMock<MockOffloadCallbackHandlers>());
+  ON_CALL(*handlers_, OnErrorHandler(testing::_))
+      .WillByDefault(testing::Invoke(
+          [&status_] (OffloadStatus status) -> void {
+            status_ = status;
+          }));
+  offload_callback_.reset(new OffloadCallback(handlers_.get()));
+  offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_ERROR);
+  EXPECT_EQ(status_, OffloadStatus::OFFLOAD_STATUS_ERROR);
 }
 
 } // namespace wificond
