@@ -20,7 +20,6 @@
 
 #include <android-base/logging.h>
 #include <wifi_system/supplicant_manager.h>
-#include <wifi_system/wifi.h>
 
 #include "wificond/client_interface_binder.h"
 #include "wificond/net/mlme_event.h"
