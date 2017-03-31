@@ -144,6 +144,7 @@ include $(BUILD_STATIC_LIBRARY)
 ###
 include $(CLEAR_VARS)
 LOCAL_MODULE := wificond_unit_test
+LOCAL_COMPATIBILITY_SUITE := device-tests
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
