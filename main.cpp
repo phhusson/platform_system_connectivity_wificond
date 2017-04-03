@@ -97,17 +97,6 @@ void RegisterServiceOrCrash(const android::sp<android::IBinder>& service) {
            android::NO_ERROR);
 }
 
-void DropPrivilegesOrCrash() {
-  minijail* j = minijail_new();
-  CHECK(minijail_change_user(j, "wifi") == 0);
-  CHECK(minijail_change_group(j, "wifi") == 0);
-  minijail_use_caps(j,
-                    CAP_TO_MASK(CAP_NET_ADMIN) |
-                    CAP_TO_MASK(CAP_NET_RAW));
-  minijail_enter(j);
-  minijail_destroy(j);
-}
-
 }  // namespace
 
 void OnBinderReadReady(int fd) {
@@ -117,8 +106,6 @@ void OnBinderReadReady(int fd) {
 int main(int argc, char** argv) {
   android::base::InitLogging(argv, android::base::LogdLogger(android::base::SYSTEM));
   LOG(INFO) << "wificond is starting up...";
-
-  DropPrivilegesOrCrash();
 
   unique_ptr<android::wificond::LooperBackedEventLoop> event_dispatcher(
       new android::wificond::LooperBackedEventLoop());
