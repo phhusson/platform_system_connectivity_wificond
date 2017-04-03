@@ -325,9 +325,7 @@ void ScannerImpl::OnScanResultsReady(
     bool aborted,
     vector<vector<uint8_t>>& ssids,
     vector<uint32_t>& frequencies) {
-  if (scan_started_) {
-    LOG(INFO) << "Received scan result notification from kernel.";
-  } else {
+  if (!scan_started_) {
     LOG(INFO) << "Received external scan result notification from kernel.";
   }
   scan_started_ = false;
@@ -348,11 +346,11 @@ void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
                                           bool scan_stopped) {
   if (pno_scan_event_handler_ != nullptr) {
     if (scan_stopped) {
-      LOG(INFO) << "Pno scan stopped event";
       // If |pno_scan_started_| is false.
       // This stop notification might result from our own request.
       // See the document for NL80211_CMD_SCHED_SCAN_STOPPED in nl80211.h.
       if (pno_scan_started_) {
+        LOG(WARNING) << "Unexpected pno scan stopped event";
         pno_scan_event_handler_->OnPnoScanFailed();
       }
       pno_scan_started_ = false;
