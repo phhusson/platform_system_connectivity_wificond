@@ -81,6 +81,7 @@ class Server : public android::net::wifi::BnWificond {
       std::vector<android::sp<android::IBinder>>* out_client_ifs) override;
   android::binder::Status GetApInterfaces(
       std::vector<android::sp<android::IBinder>>* out_ap_ifs) override;
+  status_t dump(int fd, const Vector<String16>& args) override;
 
   // Call this once on startup.  It ignores all the invariants held
   // in wificond and tries to restore ourselves to a blank state by
