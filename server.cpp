@@ -23,6 +23,7 @@
 #include <binder/IPCThreadState.h>
 #include <binder/PermissionCache.h>
 
+#include "wificond/logging_utils.h"
 #include "wificond/net/netlink_utils.h"
 #include "wificond/scanning/scan_utils.h"
 
@@ -198,6 +199,13 @@ status_t Server::dump(int fd, const Vector<String16>& /*args*/) {
 
   stringstream ss;
   ss << "Current wiphy index: " << wiphy_index_ << endl;
+  ss << "Cached interfaces list from kernel message: " << endl;
+  for (const auto& iface : interfaces_) {
+    ss << "Interface index: " << iface.index
+       << ", name: " << iface.name
+       << ", mac address: "
+       << LoggingUtils::GetMacString(iface.mac_address) << endl;
+  }
 
   if (!WriteStringToFd(ss.str(), fd)) {
     PLOG(ERROR) << "Failed to dump state to fd " << fd;
@@ -242,13 +250,13 @@ bool Server::SetupInterface(InterfaceInfo* interface) {
           this,
           _1));
 
-  vector<InterfaceInfo> interfaces;
-  if (!netlink_utils_->GetInterfaces(wiphy_index_, &interfaces)) {
+  interfaces_.clear();
+  if (!netlink_utils_->GetInterfaces(wiphy_index_, &interfaces_)) {
     LOG(ERROR) << "Failed to get interfaces info from kernel";
     return false;
   }
 
-  for (InterfaceInfo& iface : interfaces) {
+  for (const auto& iface : interfaces_) {
     // Some kernel/driver uses station type for p2p interface.
     // In that case we can only rely on hard-coded name to exclude
     // p2p interface from station interfaces.
