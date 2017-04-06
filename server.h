@@ -122,6 +122,9 @@ class Server : public android::net::wifi::BnWificond {
 
   std::unique_ptr<RttControllerImpl> rtt_controller_;
 
+  // Cached interface list from kernel.
+  std::vector<InterfaceInfo> interfaces_;
+
   DISALLOW_COPY_AND_ASSIGN(Server);
 };
 
