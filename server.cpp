@@ -18,11 +18,15 @@
 
 #include <sstream>
 
+#include <android-base/file.h>
 #include <android-base/logging.h>
+#include <binder/IPCThreadState.h>
+#include <binder/PermissionCache.h>
 
 #include "wificond/net/netlink_utils.h"
 #include "wificond/scanning/scan_utils.h"
 
+using android::base::WriteStringToFd;
 using android::binder::Status;
 using android::sp;
 using android::IBinder;
@@ -35,6 +39,7 @@ using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
 
+using std::endl;
 using std::placeholders::_1;
 using std::string;
 using std::stringstream;
@@ -43,6 +48,12 @@ using std::vector;
 
 namespace android {
 namespace wificond {
+
+namespace {
+
+constexpr const char* kPermissionDump = "android.permission.DUMP";
+
+}  // namespace
 
 Server::Server(unique_ptr<InterfaceTool> if_tool,
                unique_ptr<SupplicantManager> supplicant_manager,
@@ -175,6 +186,25 @@ Status Server::GetApInterfaces(vector<sp<IBinder>>* out_ap_interfaces) {
     out_ap_interfaces->push_back(asBinder(it->GetBinder()));
   }
   return binder::Status::ok();
+}
+
+status_t Server::dump(int fd, const Vector<String16>& /*args*/) {
+  if (!PermissionCache::checkCallingPermission(String16(kPermissionDump))) {
+    IPCThreadState* ipc = android::IPCThreadState::self();
+    LOG(ERROR) << "Caller (uid: " << ipc->getCallingUid()
+               << ") is not permitted to dump wificond state";
+    return PERMISSION_DENIED;
+  }
+
+  stringstream ss;
+  ss << "Current wiphy index: " << wiphy_index_ << endl;
+
+  if (!WriteStringToFd(ss.str(), fd)) {
+    PLOG(ERROR) << "Failed to dump state to fd " << fd;
+    return FAILED_TRANSACTION;
+  }
+
+  return OK;
 }
 
 void Server::MarkDownAllInterfaces() {
