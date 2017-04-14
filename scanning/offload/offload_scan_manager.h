@@ -35,6 +35,7 @@ namespace wifi {
 namespace wificond {
 
 class NativeScanResult;
+class NativeScanStats;
 
 }  // namespace wificond
 }  // namespace wifi
@@ -112,6 +113,9 @@ class OffloadScanManager {
    * is updated in case of failure.
    */
   bool stopScan(ReasonCode* /* failure reason */);
+  /* Get statistics for scans performed by Offload HAL */
+  bool getScanStats(
+      ::com::android::server::wifi::wificond::NativeScanStats* /* scanStats */);
   /* Otain status of the Offload HAL service */
   StatusCode getOffloadStatus() const;
 

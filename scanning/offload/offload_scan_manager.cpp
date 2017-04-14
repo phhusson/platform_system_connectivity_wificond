@@ -22,18 +22,20 @@
 #include "wificond/scanning/offload/offload_scan_utils.h"
 #include "wificond/scanning/offload/offload_service_utils.h"
 #include "wificond/scanning/scan_result.h"
+#include "wificond/scanning/offload/scan_stats.h"
 
 using ::android::hardware::hidl_vec;
 using android::hardware::wifi::offload::V1_0::IOffload;
 using android::hardware::wifi::offload::V1_0::ScanResult;
 using android::hardware::wifi::offload::V1_0::ScanFilter;
 using android::hardware::wifi::offload::V1_0::ScanParam;
+using android::hardware::wifi::offload::V1_0::ScanStats;
 using android::hardware::wifi::offload::V1_0::OffloadStatus;
 
 using android::wificond::OffloadCallback;
 using android::wificond::OnNativeScanResultsReadyHandler;
 using ::com::android::server::wifi::wificond::NativeScanResult;
-
+using ::com::android::server::wifi::wificond::NativeScanStats;
 using namespace std::placeholders;
 using std::vector;
 
@@ -145,6 +147,19 @@ bool OffloadScanManager::startScan(
 
 OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
   return offload_status_;
+}
+
+bool OffloadScanManager::getScanStats(NativeScanStats* native_scan_stats) {
+  if (offload_status_ != OffloadScanManager::kNoError) {
+    LOG(ERROR) << "Unable to get scan stats due to Wifi Offload HAL error";
+    return false;
+  }
+  wifi_offload_hal_->getScanStats(
+      [&native_scan_stats] (ScanStats offload_scan_stats)-> void {
+          *native_scan_stats =
+              OffloadScanUtils::convertToNativeScanStats(offload_scan_stats);
+      });
+  return true;
 }
 
 OffloadScanManager::~OffloadScanManager() {}

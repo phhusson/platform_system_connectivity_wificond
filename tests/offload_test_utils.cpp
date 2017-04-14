@@ -17,8 +17,12 @@
 #include <vector>
 
 #include "wificond/tests/offload_test_utils.h"
+#include "wificond/tests/offload_hal_test_constants.h"
 
 using android::hardware::wifi::offload::V1_0::ScanResult;
+using android::hardware::wifi::offload::V1_0::ScanStats;
+using android::hardware::wifi::offload::V1_0::ScanRecord;
+using namespace android::wificond::offload_hal_test_constants;
 
 namespace android {
 namespace wificond {
@@ -26,7 +30,7 @@ namespace wificond {
 std::vector<ScanResult> OffloadTestUtils::createOffloadScanResults() {
   std::vector<ScanResult> scanResults;
   ScanResult scanResult;
-  std::vector<uint8_t> ssid(kSsid1, kSsid1 + sizeof(kSsid1));
+  std::vector<uint8_t> ssid(kSsid1, kSsid1 + kSsid1_size);
   scanResult.tsf = kTsf;
   scanResult.rssi = kRssi;
   scanResult.frequency = kFrequency1;
@@ -36,6 +40,47 @@ std::vector<ScanResult> OffloadTestUtils::createOffloadScanResults() {
   scanResult.networkInfo.flags = kNetworkFlags;
   scanResults.push_back(scanResult);
   return scanResults;
+}
+
+ScanStats OffloadTestUtils::createScanStats(NativeScanStats* nativeScanStats) {
+  std::vector<ScanRecord> scan_records;
+  std::vector<uint8_t> histogram_channels;
+  uint32_t scan_duration_ms = 0;
+  uint32_t num_channels_scanned = 0;
+  ScanStats scan_stats;
+  int numEntriesInScanRecord =
+      sizeof(kNumChannelsScanned)/sizeof(kNumChannelsScanned[0]);
+  for (int i = 0; i < numEntriesInScanRecord; i++) {
+    ScanRecord scan_record;
+    scan_record.durationMs = kScanDurationMs[i];
+    scan_duration_ms += kScanDurationMs[i];
+    scan_record.numChannelsScanned = kNumChannelsScanned[i];
+    num_channels_scanned += kNumChannelsScanned[i];
+    scan_record.numEntriesAggregated = 1;
+    scan_records.push_back(scan_record);
+  }
+  scan_stats.scanRecord = scan_records;
+  scan_stats.numScansRequestedByWifi = kDefaultNumScansRequestedByWifi;
+  scan_stats.numScansServicedByWifi = kDefaultNumScansServicedByWifi;
+  scan_stats.subscriptionDurationMs = kSubscriptionDurationMs;
+  uint32_t skip_tmp = 256/num_channels_scanned;
+  for(size_t i = 0; i < 256; i++) {
+    if (i % skip_tmp == 0) {
+      scan_stats.histogramChannelsScanned[i] = kDefaultNumTimesAChannelsIsScanned;
+      histogram_channels.push_back(kDefaultNumTimesAChannelsIsScanned);
+    } else {
+      scan_stats.histogramChannelsScanned[i] = kChannelNotScanned;
+      histogram_channels.push_back(kChannelNotScanned);
+    }
+  }
+  NativeScanStats native_scan_stats(kDefaultNumScansRequestedByWifi,
+      kDefaultNumScansServicedByWifi,
+      kSubscriptionDurationMs,
+      scan_duration_ms,
+      num_channels_scanned,
+      histogram_channels);
+  *nativeScanStats = native_scan_stats;
+  return scan_stats;
 }
 
 } // namespace wificond

@@ -24,6 +24,7 @@
 using android::hardware::wifi::offload::V1_0::ScanResult;
 using android::hardware::wifi::offload::V1_0::ScanParam;
 using android::hardware::wifi::offload::V1_0::ScanFilter;
+using android::hardware::wifi::offload::V1_0::ScanStats;
 
 namespace com {
 namespace android {
@@ -32,6 +33,7 @@ namespace wifi {
 namespace wificond {
 
 class NativeScanResult;
+class NativeScanStats;
 
 }  // namespace wificond
 }  // namespace wifi
@@ -58,6 +60,8 @@ class OffloadScanUtils {
   static ScanFilter createScanFilter(
       const std::vector<std::vector<uint8_t>>& ssids,
       const std::vector<uint8_t>& flags, int8_t rssi_threshold);
+  static ::com::android::server::wifi::wificond::NativeScanStats
+      convertToNativeScanStats(const ScanStats& /* scanStats */);
 };
 
 }  // namespace wificond

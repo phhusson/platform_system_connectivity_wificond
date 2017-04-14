@@ -21,13 +21,19 @@
 #include <android-base/logging.h>
 #include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/offload/offload_scan_utils.h"
+#include "wificond/tests/offload_hal_test_constants.h"
 
 using android::hardware::wifi::offload::V1_0::ScanResult;
 using android::hardware::wifi::offload::V1_0::ScanParam;
 using android::hardware::wifi::offload::V1_0::ScanFilter;
 using android::hardware::wifi::offload::V1_0::NetworkInfo;
+using android::hardware::wifi::offload::V1_0::ScanRecord;
+using android::hardware::wifi::offload::V1_0::ScanStats;
 using ::com::android::server::wifi::wificond::NativeScanResult;
+using ::com::android::server::wifi::wificond::NativeScanStats;
 using std::vector;
+
+using namespace android::wificond::offload_hal_test_constants;
 
 namespace android {
 namespace wificond {
@@ -67,7 +73,7 @@ TEST_F(OffloadScanUtilsTest, verifyScanParam) {
   ScanParam scanParam = OffloadScanUtils::createScanParam(scan_ssids, frequencies,
       kDisconnectedModeScanIntervalMs);
   EXPECT_EQ(scanParam.disconnectedModeScanIntervalMs,
-          kDisconnectedModeScanIntervalMs);
+      kDisconnectedModeScanIntervalMs);
   for (size_t i = 0; i < frequencies.size(); i++) {
     EXPECT_EQ(scanParam.frequencyList[i], frequencies[i]);
   }
@@ -96,6 +102,14 @@ TEST_F(OffloadScanUtilsTest, verifyScanFilter) {
       EXPECT_EQ(ssid[j], match_ssid[j]);
     }
   }
+}
+
+TEST_F(OffloadScanUtilsTest, verifyScanStats) {
+  NativeScanStats stats_expected;
+  ScanStats offload_scan_stats = OffloadTestUtils::createScanStats(&stats_expected);
+  NativeScanStats stats_returned = OffloadScanUtils::convertToNativeScanStats(
+    offload_scan_stats);
+  EXPECT_TRUE(stats_expected == stats_returned);
 }
 
 } // namespace wificond

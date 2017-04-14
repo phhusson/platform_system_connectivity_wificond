@@ -18,11 +18,14 @@
 #include <android-base/logging.h>
 
 #include "wificond/scanning/scan_result.h"
+#include "wificond/scanning/offload/scan_stats.h"
 
 using ::com::android::server::wifi::wificond::NativeScanResult;
+using ::com::android::server::wifi::wificond::NativeScanStats;
 using android::hardware::wifi::offload::V1_0::ScanResult;
 using android::hardware::wifi::offload::V1_0::ScanParam;
 using android::hardware::wifi::offload::V1_0::ScanFilter;
+using android::hardware::wifi::offload::V1_0::ScanStats;
 using android::hardware::wifi::offload::V1_0::NetworkInfo;
 using android::hardware::hidl_vec;
 using std::vector;
@@ -83,6 +86,31 @@ ScanFilter OffloadScanUtils::createScanFilter(
   }
   scan_filter.preferredNetworkInfoList = nw_info_list;
   return scan_filter;
+}
+
+NativeScanStats OffloadScanUtils::convertToNativeScanStats(
+    const ScanStats& scanStats) {
+  uint32_t num_channels_scanned = 0;
+  uint32_t scan_duration_ms = 0;
+  vector<uint8_t> histogram_channels;
+
+  for (size_t i = 0; i < scanStats.scanRecord.size(); i++) {
+    scan_duration_ms += scanStats.scanRecord[i].durationMs;
+    num_channels_scanned +=
+        scanStats.scanRecord[i].numChannelsScanned;
+  }
+  for (size_t i = 0; i < scanStats.histogramChannelsScanned.size(); i++) {
+    histogram_channels.push_back(
+      scanStats.histogramChannelsScanned[i]);
+  }
+
+  NativeScanStats native_scan_stats(scanStats.numScansRequestedByWifi,
+      scanStats.numScansServicedByWifi,
+      scanStats.subscriptionDurationMs,
+      scan_duration_ms,
+      num_channels_scanned,
+      histogram_channels);
+  return native_scan_stats;
 }
 
 } // namespace wificond
