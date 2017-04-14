@@ -26,6 +26,8 @@
 using ::android::hardware::hidl_vec;
 using android::hardware::wifi::offload::V1_0::IOffload;
 using android::hardware::wifi::offload::V1_0::ScanResult;
+using android::hardware::wifi::offload::V1_0::ScanFilter;
+using android::hardware::wifi::offload::V1_0::ScanParam;
 using android::hardware::wifi::offload::V1_0::OffloadStatus;
 
 using android::wificond::OffloadCallback;
@@ -33,17 +35,24 @@ using android::wificond::OnNativeScanResultsReadyHandler;
 using ::com::android::server::wifi::wificond::NativeScanResult;
 
 using namespace std::placeholders;
+using std::vector;
+
+namespace {
+  const uint32_t kSubscriptionDelayMs = 5000;
+}
 
 namespace android {
 namespace wificond {
 
-OffloadCallbackHandlersImpl::OffloadCallbackHandlersImpl(OffloadScanManager* offload_scan_manager)
-    : offload_scan_manager_(offload_scan_manager) {
+OffloadCallbackHandlersImpl::OffloadCallbackHandlersImpl(
+    OffloadScanManager* offload_scan_manager)
+        : offload_scan_manager_(offload_scan_manager) {
 }
 
 OffloadCallbackHandlersImpl::~OffloadCallbackHandlersImpl() {}
 
-void OffloadCallbackHandlersImpl::OnScanResultHandler(const std::vector<ScanResult>& scanResult) {
+void OffloadCallbackHandlersImpl::OnScanResultHandler(
+    const vector<ScanResult>& scanResult) {
   if (offload_scan_manager_ != nullptr) {
     offload_scan_manager_->ReportScanResults(scanResult);
   }
@@ -59,9 +68,10 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils *utils,
     OnNativeScanResultsReadyHandler handler)
     : wifi_offload_hal_(nullptr),
       wifi_offload_callback_(nullptr),
-      scan_result_handler_(handler),
       offload_status_(OffloadScanManager::kError),
-      offload_callback_handlers_(new OffloadCallbackHandlersImpl(this)) {
+      subscription_enabled_(false),
+      offload_callback_handlers_(new OffloadCallbackHandlersImpl(this)),
+      scan_result_handler_(handler) {
   if (utils == nullptr) {
     LOG(ERROR) << "Invalid arguments for Offload ScanManager";
     return;
@@ -87,19 +97,70 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils *utils,
   offload_status_ = OffloadScanManager::kNoError;
 }
 
+bool OffloadScanManager::stopScan(OffloadScanManager::ReasonCode* reason_code) {
+  if (!subscription_enabled_) {
+    LOG(INFO) << "Scans are not subscribed over Offload HAL";
+    *reason_code = OffloadScanManager::kNotSubscribed;
+    return false;
+  }
+  if (offload_status_ != OffloadScanManager::kNoService) {
+    wifi_offload_hal_->unsubscribeScanResults();
+    subscription_enabled_ = false;
+  }
+  *reason_code = OffloadScanManager::kNone;
+  return true;
+}
+
+bool OffloadScanManager::startScan(
+    uint32_t interval_ms,
+    int32_t rssi_threshold,
+    const vector<vector<uint8_t>>& scan_ssids,
+    const vector<vector<uint8_t>>& match_ssids,
+    const vector<uint8_t>& match_security,
+    const vector<uint32_t> &freqs,
+    OffloadScanManager::ReasonCode* reason_code) {
+  if (offload_status_ == OffloadScanManager::kNoService) {
+    *reason_code = OffloadScanManager::kNotSupported;
+    LOG(WARNING) << "Offload HAL scans are not supported";
+    return false;
+  } else if (offload_status_ == OffloadScanManager::kNotConnected) {
+    LOG(WARNING) << "Offload HAL scans are not available";
+    *reason_code = OffloadScanManager::kNotAvailable;
+    return false;
+  }
+
+  ScanParam param = OffloadScanUtils::createScanParam(scan_ssids, freqs,
+      interval_ms);
+  ScanFilter filter = OffloadScanUtils::createScanFilter(match_ssids,
+      match_security, rssi_threshold);
+
+  wifi_offload_hal_->configureScans(param, filter);
+  if (!subscription_enabled_) {
+    wifi_offload_hal_->subscribeScanResults(kSubscriptionDelayMs);
+  }
+  subscription_enabled_ = true;
+  *reason_code = OffloadScanManager::kNone;
+  return true;
+}
+
+OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
+  return offload_status_;
+}
+
 OffloadScanManager::~OffloadScanManager() {}
 
 void OffloadScanManager::ReportScanResults(
-    const std::vector<ScanResult> scanResult) {
+    const vector<ScanResult> scanResult) {
   if (scan_result_handler_ != nullptr) {
-    scan_result_handler_(OffloadScanUtils::convertToNativeScanResults(scanResult));
+    scan_result_handler_(
+        OffloadScanUtils::convertToNativeScanResults(scanResult));
   } else {
     LOG(ERROR) << "No scan result handler for Offload ScanManager";
   }
 }
 
 void OffloadScanManager::ReportError(OffloadStatus status) {
-  StatusCode status_result = OffloadScanManager::kNoError;
+  OffloadScanManager::StatusCode status_result = OffloadScanManager::kNoError;
   switch(status) {
     case OffloadStatus::OFFLOAD_STATUS_OK:
       status_result = OffloadScanManager::kNoError;
@@ -121,10 +182,6 @@ void OffloadScanManager::ReportError(OffloadStatus status) {
     LOG(WARNING) << "Offload Error reported " << status_result;
   }
   offload_status_ = status_result;
-}
-
-OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
-  return offload_status_;
 }
 
 }  // namespace wificond

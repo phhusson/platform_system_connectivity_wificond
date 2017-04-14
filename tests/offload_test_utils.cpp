@@ -23,24 +23,13 @@ using android::hardware::wifi::offload::V1_0::ScanResult;
 namespace android {
 namespace wificond {
 
-namespace {
-  const uint8_t kSsid[] = { 'G', 'o', 'o', 'g', 'l', 'e' };
-  const uint8_t kBssid [6] = { 0x12, 0xef, 0xa1, 0x2c, 0x97, 0x8b };
-  const int16_t kRssi = -60;
-  const uint32_t kFrequency = 2412;
-  const uint8_t kBssidSize = 6;
-  const uint64_t kTsf = 0;
-  const uint16_t kCapability = 0;
-  const uint8_t kNetworkFlags = 0;
-} // namespace
-
 std::vector<ScanResult> OffloadTestUtils::createOffloadScanResults() {
   std::vector<ScanResult> scanResults;
   ScanResult scanResult;
-  std::vector<uint8_t> ssid(kSsid, kSsid + sizeof(kSsid));
+  std::vector<uint8_t> ssid(kSsid1, kSsid1 + sizeof(kSsid1));
   scanResult.tsf = kTsf;
   scanResult.rssi = kRssi;
-  scanResult.frequency = kFrequency;
+  scanResult.frequency = kFrequency1;
   scanResult.capability = kCapability;
   memcpy(&scanResult.bssid[0], &kBssid[0], kBssidSize);
   scanResult.networkInfo.ssid = ssid;
