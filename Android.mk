@@ -14,6 +14,9 @@
 
 LOCAL_PATH := $(call my-dir)
 wificond_cpp_flags := -Wall -Werror -Wno-unused-parameter
+ifdef WIFI_OFFLOAD_SCANS
+wificond_cpp_flags += -DWIFI_OFFLOAD_SCANS=\"$(WIFI_OFFLOAD_SCANS)\"
+endif
 wificond_parent_dir := $(LOCAL_PATH)/../
 wificond_includes := \
     $(wificond_parent_dir)

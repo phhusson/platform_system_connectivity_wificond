@@ -88,7 +88,7 @@ class OffloadScanManagerTest: public ::testing::Test {
  */
 TEST_F(OffloadScanManagerTest, ServiceUtilsNotAvailableTest) {
   offload_scan_manager_.reset(new OffloadScanManager(nullptr, nullptr));
-  EXPECT_EQ(OffloadScanManager::kError,
+  EXPECT_EQ(OffloadScanManager::kNoService,
       offload_scan_manager_->getOffloadStatus());
 }
 
