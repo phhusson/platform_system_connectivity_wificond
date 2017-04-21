@@ -289,6 +289,20 @@ Status ScannerImpl::stopPnoScan(bool* out_success) {
   return Status::ok();
 }
 
+Status ScannerImpl::abortScan(bool* out_success) {
+  *out_success = false;
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+
+  if (!scan_started_) {
+    LOG(WARNING) << "Scan is not started. Ignore abort request";
+  } else if (scan_utils_->AbortScan(interface_index_)) {
+    *out_success = true;
+  }
+  return Status::ok();
+}
+
 Status ScannerImpl::subscribeScanEvents(const sp<IScanEvent>& handler) {
   if (!CheckIsValid()) {
     return Status::ok();
