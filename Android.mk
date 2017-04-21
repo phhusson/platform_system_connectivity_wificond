@@ -39,7 +39,8 @@ LOCAL_SHARED_LIBRARIES := \
     libhidltransport \
     libminijail \
     libutils \
-    libwifi-system
+    libwifi-system \
+    libwifi-system-iface
 LOCAL_STATIC_LIBRARIES := \
     libwificond
 include $(BUILD_EXECUTABLE)
@@ -80,7 +81,8 @@ LOCAL_SHARED_LIBRARIES := \
     libhidlbase \
     libhwbinder \
     libhidltransport \
-    libwifi-system
+    libwifi-system \
+    libwifi-system-iface
 LOCAL_WHOLE_STATIC_LIBRARIES := \
     libwificond_ipc \
     libwificond_nl
@@ -186,6 +188,7 @@ LOCAL_STATIC_LIBRARIES := \
     libgmock \
     libgtest \
     libwifi-system-test \
+    libwifi-system-iface-test \
     libwificond \
     libwificond_nl
 LOCAL_SHARED_LIBRARIES := \
@@ -197,7 +200,8 @@ LOCAL_SHARED_LIBRARIES := \
     libhwbinder \
     liblog \
     libutils \
-    libwifi-system
+    libwifi-system \
+    libwifi-system-iface
 include $(BUILD_NATIVE_TEST)
 
 ###
@@ -220,7 +224,8 @@ LOCAL_SHARED_LIBRARIES := \
     libbinder \
     libcutils \
     libutils \
-    libwifi-system
+    libwifi-system \
+    libwifi-system-iface
 LOCAL_STATIC_LIBRARIES := \
     libgmock \
     libwificond_ipc \
