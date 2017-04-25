@@ -106,10 +106,6 @@ class ScanUtils {
   // Returns false on error or when there is no scheduled scan running.
   virtual bool StopScheduledScan(uint32_t interface_index);
 
-  // Abort ongoing single scan on interface with index |interface_index|.
-  // Returns true on success.
-  virtual bool AbortScan(uint32_t interface_index);
-
   // Sign up to be notified when new scan results are available.
   // |handler| will be called when the kernel signals to wificond that a scan
   // has been completed on the given |interface_index|.  See the declaration of

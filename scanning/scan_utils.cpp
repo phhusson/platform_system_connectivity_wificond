@@ -303,25 +303,6 @@ bool ScanUtils::StopScheduledScan(uint32_t interface_index) {
   return true;
 }
 
-bool ScanUtils::AbortScan(uint32_t interface_index) {
-  NL80211Packet abort_scan(
-      netlink_manager_->GetFamilyId(),
-      NL80211_CMD_ABORT_SCAN,
-      netlink_manager_->GetSequenceNumber(),
-      getpid());
-
-  // Force an ACK response upon success.
-  abort_scan.AddFlag(NLM_F_ACK);
-  abort_scan.AddAttribute(
-      NL80211Attr<uint32_t>(NL80211_ATTR_IFINDEX, interface_index));
-
-  if (!netlink_manager_->SendMessageAndGetAck(abort_scan)) {
-    LOG(ERROR) << "NL80211_CMD_ABORT_SCAN failed";
-    return false;
-  }
-  return true;
-}
-
 bool ScanUtils::StartScheduledScan(
     uint32_t interface_index,
     uint32_t interval_ms,
