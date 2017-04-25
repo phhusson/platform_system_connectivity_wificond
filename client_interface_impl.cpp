@@ -34,6 +34,7 @@ using android::sp;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
 
+using std::endl;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -150,6 +151,23 @@ sp<android::net::wifi::IClientInterface> ClientInterfaceImpl::GetBinder() const 
   return binder_;
 }
 
+void ClientInterfaceImpl::Dump(std::stringstream* ss) const {
+  *ss << "------- Dump of client interface with index: "
+      << interface_index_ << " and name: " << interface_name_
+      << "-------" << endl;
+  *ss << "Max number of ssids for single shot scan: "
+      << static_cast<int>(scan_capabilities_.max_num_scan_ssids) << endl;
+  *ss << "Max number of ssids for scheduled scan: "
+      << static_cast<int>(scan_capabilities_.max_num_sched_scan_ssids) << endl;
+  *ss << "Max number of match sets for scheduled scan: "
+      << static_cast<int>(scan_capabilities_.max_match_sets) << endl;
+  *ss << "Device supports random MAC for single shot scan: "
+      << wiphy_features_.supports_random_mac_oneshot_scan << endl;
+  *ss << "Device supports random MAC for scheduled scan: "
+      << wiphy_features_.supports_random_mac_sched_scan << endl;
+  *ss << "------- Dump End -------" << endl;
+}
+
 bool ClientInterfaceImpl::EnableSupplicant() {
   return supplicant_manager_->StartSupplicant();
 }
@@ -216,7 +234,7 @@ bool ClientInterfaceImpl::RefreshAssociateFreq() {
   return false;
 }
 
-bool ClientInterfaceImpl::IsAssociated() {
+bool ClientInterfaceImpl::IsAssociated() const {
   return is_associated_;
 }
 

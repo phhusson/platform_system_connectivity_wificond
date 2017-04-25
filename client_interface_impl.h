@@ -82,7 +82,8 @@ class ClientInterfaceImpl {
   bool requestANQP(
       const ::std::vector<uint8_t>& bssid,
       const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback);
-  bool IsAssociated();
+  bool IsAssociated() const;
+  void Dump(std::stringstream* ss) const;
 
  private:
   bool RefreshAssociateFreq();
