@@ -26,6 +26,7 @@
 using android::net::wifi::IApInterface;
 using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
+using std::endl;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -68,6 +69,15 @@ ApInterfaceImpl::~ApInterfaceImpl() {
 
 sp<IApInterface> ApInterfaceImpl::GetBinder() const {
   return binder_;
+}
+
+void ApInterfaceImpl::Dump(std::stringstream* ss) const {
+  *ss << "------- Dump of AP interface with index: "
+      << interface_index_ << " and name: " << interface_name_
+      << "-------" << endl;
+  *ss << "Number of associated stations: "
+      <<  number_of_associated_stations_ << endl;
+  *ss << "------- Dump End -------" << endl;
 }
 
 bool ApInterfaceImpl::StartHostapd() {

@@ -208,6 +208,14 @@ status_t Server::dump(int fd, const Vector<String16>& /*args*/) {
        << LoggingUtils::GetMacString(iface.mac_address) << endl;
   }
 
+  for (const auto& iface : client_interfaces_) {
+    iface->Dump(&ss);
+  }
+
+  for (const auto& iface : ap_interfaces_) {
+    iface->Dump(&ss);
+  }
+
   if (!WriteStringToFd(ss.str(), fd)) {
     PLOG(ERROR) << "Failed to dump state to fd " << fd;
     return FAILED_TRANSACTION;

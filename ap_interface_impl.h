@@ -60,6 +60,7 @@ class ApInterfaceImpl {
       const std::vector<uint8_t>& passphrase);
   std::string GetInterfaceName() { return interface_name_; }
   int GetNumberOfAssociatedStations() const;
+  void Dump(std::stringstream* ss) const;
 
  private:
   const std::string interface_name_;
