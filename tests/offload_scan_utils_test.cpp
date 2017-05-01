@@ -18,12 +18,16 @@
 
 #include <gtest/gtest.h>
 #include "wificond/tests/offload_test_utils.h"
-
+#include <android-base/logging.h>
 #include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/offload/offload_scan_utils.h"
 
 using android::hardware::wifi::offload::V1_0::ScanResult;
+using android::hardware::wifi::offload::V1_0::ScanParam;
+using android::hardware::wifi::offload::V1_0::ScanFilter;
+using android::hardware::wifi::offload::V1_0::NetworkInfo;
 using ::com::android::server::wifi::wificond::NativeScanResult;
+using std::vector;
 
 namespace android {
 namespace wificond {
@@ -38,20 +42,59 @@ class OffloadScanUtilsTest : public ::testing::Test {
     dummy_scan_results_.clear();
   }
 
-  std::vector<ScanResult> dummy_scan_results_;
+  vector<ScanResult> dummy_scan_results_;
 };
 
 TEST_F(OffloadScanUtilsTest, verifyConversion) {
-  std::vector<NativeScanResult> native_scan_results =
+  vector<NativeScanResult> native_scan_results =
       OffloadScanUtils::convertToNativeScanResults(dummy_scan_results_);
   EXPECT_EQ(native_scan_results.size(), dummy_scan_results_.size());
   for (size_t i = 0; i < native_scan_results.size(); i++) {
     EXPECT_EQ(native_scan_results[i].frequency, dummy_scan_results_[i].frequency);
     EXPECT_EQ(native_scan_results[i].tsf, dummy_scan_results_[i].tsf);
     EXPECT_EQ(native_scan_results[i].signal_mbm, dummy_scan_results_[i].rssi);
-    EXPECT_EQ(native_scan_results[i].ssid.size(), dummy_scan_results_[i].networkInfo.ssid.size());
-    EXPECT_EQ(native_scan_results[i].bssid.size(), dummy_scan_results_[i].bssid.elementCount());
+    EXPECT_EQ(native_scan_results[i].ssid.size(),
+        dummy_scan_results_[i].networkInfo.ssid.size());
+    EXPECT_EQ(native_scan_results[i].bssid.size(),
+        dummy_scan_results_[i].bssid.elementCount());
     EXPECT_EQ(native_scan_results[i].capability, dummy_scan_results_[i].capability);
+  }
+}
+
+TEST_F(OffloadScanUtilsTest, verifyScanParam) {
+  vector<vector<uint8_t>> scan_ssids { kSsid1, kSsid2};
+  vector<uint32_t> frequencies { kFrequency1, kFrequency2 };
+  ScanParam scanParam = OffloadScanUtils::createScanParam(scan_ssids, frequencies,
+      kDisconnectedModeScanIntervalMs);
+  EXPECT_EQ(scanParam.disconnectedModeScanIntervalMs,
+          kDisconnectedModeScanIntervalMs);
+  for (size_t i = 0; i < frequencies.size(); i++) {
+    EXPECT_EQ(scanParam.frequencyList[i], frequencies[i]);
+  }
+  for (size_t j = 0; j < scan_ssids.size(); j++) {
+    vector<uint8_t> ssid_result = scanParam.ssidList[j];
+    vector<uint8_t> ssid_input = scan_ssids[j];
+    for (size_t k = 0; k < ssid_result.size(); k++) {
+      EXPECT_EQ(ssid_result[k], ssid_input[k]);
+    }
+  }
+}
+
+TEST_F(OffloadScanUtilsTest, verifyScanFilter) {
+  vector<vector<uint8_t>> match_ssids { kSsid1, kSsid2 };
+  vector<uint8_t> security_flags { kNetworkFlags, kNetworkFlags };
+  ScanFilter scanFilter = OffloadScanUtils::createScanFilter(match_ssids,
+      security_flags, kRssiThreshold);
+  EXPECT_EQ(kRssiThreshold, scanFilter.rssiThreshold);
+  EXPECT_FALSE(scanFilter.preferredNetworkInfoList.size() == 0);
+  for (size_t i = 0; i < security_flags.size(); ++i) {
+    NetworkInfo nwInfo = scanFilter.preferredNetworkInfoList[i];
+    vector<uint8_t> ssid = nwInfo.ssid;
+    vector<uint8_t> match_ssid = match_ssids[i];
+    EXPECT_EQ(nwInfo.flags, security_flags[i]);
+    for (size_t j = 0; j < ssid.size(); j++) {
+      EXPECT_EQ(ssid[j], match_ssid[j]);
+    }
   }
 }
 
