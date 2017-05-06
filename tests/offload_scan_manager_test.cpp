@@ -22,9 +22,10 @@
 #include <gtest/gtest.h>
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
 
+#include "wificond/tests/offload_hal_test_constants.h"
+#include "wificond/tests/offload_test_utils.h"
 #include "wificond/tests/mock_offload.h"
 #include "wificond/tests/mock_offload_service_utils.h"
-#include "wificond/tests/offload_test_utils.h"
 
 #include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/offload/offload_callback.h"
@@ -36,6 +37,7 @@ using android::hardware::wifi::offload::V1_0::OffloadStatus;
 using android::hardware::wifi::offload::V1_0::ScanParam;
 using android::hardware::wifi::offload::V1_0::ScanFilter;
 using com::android::server::wifi::wificond::NativeScanResult;
+using com::android::server::wifi::wificond::NativeScanStats;
 using testing::NiceMock;
 using testing::_;
 using testing::Invoke;
@@ -45,6 +47,7 @@ using std::vector;
 using std::bind;
 
 using namespace std::placeholders;
+using namespace android::wificond::offload_hal_test_constants;
 
 namespace android {
 namespace wificond {
@@ -74,6 +77,10 @@ class OffloadScanManagerTest: public ::testing::Test {
     unique_ptr<NiceMock<MockOffloadServiceUtils>> mock_offload_service_utils_{
         new NiceMock<MockOffloadServiceUtils>()};
     unique_ptr<OffloadScanManager> offload_scan_manager_;
+    vector<vector<uint8_t>> scan_ssids { kSsid1, kSsid2};
+    vector<vector<uint8_t>> match_ssids { kSsid1, kSsid2 };
+    vector<uint8_t> security_flags { kNetworkFlags, kNetworkFlags };
+    vector<uint32_t> frequencies { kFrequency1, kFrequency2 };
 };
 
 /**
@@ -164,12 +171,9 @@ TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsOk) {
       [] (vector<NativeScanResult> scanResult) -> void {}));
   EXPECT_CALL(*mock_offload_, subscribeScanResults(_));
   EXPECT_CALL(*mock_offload_, configureScans(_, _));
-  vector<vector<uint8_t>> scan_ssids { kSsid1, kSsid2};
-  vector<vector<uint8_t>> match_ssids { kSsid1, kSsid2 };
-  vector<uint8_t> security_flags { kNetworkFlags, kNetworkFlags };
-  vector<uint32_t> frequencies { kFrequency1, kFrequency2 };
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
-  bool result = offload_scan_manager_->startScan(kDisconnectedModeScanIntervalMs,
+  bool result = offload_scan_manager_->startScan(
+      kDisconnectedModeScanIntervalMs,
       kRssiThreshold,
       scan_ssids,
       match_ssids,
@@ -190,12 +194,9 @@ TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsNotAvailable) {
   offload_scan_manager_ .reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [] (vector<NativeScanResult> scanResult) -> void {}));
-  vector<vector<uint8_t>> scan_ssids { kSsid1, kSsid2};
-  vector<vector<uint8_t>> match_ssids { kSsid1, kSsid2 };
-  vector<uint8_t> security_flags { kNetworkFlags, kNetworkFlags };
-  vector<uint32_t> frequencies { kFrequency1, kFrequency2 };
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
-  bool result = offload_scan_manager_->startScan(kDisconnectedModeScanIntervalMs,
+  bool result = offload_scan_manager_->startScan(
+      kDisconnectedModeScanIntervalMs,
       kRssiThreshold,
       scan_ssids,
       match_ssids,
@@ -217,13 +218,10 @@ TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsNotConnected) {
   offload_scan_manager_ .reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [] (vector<NativeScanResult> scanResult) -> void {}));
-  vector<vector<uint8_t>> scan_ssids { kSsid1, kSsid2};
-  vector<vector<uint8_t>> match_ssids { kSsid1, kSsid2 };
-  vector<uint8_t> security_flags { kNetworkFlags, kNetworkFlags };
-  vector<uint32_t> frequencies { kFrequency1, kFrequency2 };
   offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_NO_CONNECTION);
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
-  bool result = offload_scan_manager_->startScan(kDisconnectedModeScanIntervalMs,
+  bool result = offload_scan_manager_->startScan(
+      kDisconnectedModeScanIntervalMs,
       kRssiThreshold,
       scan_ssids,
       match_ssids,
@@ -247,12 +245,9 @@ TEST_F(OffloadScanManagerTest, StartScanTwiceTestWhenServiceIsOk) {
       [] (vector<NativeScanResult> scanResult) -> void {}));
   EXPECT_CALL(*mock_offload_, subscribeScanResults(_)).Times(1);
   EXPECT_CALL(*mock_offload_, configureScans(_, _)).Times(2);
-  vector<vector<uint8_t>> scan_ssids { kSsid1, kSsid2};
-  vector<vector<uint8_t>> match_ssids { kSsid1, kSsid2 };
-  vector<uint8_t> security_flags { kNetworkFlags, kNetworkFlags };
-  vector<uint32_t> frequencies { kFrequency1, kFrequency2 };
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
-  bool result = offload_scan_manager_->startScan(kDisconnectedModeScanIntervalMs,
+  bool result = offload_scan_manager_->startScan(
+      kDisconnectedModeScanIntervalMs,
       kRssiThreshold,
       scan_ssids,
       match_ssids,
@@ -260,7 +255,8 @@ TEST_F(OffloadScanManagerTest, StartScanTwiceTestWhenServiceIsOk) {
       frequencies,
       &reason_code);
   EXPECT_EQ(result, true);
-  result = offload_scan_manager_->startScan(kDisconnectedModeScanIntervalMs,
+  result = offload_scan_manager_->startScan(
+      kDisconnectedModeScanIntervalMs,
       kRssiThreshold,
       scan_ssids,
       match_ssids,
@@ -284,12 +280,9 @@ TEST_F(OffloadScanManagerTest, StopScanTestWhenServiceIsOk) {
   EXPECT_CALL(*mock_offload_, subscribeScanResults(_));
   EXPECT_CALL(*mock_offload_, configureScans(_, _));
   EXPECT_CALL(*mock_offload_, unsubscribeScanResults());
-  vector<vector<uint8_t>> scan_ssids { kSsid1, kSsid2};
-  vector<vector<uint8_t>> match_ssids { kSsid1, kSsid2 };
-  vector<uint8_t> security_flags { kNetworkFlags, kNetworkFlags };
-  vector<uint32_t> frequencies { kFrequency1, kFrequency2 };
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
-  bool result = offload_scan_manager_->startScan(kDisconnectedModeScanIntervalMs,
+  bool result = offload_scan_manager_->startScan(
+      kDisconnectedModeScanIntervalMs,
       kRssiThreshold,
       scan_ssids,
       match_ssids,
@@ -332,12 +325,9 @@ TEST_F(OffloadScanManagerTest, StopScanTestWhenServiceIsNotConnectedAnymore) {
   EXPECT_CALL(*mock_offload_, subscribeScanResults(_));
   EXPECT_CALL(*mock_offload_, configureScans(_, _));
   EXPECT_CALL(*mock_offload_, unsubscribeScanResults());
-  vector<vector<uint8_t>> scan_ssids { kSsid1, kSsid2};
-  vector<vector<uint8_t>> match_ssids { kSsid1, kSsid2 };
-  vector<uint8_t> security_flags { kNetworkFlags, kNetworkFlags };
-  vector<uint32_t> frequencies { kFrequency1, kFrequency2 };
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
-  bool result = offload_scan_manager_->startScan(kDisconnectedModeScanIntervalMs,
+  bool result = offload_scan_manager_->startScan(
+      kDisconnectedModeScanIntervalMs,
       kRssiThreshold,
       scan_ssids,
       match_ssids,
@@ -350,6 +340,41 @@ TEST_F(OffloadScanManagerTest, StopScanTestWhenServiceIsNotConnectedAnymore) {
   EXPECT_EQ(result, true);
 }
 
+/**
+ * Testing OffloadScanManager for getting scan statistics when the
+ * Offload HAL service is running without errors
+ */
+TEST_F(OffloadScanManagerTest, getScanStatsTestWhenServiceIsOk) {
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  ON_CALL(*mock_offload_service_utils_, GetOffloadService())
+      .WillByDefault(testing::Return(mock_offload_));
+  offload_scan_manager_ .reset(new OffloadScanManager(
+      mock_offload_service_utils_.get(),
+      [] (vector<NativeScanResult> scanResult) -> void {}));
+  EXPECT_CALL(*mock_offload_, getScanStats(_));
+  NativeScanStats stats;
+  bool result = offload_scan_manager_->getScanStats(&stats);
+  EXPECT_EQ(result, true);
 }
+
+/**
+ * Testing OffloadScanManager for getting scan statistics when the
+ * Offload HAL service is not connected
+ */
+TEST_F(OffloadScanManagerTest, getScanStatsTestWhenServiceIsNotOk) {
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  ON_CALL(*mock_offload_service_utils_, GetOffloadService())
+      .WillByDefault(testing::Return(mock_offload_));
+  offload_scan_manager_ .reset(new OffloadScanManager(
+      mock_offload_service_utils_.get(),
+      [] (vector<NativeScanResult> scanResult) -> void {}));
+  offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_NO_CONNECTION);
+  EXPECT_CALL(*mock_offload_, getScanStats(_)).Times(0);
+  NativeScanStats stats;
+  bool result = offload_scan_manager_->getScanStats(&stats);
+  EXPECT_EQ(result, false);
 }
+
+} // namespace wificond
+} // namespace android
 

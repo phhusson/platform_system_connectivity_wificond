@@ -66,6 +66,7 @@ LOCAL_SRC_FILES := \
     scanning/pno_network.cpp \
     scanning/pno_settings.cpp \
     scanning/scan_result.cpp \
+    scanning/offload/scan_stats.cpp \
     scanning/single_scan_settings.cpp \
     scanning/scan_utils.cpp \
     scanning/scanner_impl.cpp \
@@ -177,11 +178,13 @@ LOCAL_SRC_FILES := \
     tests/nl80211_attribute_unittest.cpp \
     tests/nl80211_packet_unittest.cpp \
     tests/offload_callback_test.cpp \
+    tests/offload_hal_test_constants.cpp \
     tests/offload_scan_manager_test.cpp \
     tests/offload_scan_utils_test.cpp \
     tests/offload_test_utils.cpp \
     tests/scan_result_unittest.cpp \
     tests/scan_settings_unittest.cpp \
+    tests/scan_stats_unittest.cpp \
     tests/scan_utils_unittest.cpp \
     tests/server_unittest.cpp
 LOCAL_STATIC_LIBRARIES := \
