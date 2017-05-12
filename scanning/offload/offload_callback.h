@@ -37,7 +37,8 @@ class OffloadCallback
           ::android::hardware::wifi::offload::V1_0::ScanResult>& scanResult)
       override;
   ::android::hardware::Return<void> onError(
-      ::android::hardware::wifi::offload::V1_0::OffloadStatus status) override;
+      const ::android::hardware::wifi::offload::V1_0::OffloadStatus& status)
+      override;
   // Methods from ::android::hidl::base::V1_0::IBase follow.
 
  private:
