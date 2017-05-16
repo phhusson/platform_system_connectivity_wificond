@@ -53,6 +53,7 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index,
     : valid_(true),
       scan_started_(false),
       pno_scan_started_(false),
+      offload_scan_supported_(false),
       wiphy_index_(wiphy_index),
       interface_index_(interface_index),
       scan_capabilities_(scan_capabilities),
@@ -79,6 +80,7 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index,
       new OffloadScanManager(new OffloadServiceUtils(),
           std::bind(&ScannerImpl::OnOffloadScanResult,
               this, _1)));
+  offload_scan_supported_ = offload_scan_manager_->isOffloadScanSupported();
 }
 
 ScannerImpl::~ScannerImpl() {
@@ -213,9 +215,72 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
 
 Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                  bool* out_success) {
+  if (!offload_scan_supported_ || !StartPnoScanOffload(pno_settings)) {
+    *out_success = StartPnoScanDefault(pno_settings);
+  } else {
+    // scanning over offload succeeded
+    *out_success = true;
+  }
+  return Status::ok();
+}
+
+bool ScannerImpl::StartPnoScanOffload(const PnoSettings& pno_settings) {
+  OffloadScanManager::ReasonCode reason_code;
+  vector<vector<uint8_t>> scan_ssids;
+  vector<vector<uint8_t>> match_ssids;
+  vector<uint8_t> match_security;
+  // Empty frequency list: scan all frequencies.
+  vector<uint32_t> freqs;
+
+  ParsePnoSettings(pno_settings, &scan_ssids, &match_ssids, &freqs, &match_security);
+
+  bool success = offload_scan_manager_->startScan(
+          pno_settings.interval_ms_,
+          // TODO: honor both rssi thresholds.
+          pno_settings.min_5g_rssi_,
+          scan_ssids,
+          match_ssids,
+          match_security,
+          freqs,
+          &reason_code);
+  return success;
+}
+
+void ScannerImpl::ParsePnoSettings(const PnoSettings& pno_settings,
+    vector<vector<uint8_t>>* scan_ssids,
+    vector<vector<uint8_t>>* match_ssids,
+    vector<uint32_t>* freqs,
+    vector<uint8_t>* match_security) {
+  // TODO provide actionable security match parameters
+  const uint8_t kNetworkFlagsDefault = 0;
+  vector<vector<uint8_t>> skipped_scan_ssids;
+  vector<vector<uint8_t>> skipped_match_ssids;
+  for (auto& network : pno_settings.pno_networks_) {
+    // Add hidden network ssid.
+    if (network.is_hidden_) {
+      // TODO remove pruning for Offload Scans
+      if (scan_ssids->size() + 1 > scan_capabilities_.max_num_sched_scan_ssids) {
+        skipped_scan_ssids.emplace_back(network.ssid_);
+        continue;
+      }
+      scan_ssids->push_back(network.ssid_);
+    }
+
+    if (match_ssids->size() + 1 > scan_capabilities_.max_match_sets) {
+      skipped_match_ssids.emplace_back(network.ssid_);
+      continue;
+    }
+    match_ssids->push_back(network.ssid_);
+    match_security->push_back(kNetworkFlagsDefault);
+  }
+
+  LogSsidList(skipped_scan_ssids, "Skip scan ssid for pno scan");
+  LogSsidList(skipped_match_ssids, "Skip match ssid for pno scan");
+}
+
+bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
   if (!CheckIsValid()) {
-    *out_success = false;
-    return Status::ok();
+      return false;
   }
   if (pno_scan_started_) {
     LOG(WARNING) << "Pno scan already started";
@@ -223,31 +288,11 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
   // An empty ssid for a wild card scan.
   vector<vector<uint8_t>> scan_ssids = {{}};
   vector<vector<uint8_t>> match_ssids;
+  vector<uint8_t> unused;
   // Empty frequency list: scan all frequencies.
   vector<uint32_t> freqs;
 
-  vector<vector<uint8_t>> skipped_scan_ssids;
-  vector<vector<uint8_t>> skipped_match_ssids;
-  for (auto& network : pno_settings.pno_networks_) {
-    // Add hidden network ssid.
-    if (network.is_hidden_) {
-      if (scan_ssids.size() + 1 > scan_capabilities_.max_num_sched_scan_ssids) {
-        skipped_scan_ssids.emplace_back(network.ssid_);
-        continue;
-      }
-      scan_ssids.push_back(network.ssid_);
-    }
-
-    if (match_ssids.size() + 1 > scan_capabilities_.max_match_sets) {
-      skipped_match_ssids.emplace_back(network.ssid_);
-      continue;
-    }
-    match_ssids.push_back(network.ssid_);
-  }
-
-  LogSsidList(skipped_scan_ssids, "Skip scan ssid for pno scan");
-  LogSsidList(skipped_match_ssids, "Skip match ssid for pno scan");
-
+  ParsePnoSettings(pno_settings, &scan_ssids, &match_ssids, &freqs, &unused);
   // Only request MAC address randomization when station is not associated.
   bool request_random_mac = wiphy_features_.supports_random_mac_sched_scan &&
       !client_interface_->IsAssociated();
@@ -260,33 +305,43 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                        scan_ssids,
                                        match_ssids,
                                        freqs)) {
-    *out_success = false;
     LOG(ERROR) << "Failed to start pno scan";
-    return Status::ok();
+    return false;
   }
   LOG(INFO) << "Pno scan started";
   pno_scan_started_ = true;
-  *out_success = true;
-  return Status::ok();
+  return true;
 }
 
 Status ScannerImpl::stopPnoScan(bool* out_success) {
+  if (!offload_scan_supported_ || !StopPnoScanOffload()) {
+    *out_success = StopPnoScanDefault();
+  } else {
+    // Pno scans over offload stopped successfully
+    *out_success = true;
+  }
+  return Status::ok();
+}
+
+bool ScannerImpl::StopPnoScanOffload() {
+  OffloadScanManager::ReasonCode reason_code;
+  return(offload_scan_manager_->stopScan(&reason_code));
+}
+
+bool ScannerImpl::StopPnoScanDefault() {
   if (!CheckIsValid()) {
-    *out_success = false;
-    return Status::ok();
+    return false;
   }
 
   if (!pno_scan_started_) {
     LOG(WARNING) << "No pno scan started";
   }
   if (!scan_utils_->StopScheduledScan(interface_index_)) {
-    *out_success = false;
-    return Status::ok();
+    return false;
   }
   LOG(INFO) << "Pno scan stopped";
   pno_scan_started_ = false;
-  *out_success = true;
-  return Status::ok();
+  return true;
 }
 
 Status ScannerImpl::abortScan(bool* out_success) {
@@ -399,9 +454,9 @@ void ScannerImpl::LogSsidList(vector<vector<uint8_t>>& ssid_list,
 
 void ScannerImpl::OnOffloadScanResult(
     std::vector<NativeScanResult> scanResult) {
-  // TODO: Process scan result
-  if (scan_event_handler_ != nullptr) {
-    scan_event_handler_->OnScanResultReady();
+  LOG(INFO) << "Offload Scan results received";
+  if (pno_scan_event_handler_ != nullptr) {
+    pno_scan_event_handler_->OnPnoNetworkFound();
   } else {
     LOG(WARNING) << "No scan event handler Offload Scan result";
   }

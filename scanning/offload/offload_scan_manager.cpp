@@ -72,6 +72,7 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils *utils,
       wifi_offload_callback_(nullptr),
       offload_status_(OffloadScanManager::kError),
       subscription_enabled_(false),
+      service_available_(false),
       offload_callback_handlers_(new OffloadCallbackHandlersImpl(this)),
       scan_result_handler_(handler) {
   if (utils == nullptr) {
@@ -84,28 +85,27 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils *utils,
   }
   wifi_offload_hal_ = utils->GetOffloadService();
   if (wifi_offload_hal_ == nullptr) {
-    LOG(WARNING) << "No Offload Service available";
-    offload_status_ = OffloadScanManager::kNoService;
+    LOG(ERROR) << "No Offload Service available";
     return;
   }
   wifi_offload_callback_ = utils->GetOffloadCallback(
       offload_callback_handlers_.get());
   if (wifi_offload_callback_ == nullptr) {
-    offload_status_ = OffloadScanManager::kNoService;
     LOG(ERROR) << "Invalid Offload callback object";
     return;
   }
   wifi_offload_hal_->setEventCallback(wifi_offload_callback_);
+  service_available_ = true;
   offload_status_ = OffloadScanManager::kNoError;
 }
 
 bool OffloadScanManager::stopScan(OffloadScanManager::ReasonCode* reason_code) {
   if (!subscription_enabled_) {
-    LOG(INFO) << "Scans are not subscribed over Offload HAL";
+    LOG(VERBOSE) << "Scans are not subscribed over Offload HAL";
     *reason_code = OffloadScanManager::kNotSubscribed;
     return false;
   }
-  if (offload_status_ != OffloadScanManager::kNoService) {
+  if (service_available_) {
     wifi_offload_hal_->unsubscribeScanResults();
     subscription_enabled_ = false;
   }
@@ -121,7 +121,7 @@ bool OffloadScanManager::startScan(
     const vector<uint8_t>& match_security,
     const vector<uint32_t> &freqs,
     OffloadScanManager::ReasonCode* reason_code) {
-  if (offload_status_ == OffloadScanManager::kNoService) {
+  if (!service_available_) {
     *reason_code = OffloadScanManager::kNotSupported;
     LOG(WARNING) << "Offload HAL scans are not supported";
     return false;
@@ -146,12 +146,24 @@ bool OffloadScanManager::startScan(
 }
 
 OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
+  if (!service_available_) {
+    return OffloadScanManager::kNoService;
+  }
   return offload_status_;
 }
 
+bool OffloadScanManager::isOffloadScanSupported() const {
+    bool result = false;
+#ifdef WIFI_OFFLOAD_SCANS
+    LOG(VERBOSE) << "Offload HAL supported";
+    result = true;
+#endif
+    return result;
+}
+
 bool OffloadScanManager::getScanStats(NativeScanStats* native_scan_stats) {
-  if (offload_status_ != OffloadScanManager::kNoError) {
-    LOG(ERROR) << "Unable to get scan stats due to Wifi Offload HAL error";
+  if (getOffloadStatus() != OffloadScanManager::kNoError) {
+    LOG(WARNING) << "Unable to get scan stats due to Wifi Offload HAL error";
     return false;
   }
   wifi_offload_hal_->getScanStats(

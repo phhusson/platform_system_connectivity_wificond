@@ -118,6 +118,8 @@ class OffloadScanManager {
       ::com::android::server::wifi::wificond::NativeScanStats* /* scanStats */);
   /* Otain status of the Offload HAL service */
   StatusCode getOffloadStatus() const;
+  /* Check if Offload service is supported on this device */
+  bool isOffloadScanSupported() const;
 
  private:
   void ReportScanResults(const std::vector<ScanResult> scanResult);
@@ -127,6 +129,7 @@ class OffloadScanManager {
   android::sp<OffloadCallback> wifi_offload_callback_;
   StatusCode offload_status_;
   bool subscription_enabled_;
+  bool service_available_;
 
   const std::unique_ptr<OffloadCallbackHandlersImpl> offload_callback_handlers_;
   OnNativeScanResultsReadyHandler scan_result_handler_;
