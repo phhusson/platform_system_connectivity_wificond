@@ -20,8 +20,6 @@
 #include "wificond/scanning/offload/offload_callback.h"
 #include "wificond/scanning/offload/offload_callback_handlers.h"
 
-using android::hardware::wifi::offload::V1_0::IOffload;
-
 namespace android {
 namespace wificond {
 
@@ -30,13 +28,13 @@ class OffloadServiceUtils {
  public:
   OffloadServiceUtils() = default;
   virtual ~OffloadServiceUtils() = default;
-  virtual android::sp<IOffload> GetOffloadService();
+  virtual android::sp<android::hardware::wifi::offload::V1_0::IOffload>
+      GetOffloadService();
   virtual android::sp<OffloadCallback> GetOffloadCallback(
-     OffloadCallbackHandlers* handlers);
+      OffloadCallbackHandlers* handlers);
 };
 
 }  // namespace wificond
 }  // namespace android
 
-#endif // WIFICOND_OFFLOAD_SERVICE_UTILS_H
-
+#endif  // WIFICOND_OFFLOAD_SERVICE_UTILS_H

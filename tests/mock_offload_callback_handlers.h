@@ -20,11 +20,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "wificond/scanning/offload/offload_callback_handlers.h"
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
-
-using android::hardware::wifi::offload::V1_0::ScanResult;
-using android::hardware::wifi::offload::V1_0::OffloadStatus;
+#include "wificond/scanning/offload/offload_callback_handlers.h"
 
 namespace android {
 namespace wificond {
@@ -34,12 +31,15 @@ class MockOffloadCallbackHandlers : public OffloadCallbackHandlers {
   MockOffloadCallbackHandlers();
   ~MockOffloadCallbackHandlers() override = default;
 
-  MOCK_METHOD1(OnScanResultHandler, void(const std::vector<ScanResult>& scanResult));
-  MOCK_METHOD1(OnErrorHandler, void(OffloadStatus));
+  MOCK_METHOD1(
+      OnScanResultHandler,
+      void(const std::vector<
+           android::hardware::wifi::offload::V1_0::ScanResult>& scanResult));
+  MOCK_METHOD1(OnErrorHandler,
+               void(android::hardware::wifi::offload::V1_0::OffloadStatus));
 };
 
-} // namespace wificond
-} // namespace android
+}  // namespace wificond
+}  // namespace android
 
-#endif // WIFICOND_TESTS_MOCK_OFFLOAD_CALLBACK_HANDLERS_H_
-
+#endif  // WIFICOND_TESTS_MOCK_OFFLOAD_CALLBACK_HANDLERS_H_

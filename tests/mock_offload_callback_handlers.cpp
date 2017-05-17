@@ -19,8 +19,7 @@
 namespace android {
 namespace wificond {
 
-MockOffloadCallbackHandlers::MockOffloadCallbackHandlers() {
-}
+MockOffloadCallbackHandlers::MockOffloadCallbackHandlers() {}
 
-} // namespace wificond
-} // namespace android
+}  // namespace wificond
+}  // namespace android

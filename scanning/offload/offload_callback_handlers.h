@@ -22,16 +22,15 @@
 namespace android {
 namespace wificond {
 
-using ::android::hardware::wifi::offload::V1_0::OffloadStatus;
-using ::android::hardware::wifi::offload::V1_0::ScanResult;
-
 class OffloadCallbackHandlers {
  public:
   virtual ~OffloadCallbackHandlers() {}
 
-  virtual void OnScanResultHandler(const std::vector<ScanResult>& scanResult) = 0;
-  virtual void OnErrorHandler(OffloadStatus status) = 0;
-
+  virtual void OnScanResultHandler(
+      const std::vector<::android::hardware::wifi::offload::V1_0::ScanResult>&
+          scanResult) = 0;
+  virtual void OnErrorHandler(
+      ::android::hardware::wifi::offload::V1_0::OffloadStatus status) = 0;
 };
 
 }  // namespace wificond

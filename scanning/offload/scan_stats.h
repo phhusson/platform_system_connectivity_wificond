@@ -32,11 +32,10 @@ class NativeScanStats : public ::android::Parcelable {
  public:
   NativeScanStats();
   NativeScanStats(uint32_t num_scans_requested_by_wifi,
-      uint32_t num_scans_serviced_by_wifi,
-      uint32_t subscription_duration_ms,
-      uint32_t scan_duration_ms,
-      uint32_t num_channels_scanned,
-      std::vector<uint8_t> histogram_channels);
+                  uint32_t num_scans_serviced_by_wifi,
+                  uint32_t subscription_duration_ms, uint32_t scan_duration_ms,
+                  uint32_t num_channels_scanned,
+                  std::vector<uint8_t> histogram_channels);
 
   bool operator==(const NativeScanStats&) const;
   ::android::status_t writeToParcel(::android::Parcel* parcel) const override;
@@ -56,5 +55,4 @@ class NativeScanStats : public ::android::Parcelable {
 }  // namespace server
 }  // namespace android
 }  // namespace com
-#endif // WIFICOND_SCAN_STATS_H
-
+#endif  // WIFICOND_SCAN_STATS_H

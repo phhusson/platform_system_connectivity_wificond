@@ -21,21 +21,21 @@
 #include <vector>
 
 #include "wificond/scanning/offload/scan_stats.h"
-
-using android::hardware::wifi::offload::V1_0::ScanResult;
-using android::hardware::wifi::offload::V1_0::ScanStats;
-using ::com::android::server::wifi::wificond::NativeScanStats;
+#include "wificond/scanning/scan_result.h"
 
 namespace android {
 namespace wificond {
 
 class OffloadTestUtils {
  public:
-  static std::vector<ScanResult> createOffloadScanResults();
-  static ScanStats createScanStats(NativeScanStats* /* nativeScanStats */);
+  static std::vector<android::hardware::wifi::offload::V1_0::ScanResult>
+      createOffloadScanResults();
+  static android::hardware::wifi::offload::V1_0::ScanStats createScanStats(
+      ::com::android::server::wifi::wificond::
+          NativeScanStats* /* nativeScanStats */);
 };
 
-} // namespace wificond
-} // namespace android
+}  // namespace wificond
+}  // namespace android
 
-#endif // WIFICOND_OFFLOAD_TEST_UTILS_H
+#endif  // WIFICOND_OFFLOAD_TEST_UTILS_H

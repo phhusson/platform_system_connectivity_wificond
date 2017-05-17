@@ -16,12 +16,17 @@
 
 #include <vector>
 
-#include "wificond/tests/offload_test_utils.h"
 #include "wificond/tests/offload_hal_test_constants.h"
+#include "wificond/tests/offload_test_utils.h"
 
 using android::hardware::wifi::offload::V1_0::ScanResult;
 using android::hardware::wifi::offload::V1_0::ScanStats;
 using android::hardware::wifi::offload::V1_0::ScanRecord;
+using android::hardware::wifi::offload::V1_0::OffloadStatus;
+
+using ::com::android::server::wifi::wificond::NativeScanResult;
+using ::com::android::server::wifi::wificond::NativeScanStats;
+
 using namespace android::wificond::offload_hal_test_constants;
 
 namespace android {
@@ -49,7 +54,7 @@ ScanStats OffloadTestUtils::createScanStats(NativeScanStats* nativeScanStats) {
   uint32_t num_channels_scanned = 0;
   ScanStats scan_stats;
   int numEntriesInScanRecord =
-      sizeof(kNumChannelsScanned)/sizeof(kNumChannelsScanned[0]);
+      sizeof(kNumChannelsScanned) / sizeof(kNumChannelsScanned[0]);
   for (int i = 0; i < numEntriesInScanRecord; i++) {
     ScanRecord scan_record;
     scan_record.durationMs = kScanDurationMs[i];
@@ -63,10 +68,11 @@ ScanStats OffloadTestUtils::createScanStats(NativeScanStats* nativeScanStats) {
   scan_stats.numScansRequestedByWifi = kDefaultNumScansRequestedByWifi;
   scan_stats.numScansServicedByWifi = kDefaultNumScansServicedByWifi;
   scan_stats.subscriptionDurationMs = kSubscriptionDurationMs;
-  uint32_t skip_tmp = 256/num_channels_scanned;
-  for(size_t i = 0; i < 256; i++) {
+  uint32_t skip_tmp = 256 / num_channels_scanned;
+  for (size_t i = 0; i < 256; i++) {
     if (i % skip_tmp == 0) {
-      scan_stats.histogramChannelsScanned[i] = kDefaultNumTimesAChannelsIsScanned;
+      scan_stats.histogramChannelsScanned[i] =
+          kDefaultNumTimesAChannelsIsScanned;
       histogram_channels.push_back(kDefaultNumTimesAChannelsIsScanned);
     } else {
       scan_stats.histogramChannelsScanned[i] = kChannelNotScanned;
@@ -74,14 +80,12 @@ ScanStats OffloadTestUtils::createScanStats(NativeScanStats* nativeScanStats) {
     }
   }
   NativeScanStats native_scan_stats(kDefaultNumScansRequestedByWifi,
-      kDefaultNumScansServicedByWifi,
-      kSubscriptionDurationMs,
-      scan_duration_ms,
-      num_channels_scanned,
-      histogram_channels);
+                                    kDefaultNumScansServicedByWifi,
+                                    kSubscriptionDurationMs, scan_duration_ms,
+                                    num_channels_scanned, histogram_channels);
   *nativeScanStats = native_scan_stats;
   return scan_stats;
 }
 
-} // namespace wificond
-} // namespace android
+}  // namespace wificond
+}  // namespace android
