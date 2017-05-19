@@ -29,45 +29,42 @@ namespace wifi {
 namespace wificond {
 
 NativeScanStats::NativeScanStats(uint32_t num_scans_requested_by_wifi,
-    uint32_t num_scans_serviced_by_wifi,
-    uint32_t subscription_duration_ms,
-    uint32_t scan_duration_ms,
-    uint32_t num_channels_scanned,
-    std::vector<uint8_t> histogram_channels)
+                                 uint32_t num_scans_serviced_by_wifi,
+                                 uint32_t subscription_duration_ms,
+                                 uint32_t scan_duration_ms,
+                                 uint32_t num_channels_scanned,
+                                 std::vector<uint8_t> histogram_channels)
     : num_scans_requested_by_wifi_(num_scans_requested_by_wifi),
       num_scans_serviced_by_wifi_(num_scans_serviced_by_wifi),
       subscription_duration_ms_(subscription_duration_ms),
       scan_duration_ms_(scan_duration_ms),
       num_channels_scanned_(num_channels_scanned),
       time_stamp_(0),
-      histogram_channels_(histogram_channels) {
-}
+      histogram_channels_(histogram_channels) {}
 
 NativeScanStats::NativeScanStats()
     : num_scans_requested_by_wifi_(0),
       num_scans_serviced_by_wifi_(0),
       subscription_duration_ms_(0),
       num_channels_scanned_(0),
-      time_stamp_(0) {
-}
+      time_stamp_(0) {}
 
 bool NativeScanStats::operator==(const NativeScanStats& rhs) const {
-  bool result = true;
   if ((rhs.num_scans_requested_by_wifi_ != num_scans_requested_by_wifi_) ||
       (rhs.num_scans_serviced_by_wifi_ != num_scans_serviced_by_wifi_) ||
       (rhs.scan_duration_ms_ != scan_duration_ms_) ||
       (rhs.num_channels_scanned_ != num_channels_scanned_)) {
-    result = false;
+    return false;
   }
   if (rhs.histogram_channels_.size() != histogram_channels_.size()) {
     return false;
   }
   for (size_t i = 0; i < histogram_channels_.size(); i++) {
     if (rhs.histogram_channels_[i] != histogram_channels_[i]) {
-      result = false;
+      return false;
     }
   }
-  return result;
+  return true;
 }
 
 status_t NativeScanStats::writeToParcel(::android::Parcel* parcel) const {
@@ -89,7 +86,6 @@ status_t NativeScanStats::readFromParcel(const ::android::Parcel* parcel) {
   RETURN_IF_FAILED(parcel->readByteVector(&histogram_channels_));
   return ::android::OK;
 }
-
 
 }  // namespace wificond
 }  // namespace wifi

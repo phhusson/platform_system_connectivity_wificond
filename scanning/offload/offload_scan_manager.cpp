@@ -21,8 +21,8 @@
 
 #include "wificond/scanning/offload/offload_scan_utils.h"
 #include "wificond/scanning/offload/offload_service_utils.h"
-#include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/offload/scan_stats.h"
+#include "wificond/scanning/scan_result.h"
 
 using ::android::hardware::hidl_vec;
 using android::hardware::wifi::offload::V1_0::IOffload;
@@ -40,7 +40,7 @@ using namespace std::placeholders;
 using std::vector;
 
 namespace {
-  const uint32_t kSubscriptionDelayMs = 5000;
+const uint32_t kSubscriptionDelayMs = 5000;
 }
 
 namespace android {
@@ -48,8 +48,7 @@ namespace wificond {
 
 OffloadCallbackHandlersImpl::OffloadCallbackHandlersImpl(
     OffloadScanManager* offload_scan_manager)
-        : offload_scan_manager_(offload_scan_manager) {
-}
+    : offload_scan_manager_(offload_scan_manager) {}
 
 OffloadCallbackHandlersImpl::~OffloadCallbackHandlersImpl() {}
 
@@ -66,8 +65,8 @@ void OffloadCallbackHandlersImpl::OnErrorHandler(OffloadStatus status) {
   }
 }
 
-OffloadScanManager::OffloadScanManager(OffloadServiceUtils *utils,
-    OnNativeScanResultsReadyHandler handler)
+OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
+                                       OnNativeScanResultsReadyHandler handler)
     : wifi_offload_hal_(nullptr),
       wifi_offload_callback_(nullptr),
       offload_status_(OffloadScanManager::kError),
@@ -88,8 +87,8 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils *utils,
     LOG(ERROR) << "No Offload Service available";
     return;
   }
-  wifi_offload_callback_ = utils->GetOffloadCallback(
-      offload_callback_handlers_.get());
+  wifi_offload_callback_ =
+      utils->GetOffloadCallback(offload_callback_handlers_.get());
   if (wifi_offload_callback_ == nullptr) {
     LOG(ERROR) << "Invalid Offload callback object";
     return;
@@ -114,12 +113,10 @@ bool OffloadScanManager::stopScan(OffloadScanManager::ReasonCode* reason_code) {
 }
 
 bool OffloadScanManager::startScan(
-    uint32_t interval_ms,
-    int32_t rssi_threshold,
+    uint32_t interval_ms, int32_t rssi_threshold,
     const vector<vector<uint8_t>>& scan_ssids,
     const vector<vector<uint8_t>>& match_ssids,
-    const vector<uint8_t>& match_security,
-    const vector<uint32_t> &freqs,
+    const vector<uint8_t>& match_security, const vector<uint32_t>& freqs,
     OffloadScanManager::ReasonCode* reason_code) {
   if (!service_available_) {
     *reason_code = OffloadScanManager::kNotSupported;
@@ -131,10 +128,10 @@ bool OffloadScanManager::startScan(
     return false;
   }
 
-  ScanParam param = OffloadScanUtils::createScanParam(scan_ssids, freqs,
-      interval_ms);
-  ScanFilter filter = OffloadScanUtils::createScanFilter(match_ssids,
-      match_security, rssi_threshold);
+  ScanParam param =
+      OffloadScanUtils::createScanParam(scan_ssids, freqs, interval_ms);
+  ScanFilter filter = OffloadScanUtils::createScanFilter(
+      match_ssids, match_security, rssi_threshold);
 
   wifi_offload_hal_->configureScans(param, filter);
   if (!subscription_enabled_) {
@@ -153,12 +150,12 @@ OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
 }
 
 bool OffloadScanManager::isOffloadScanSupported() const {
-    bool result = false;
+  bool result = false;
 #ifdef WIFI_OFFLOAD_SCANS
-    LOG(VERBOSE) << "Offload HAL supported";
-    result = true;
+  LOG(VERBOSE) << "Offload HAL supported";
+  result = true;
 #endif
-    return result;
+  return result;
 }
 
 bool OffloadScanManager::getScanStats(NativeScanStats* native_scan_stats) {
@@ -167,9 +164,9 @@ bool OffloadScanManager::getScanStats(NativeScanStats* native_scan_stats) {
     return false;
   }
   wifi_offload_hal_->getScanStats(
-      [&native_scan_stats] (ScanStats offload_scan_stats)-> void {
-          *native_scan_stats =
-              OffloadScanUtils::convertToNativeScanStats(offload_scan_stats);
+      [&native_scan_stats](ScanStats offload_scan_stats) -> void {
+        *native_scan_stats =
+            OffloadScanUtils::convertToNativeScanStats(offload_scan_stats);
       });
   return true;
 }
@@ -188,7 +185,7 @@ void OffloadScanManager::ReportScanResults(
 
 void OffloadScanManager::ReportError(OffloadStatus status) {
   OffloadScanManager::StatusCode status_result = OffloadScanManager::kNoError;
-  switch(status) {
+  switch (status) {
     case OffloadStatus::OFFLOAD_STATUS_OK:
       status_result = OffloadScanManager::kNoError;
       break;

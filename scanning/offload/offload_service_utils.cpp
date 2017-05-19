@@ -15,6 +15,8 @@
  */
 #include "wificond/scanning/offload/offload_service_utils.h"
 
+using ::android::hardware::wifi::offload::V1_0::IOffload;
+
 namespace android {
 namespace wificond {
 
@@ -27,6 +29,5 @@ android::sp<OffloadCallback> OffloadServiceUtils::GetOffloadCallback(
   return new OffloadCallback(handlers);
 }
 
-} // wificond
-} // android
-
+}  // namespace wificond
+}  // namespace android

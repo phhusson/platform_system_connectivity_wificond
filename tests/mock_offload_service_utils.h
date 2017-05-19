@@ -20,12 +20,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "wificond/scanning/offload/offload_callback.h"
-#include "wificond/scanning/offload/offload_service_utils.h"
-#include "wificond/scanning/offload/offload_callback_handlers.h"
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
-
-using android::hardware::wifi::offload::V1_0::IOffload;
+#include "wificond/scanning/offload/offload_callback.h"
+#include "wificond/scanning/offload/offload_callback_handlers.h"
+#include "wificond/scanning/offload/offload_service_utils.h"
 
 namespace android {
 namespace wificond {
@@ -35,13 +33,13 @@ class MockOffloadServiceUtils : public OffloadServiceUtils {
   MockOffloadServiceUtils();
   ~MockOffloadServiceUtils() override = default;
 
-  MOCK_METHOD0(GetOffloadService, sp<IOffload>());
-  MOCK_METHOD1(GetOffloadCallback, sp<OffloadCallback>(
-      OffloadCallbackHandlers* handlers));
+  MOCK_METHOD0(GetOffloadService,
+               sp<android::hardware::wifi::offload::V1_0::IOffload>());
+  MOCK_METHOD1(GetOffloadCallback,
+               sp<OffloadCallback>(OffloadCallbackHandlers* handlers));
 };
 
-} // namespace wificond
-} // namespace android
+}  // namespace wificond
+}  // namespace android
 
-#endif // WIFICOND_TEST_MOCK_OFFLOAD_SERVICE_UTILS_H_
-
+#endif  // WIFICOND_TEST_MOCK_OFFLOAD_SERVICE_UTILS_H_

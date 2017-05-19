@@ -21,11 +21,6 @@
 
 #include <vector>
 
-using android::hardware::wifi::offload::V1_0::ScanResult;
-using android::hardware::wifi::offload::V1_0::ScanParam;
-using android::hardware::wifi::offload::V1_0::ScanFilter;
-using android::hardware::wifi::offload::V1_0::ScanStats;
-
 namespace com {
 namespace android {
 namespace server {
@@ -48,24 +43,26 @@ namespace wificond {
 class OffloadScanUtils {
  public:
   static std::vector<::com::android::server::wifi::wificond::NativeScanResult>
-      convertToNativeScanResults(const std::vector<ScanResult>&);
-  static ScanParam createScanParam(
+  convertToNativeScanResults(
+      const std::vector<android::hardware::wifi::offload::V1_0::ScanResult>&);
+  static android::hardware::wifi::offload::V1_0::ScanParam createScanParam(
       const std::vector<std::vector<uint8_t>>& ssid_list,
       const std::vector<uint32_t>& frequency_list, uint32_t scan_interval_ms);
   /* Creates ScanFilter using ssids, security flags and rssi_threshold
-   * The caller must ensure that the number of ssids match the number of security
-   * flags, also there must be ordering maintained among the two lists. For eg:
-   * (ssid[0], flags[0]) describe the SSID and security settings of one network
+   * The caller must ensure that the number of ssids match the number of
+   * security flags, also there must be ordering maintained among the two lists.
+   * For eg: (ssid[0], flags[0]) describe the SSID and security settings of one
+   * network
    */
-  static ScanFilter createScanFilter(
+  static android::hardware::wifi::offload::V1_0::ScanFilter createScanFilter(
       const std::vector<std::vector<uint8_t>>& ssids,
       const std::vector<uint8_t>& flags, int8_t rssi_threshold);
   static ::com::android::server::wifi::wificond::NativeScanStats
-      convertToNativeScanStats(const ScanStats& /* scanStats */);
+  convertToNativeScanStats(
+      const android::hardware::wifi::offload::V1_0::ScanStats& /* scanStats */);
 };
 
 }  // namespace wificond
 }  // namespace android
 
-#endif // WIFICOND_OFFLOAD_SCAN_UTILS_H_
-
+#endif  // WIFICOND_OFFLOAD_SCAN_UTILS_H_

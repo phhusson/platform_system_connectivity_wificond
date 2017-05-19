@@ -21,34 +21,36 @@
 
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
 
-using android::hardware::wifi::offload::V1_0::IOffload;
-using android::hardware::wifi::offload::V1_0::ScanFilter;
-using android::hardware::wifi::offload::V1_0::ScanParam;
-using android::hardware::wifi::offload::V1_0::ScanStats;
-using android::hardware::wifi::offload::V1_0::IOffloadCallback;
-using android::hardware::Return;
-using android::sp;
-
 namespace android {
 namespace wificond {
 
-typedef std::function<void(const ScanStats& scanStats)> OnScanStatsCallback;
+typedef std::function<void(
+    const android::hardware::wifi::offload::V1_0::ScanStats& scanStats)>
+    OnScanStatsCallback;
 
-class MockOffload : public IOffload {
+class MockOffload : public android::hardware::wifi::offload::V1_0::IOffload {
  public:
   MockOffload();
   ~MockOffload() override = default;
 
-  MOCK_METHOD2(configureScans, Return<void>(
-      const ScanParam& param, const ScanFilter& Filter));
-  MOCK_METHOD1(getScanStats, Return<void>(OnScanStatsCallback cb));
-  MOCK_METHOD1(subscribeScanResults, Return<void>(uint32_t delayMs));
-  MOCK_METHOD0(unsubscribeScanResults, Return<void>());
-  MOCK_METHOD1(setEventCallback, Return<void>(const sp<IOffloadCallback>& cb));
-
+  MOCK_METHOD2(
+      configureScans,
+      android::hardware::Return<void>(
+          const android::hardware::wifi::offload::V1_0::ScanParam& param,
+          const android::hardware::wifi::offload::V1_0::ScanFilter& Filter));
+  MOCK_METHOD1(getScanStats,
+               android::hardware::Return<void>(OnScanStatsCallback cb));
+  MOCK_METHOD1(subscribeScanResults,
+               android::hardware::Return<void>(uint32_t delayMs));
+  MOCK_METHOD0(unsubscribeScanResults, android::hardware::Return<void>());
+  MOCK_METHOD1(
+      setEventCallback,
+      android::hardware::Return<void>(
+          const android::sp<
+              ::android::hardware::wifi::offload::V1_0::IOffloadCallback>& cb));
 };
 
-} // namespace wificond
-} // namespace android
+}  // namespace wificond
+}  // namespace android
 
-#endif // WIFICOND_TEST_MOCK_OFFLOAD_H
+#endif  // WIFICOND_TEST_MOCK_OFFLOAD_H

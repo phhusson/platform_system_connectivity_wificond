@@ -16,29 +16,28 @@
 #ifndef ANDROID_HARDWARE_WIFI_OFFLOAD_V1_0_OFFLOADCALLBACK_H
 #define ANDROID_HARDWARE_WIFI_OFFLOAD_V1_0_OFFLOADCALLBACK_H
 
-#include "wificond/scanning/offload/offload_callback_handlers.h"
 #include <android/hardware/wifi/offload/1.0/IOffloadCallback.h>
 #include <hidl/Status.h>
 #include <vector>
+#include "wificond/scanning/offload/offload_callback_handlers.h"
 
 namespace android {
 namespace wificond {
 
-using ::android::hardware::hidl_vec;
-using ::android::hardware::wifi::offload::V1_0::IOffloadCallback;
-using ::android::hardware::wifi::offload::V1_0::OffloadStatus;
-using ::android::hardware::wifi::offload::V1_0::ScanResult;
-using ::android::hardware::Void;
-
-class OffloadCallback : public IOffloadCallback {
+class OffloadCallback
+    : public ::android::hardware::wifi::offload::V1_0::IOffloadCallback {
  public:
   explicit OffloadCallback(OffloadCallbackHandlers* handlers);
   virtual ~OffloadCallback();
 
-  // Methods from ::android::hardware::wifi::offload::V1_0::IOffloadCallback follow.
+  // Methods from ::android::hardware::wifi::offload::V1_0::IOffloadCallback
+  // follow.
   ::android::hardware::Return<void> onScanResult(
-      const hidl_vec<ScanResult>& scanResult) override;
-  ::android::hardware::Return<void> onError(OffloadStatus status) override;
+      const ::android::hardware::hidl_vec<
+          ::android::hardware::wifi::offload::V1_0::ScanResult>& scanResult)
+      override;
+  ::android::hardware::Return<void> onError(
+      ::android::hardware::wifi::offload::V1_0::OffloadStatus status) override;
   // Methods from ::android::hidl::base::V1_0::IBase follow.
 
  private:

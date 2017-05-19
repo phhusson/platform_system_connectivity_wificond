@@ -27,7 +27,7 @@ extern const uint8_t kSsid1[];
 extern const size_t kSsid1_size;
 extern const uint8_t kSsid2[];
 extern const size_t kSsid2_size;
-extern const uint8_t kBssid [6];
+extern const uint8_t kBssid[6];
 extern const int16_t kRssi;
 extern const int16_t kRssiThreshold;
 extern const uint32_t kFrequency1;

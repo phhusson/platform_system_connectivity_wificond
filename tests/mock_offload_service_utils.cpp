@@ -21,5 +21,5 @@ namespace wificond {
 
 MockOffloadServiceUtils::MockOffloadServiceUtils() {}
 
-} // namespace wificond
-} // namespace android
+}  // namespace wificond
+}  // namespace android
