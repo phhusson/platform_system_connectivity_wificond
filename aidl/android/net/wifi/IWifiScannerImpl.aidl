@@ -66,9 +66,7 @@ interface IWifiScannerImpl {
   boolean stopPnoScan();
 
   // Abort ongoing scan.
-  // Returns true on success.
-  // Returns false on failure or there is no ongoing scan.
-  boolean abortScan();
+  void abortScan();
 
   // TODO(nywang) add more interfaces.
 }
