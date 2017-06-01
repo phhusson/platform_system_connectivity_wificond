@@ -149,7 +149,7 @@ TEST_F(OffloadScanManagerTest, ErrorCallbackInvokedTest) {
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
-      [this](vector<NativeScanResult> scanResult) -> void {}));
+      [](vector<NativeScanResult> scanResult) -> void {}));
   offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_ERROR);
   EXPECT_EQ(offload_scan_manager_->getOffloadStatus(),
             OffloadScanManager::kError);
