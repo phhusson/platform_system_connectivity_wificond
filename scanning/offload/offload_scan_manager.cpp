@@ -73,7 +73,6 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
       wifi_offload_callback_(nullptr),
       offload_status_(OffloadScanManager::kError),
       subscription_enabled_(false),
-      service_available_(false),
       offload_callback_handlers_(new OffloadCallbackHandlersImpl(this)),
       scan_result_handler_(handler) {
   if (utils == nullptr) {
@@ -90,6 +89,17 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
     return;
   }
 
+  death_recipient_ = utils->GetOffloadDeathRecipient(
+      std::bind(&OffloadScanManager::OnObjectDeath, this, _1));
+  uint64_t cookie = reinterpret_cast<uint64_t>(wifi_offload_hal_.get());
+  auto link_to_death_status =
+      wifi_offload_hal_->linkToDeath(death_recipient_, cookie);
+  if (!link_to_death_status.isOk()) {
+    LOG(ERROR) << "Unable to register death handler "
+               << link_to_death_status.description();
+    return;
+  }
+
   wifi_offload_callback_ =
       utils->GetOffloadCallback(offload_callback_handlers_.get());
   if (wifi_offload_callback_ == nullptr) {
@@ -97,7 +107,6 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
     return;
   }
   wifi_offload_hal_->setEventCallback(wifi_offload_callback_);
-  service_available_ = true;
   offload_status_ = OffloadScanManager::kNoError;
 }
 
@@ -107,7 +116,7 @@ bool OffloadScanManager::stopScan(OffloadScanManager::ReasonCode* reason_code) {
     *reason_code = OffloadScanManager::kNotSubscribed;
     return false;
   }
-  if (service_available_) {
+  if (wifi_offload_hal_ != nullptr) {
     wifi_offload_hal_->unsubscribeScanResults();
     subscription_enabled_ = false;
   }
@@ -223,7 +232,11 @@ bool OffloadScanManager::getScanStats(NativeScanStats* native_scan_stats) {
   return GetScanStats(native_scan_stats);
 }
 
-OffloadScanManager::~OffloadScanManager() {}
+OffloadScanManager::~OffloadScanManager() {
+  if (wifi_offload_hal_ != nullptr) {
+    wifi_offload_hal_->unlinkToDeath(death_recipient_);
+  }
+}
 
 void OffloadScanManager::ReportScanResults(
     const vector<ScanResult>& scanResult) {
@@ -259,6 +272,13 @@ void OffloadScanManager::ReportError(const OffloadStatus& status) {
     LOG(WARNING) << "Offload Error reported " << status.description;
   }
   offload_status_ = status_result;
+}
+
+void OffloadScanManager::OnObjectDeath(uint64_t cookie) {
+  if (wifi_offload_hal_ == reinterpret_cast<IOffload*>(cookie)) {
+    wifi_offload_hal_.clear();
+    LOG(ERROR) << "Death Notification for Wifi Offload HAL";
+  }
 }
 
 }  // namespace wificond

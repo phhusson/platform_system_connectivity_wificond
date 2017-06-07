@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "wificond/scanning/offload/offload_service_utils.h"
+#include "wificond/scanning/offload/offload_scan_manager.h"
 
 using ::android::hardware::wifi::offload::V1_0::IOffload;
 
@@ -28,6 +29,15 @@ android::sp<OffloadCallback> OffloadServiceUtils::GetOffloadCallback(
     OffloadCallbackHandlers* handlers) {
   return new OffloadCallback(handlers);
 }
+
+OffloadDeathRecipient* OffloadServiceUtils::GetOffloadDeathRecipient(
+    OffloadDeathRecipientHandler handler) {
+  return new OffloadDeathRecipient(handler);
+}
+
+OffloadDeathRecipient::OffloadDeathRecipient(
+    OffloadDeathRecipientHandler handler)
+    : handler_(handler) {}
 
 }  // namespace wificond
 }  // namespace android
