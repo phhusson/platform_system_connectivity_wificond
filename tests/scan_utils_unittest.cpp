@@ -184,5 +184,65 @@ TEST_F(ScanUtilsTest, CanHandleSchedScanRequestFailure) {
   EXPECT_EQ(kFakeErrorCode, error_code);
 }
 
+TEST_F(ScanUtilsTest, CanPrioritizeLastSeenSinceBootNetlinkAttribute) {
+  constexpr uint64_t kLastSeenTimestampNanoSeconds = 123456;
+  constexpr uint64_t kBssTsfTimestampMicroSeconds = 654321;
+  NL80211NestedAttr bss(NL80211_ATTR_BSS);
+  bss.AddAttribute(
+      NL80211Attr<uint64_t>(NL80211_BSS_LAST_SEEN_BOOTTIME,
+                            kLastSeenTimestampNanoSeconds));
+  bss.AddAttribute(
+      NL80211Attr<uint64_t>(NL80211_BSS_TSF, kBssTsfTimestampMicroSeconds));
+  uint64_t timestamp_microseconds;
+  EXPECT_TRUE(scan_utils_.GetBssTimestampForTesting(
+      bss, &timestamp_microseconds));
+  EXPECT_EQ(kLastSeenTimestampNanoSeconds/1000, timestamp_microseconds);
+}
+
+TEST_F(ScanUtilsTest, CanHandleMissingLastSeenSinceBootNetlinkAttribute) {
+  constexpr uint64_t kBssTsfTimestampMicroSeconds = 654321;
+  NL80211NestedAttr bss(NL80211_ATTR_BSS);
+  bss.AddAttribute(
+      NL80211Attr<uint64_t>(NL80211_BSS_TSF, kBssTsfTimestampMicroSeconds));
+  uint64_t timestamp_microseconds;
+  EXPECT_TRUE(scan_utils_.GetBssTimestampForTesting(
+      bss, &timestamp_microseconds));
+  EXPECT_EQ(kBssTsfTimestampMicroSeconds, timestamp_microseconds);
+}
+
+// Probe TSF is newer.
+TEST_F(ScanUtilsTest, CanPickMostRecentTimestampBetweenBetweenProbeAndBeacon1) {
+  constexpr uint64_t kBssBeaconTsfTimestampMicroSeconds = 654321;
+  constexpr uint64_t kBssTsfTimestampMicroSeconds =
+      kBssBeaconTsfTimestampMicroSeconds + 2000;
+  NL80211NestedAttr bss(NL80211_ATTR_BSS);
+  bss.AddAttribute(
+      NL80211Attr<uint64_t>(NL80211_BSS_BEACON_TSF,
+                            kBssBeaconTsfTimestampMicroSeconds));
+  bss.AddAttribute(
+      NL80211Attr<uint64_t>(NL80211_BSS_TSF, kBssTsfTimestampMicroSeconds));
+  uint64_t timestamp_microseconds;
+  EXPECT_TRUE(scan_utils_.GetBssTimestampForTesting(
+      bss, &timestamp_microseconds));
+  EXPECT_EQ(kBssTsfTimestampMicroSeconds, timestamp_microseconds);
+}
+
+// Beacon TSF is newer.
+TEST_F(ScanUtilsTest, CanPickMostRecentTimestampBetweenBetweenProbeAndBeacon2) {
+  constexpr uint64_t kBssTsfTimestampMicroSeconds = 654321;
+  constexpr uint64_t kBssBeaconTsfTimestampMicroSeconds =
+      kBssTsfTimestampMicroSeconds + 2000;
+  NL80211NestedAttr bss(NL80211_ATTR_BSS);
+  bss.AddAttribute(
+      NL80211Attr<uint64_t>(NL80211_BSS_BEACON_TSF,
+                            kBssBeaconTsfTimestampMicroSeconds));
+  bss.AddAttribute(
+      NL80211Attr<uint64_t>(NL80211_BSS_TSF, kBssTsfTimestampMicroSeconds));
+  uint64_t timestamp_microseconds;
+  EXPECT_TRUE(scan_utils_.GetBssTimestampForTesting(
+      bss, &timestamp_microseconds));
+  EXPECT_EQ(kBssBeaconTsfTimestampMicroSeconds, timestamp_microseconds);
+}
+
 }  // namespace wificond
 }  // namespace android

@@ -41,6 +41,7 @@ class NativeScanResult;
 namespace android {
 namespace wificond {
 
+class NL80211NestedAttr;
 class NL80211Packet;
 
 // Provides scanning helper functions.
@@ -114,6 +115,14 @@ class ScanUtils {
   // Returns true on success.
   virtual bool AbortScan(uint32_t interface_index);
 
+  // Visible for testing.
+  // Get a timestamp for the scan result |bss| represents.
+  // This timestamp records the time passed since boot when last time the
+  // AP was seen.
+  virtual bool GetBssTimestampForTesting(
+      const NL80211NestedAttr& bss,
+       uint64_t* last_seen_since_boot_microseconds);
+
   // Sign up to be notified when new scan results are available.
   // |handler| will be called when the kernel signals to wificond that a scan
   // has been completed on the given |interface_index|.  See the declaration of
@@ -141,6 +150,8 @@ class ScanUtils {
   virtual void UnsubscribeSchedScanResultNotification(uint32_t interface_index);
 
  private:
+  bool GetBssTimestamp(const NL80211NestedAttr& bss,
+                       uint64_t* last_seen_since_boot_microseconds);
   bool GetSSIDFromInfoElement(const std::vector<uint8_t>& ie,
                               std::vector<uint8_t>* ssid);
   // Converts a NL80211_CMD_NEW_SCAN_RESULTS packet to a ScanResult object.

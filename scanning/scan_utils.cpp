@@ -151,16 +151,10 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet,
       // These scan results are considered as malformed.
       return false;
     }
-    uint64_t tsf;
-    if (!bss.GetAttributeValue(NL80211_BSS_TSF, &tsf)) {
-      LOG(ERROR) << "Failed to get TSF from scan result packet";
+    uint64_t last_seen_since_boot_microseconds;
+    if (!GetBssTimestamp(bss, &last_seen_since_boot_microseconds)) {
+      // Logging is done inside |GetBssTimestamp|.
       return false;
-    }
-    uint64_t beacon_tsf;
-    if (bss.GetAttributeValue(NL80211_BSS_BEACON_TSF, &beacon_tsf)) {
-      if (beacon_tsf > tsf) {
-        tsf = beacon_tsf;
-      }
     }
     int32_t signal;
     if (!bss.GetAttributeValue(NL80211_BSS_SIGNAL_MBM, &signal)) {
@@ -181,7 +175,37 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet,
     }
 
     *scan_result =
-        NativeScanResult(ssid, bssid, ie, freq, signal, tsf, capability, associated);
+        NativeScanResult(ssid, bssid, ie, freq, signal,
+                         last_seen_since_boot_microseconds,
+                         capability, associated);
+  }
+  return true;
+}
+
+bool ScanUtils::GetBssTimestampForTesting(
+    const NL80211NestedAttr& bss,
+    uint64_t* last_seen_since_boot_microseconds){
+  return GetBssTimestamp(bss, last_seen_since_boot_microseconds);
+}
+
+bool ScanUtils::GetBssTimestamp(const NL80211NestedAttr& bss,
+                                uint64_t* last_seen_since_boot_microseconds){
+  uint64_t last_seen_since_boot_nanoseconds;
+  if (bss.GetAttributeValue(NL80211_BSS_LAST_SEEN_BOOTTIME,
+                            &last_seen_since_boot_nanoseconds)) {
+    *last_seen_since_boot_microseconds = last_seen_since_boot_nanoseconds / 1000;
+  } else {
+    // Fall back to use TSF if we can't find NL80211_BSS_LAST_SEEN_BOOTTIME
+    // attribute.
+    if (!bss.GetAttributeValue(NL80211_BSS_TSF, last_seen_since_boot_microseconds)) {
+      LOG(ERROR) << "Failed to get TSF from scan result packet";
+      return false;
+    }
+    uint64_t beacon_tsf_microseconds;
+    if (bss.GetAttributeValue(NL80211_BSS_BEACON_TSF, &beacon_tsf_microseconds)) {
+      *last_seen_since_boot_microseconds = std::max(*last_seen_since_boot_microseconds,
+                                                    beacon_tsf_microseconds);
+    }
   }
   return true;
 }
