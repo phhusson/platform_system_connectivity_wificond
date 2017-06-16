@@ -42,6 +42,7 @@ namespace android {
 namespace wificond {
 
 class NL80211Packet;
+class NL80211NestedAttr;
 
 // Provides scanning helper functions.
 class ScanUtils {
@@ -136,6 +137,12 @@ class ScanUtils {
   // interface with index |interface_index|.
   virtual void UnsubscribeSchedScanResultNotification(uint32_t interface_index);
 
+  // Visible for testing.
+  // Get a timestamp for the scan result |bss| represents.
+  // This timestamp records the time passed since boot when last time the
+  // AP was seen.
+  virtual bool GetBssTimestamp(const NL80211NestedAttr& bss,
+                               uint64_t* last_seen_since_boot);
  private:
   bool GetSSIDFromInfoElement(const std::vector<uint8_t>& ie,
                               std::vector<uint8_t>* ssid);
