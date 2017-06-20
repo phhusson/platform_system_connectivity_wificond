@@ -176,41 +176,5 @@ TEST_F(ScanUtilsTest, CanHandleSchedScanRequestFailure) {
       kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}));
 }
 
-TEST_F(ScanUtilsTest, CanPrioritizeLastSeenSinceBootNetlinkAttribute) {
-  constexpr uint64_t kLastSeenTimestamp = 123456;
-  constexpr uint64_t kBssTsfTimestamp = 654321;
-  NL80211NestedAttr bss(NL80211_ATTR_BSS);
-  bss.AddAttribute(
-      NL80211Attr<uint64_t>(NL80211_BSS_LAST_SEEN_BOOTTIME, kLastSeenTimestamp));
-  bss.AddAttribute(
-      NL80211Attr<uint64_t>(NL80211_BSS_TSF, kBssTsfTimestamp));
-  uint64_t timestamp;
-  EXPECT_TRUE(scan_utils_.GetBssTimestamp(bss, &timestamp));
-  EXPECT_EQ(kLastSeenTimestamp, timestamp);
-}
-
-TEST_F(ScanUtilsTest, CanHandleMissingLastSeenSinceBootNetlinkAttribute) {
-  constexpr uint64_t kBssTsfTimestamp = 654321;
-  NL80211NestedAttr bss(NL80211_ATTR_BSS);
-  bss.AddAttribute(
-      NL80211Attr<uint64_t>(NL80211_BSS_TSF, kBssTsfTimestamp));
-  uint64_t timestamp;
-  EXPECT_TRUE(scan_utils_.GetBssTimestamp(bss, &timestamp));
-  EXPECT_EQ(kBssTsfTimestamp, timestamp);
-}
-
-TEST_F(ScanUtilsTest, CanPickMostRecentTimestampBetweenBetweenProbeAndBeacon) {
-  constexpr uint64_t kBssBeaconTsfTimestamp = 654321;
-  constexpr uint64_t kBssTsfTimestamp = kBssBeaconTsfTimestamp + 2000;
-  NL80211NestedAttr bss(NL80211_ATTR_BSS);
-  bss.AddAttribute(
-      NL80211Attr<uint64_t>(NL80211_BSS_BEACON_TSF, kBssBeaconTsfTimestamp));
-  bss.AddAttribute(
-      NL80211Attr<uint64_t>(NL80211_BSS_TSF, kBssTsfTimestamp));
-  uint64_t timestamp;
-  EXPECT_TRUE(scan_utils_.GetBssTimestamp(bss, &timestamp));
-  EXPECT_EQ(kBssTsfTimestamp, timestamp);
-}
-
 }  // namespace wificond
 }  // namespace android
