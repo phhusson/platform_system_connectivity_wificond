@@ -25,29 +25,35 @@ namespace android {
 namespace wificond {
 
 typedef std::function<void(
+    const android::hardware::wifi::offload::V1_0::OffloadStatus& status,
     const android::hardware::wifi::offload::V1_0::ScanStats& scanStats)>
-    OnScanStatsCallback;
+        OnScanStatsCallback;
+typedef std::function<void(
+    const android::hardware::wifi::offload::V1_0::OffloadStatus& status)>
+        StatusCallback;
 
 class MockOffload : public android::hardware::wifi::offload::V1_0::IOffload {
  public:
   MockOffload();
   ~MockOffload() override = default;
 
-  MOCK_METHOD2(
+  MOCK_METHOD3(
       configureScans,
       android::hardware::Return<void>(
           const android::hardware::wifi::offload::V1_0::ScanParam& param,
-          const android::hardware::wifi::offload::V1_0::ScanFilter& Filter));
+          const android::hardware::wifi::offload::V1_0::ScanFilter& filter,
+          StatusCallback _hidl_cb));
   MOCK_METHOD1(getScanStats,
                android::hardware::Return<void>(OnScanStatsCallback cb));
-  MOCK_METHOD1(subscribeScanResults,
-               android::hardware::Return<void>(uint32_t delayMs));
+  MOCK_METHOD2(subscribeScanResults,
+               android::hardware::Return<void>(uint32_t delayMs,
+                                               StatusCallback _hidl_cb));
   MOCK_METHOD0(unsubscribeScanResults, android::hardware::Return<void>());
   MOCK_METHOD1(
       setEventCallback,
       android::hardware::Return<void>(
           const android::sp<
-              ::android::hardware::wifi::offload::V1_0::IOffloadCallback>& cb));
+              android::hardware::wifi::offload::V1_0::IOffloadCallback>& cb));
 };
 
 }  // namespace wificond

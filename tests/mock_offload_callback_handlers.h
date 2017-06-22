@@ -36,7 +36,8 @@ class MockOffloadCallbackHandlers : public OffloadCallbackHandlers {
       void(const std::vector<
            android::hardware::wifi::offload::V1_0::ScanResult>& scanResult));
   MOCK_METHOD1(OnErrorHandler,
-               void(android::hardware::wifi::offload::V1_0::OffloadStatus));
+               void(const android::hardware::wifi::offload::V1_0::OffloadStatus&
+                    status));
 };
 
 }  // namespace wificond

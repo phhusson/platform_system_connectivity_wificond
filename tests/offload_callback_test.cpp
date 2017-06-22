@@ -28,6 +28,7 @@
 
 using android::hardware::wifi::offload::V1_0::ScanResult;
 using android::hardware::wifi::offload::V1_0::OffloadStatus;
+using android::hardware::wifi::offload::V1_0::OffloadStatusCode;
 using android::hardware::hidl_vec;
 using testing::NiceMock;
 
@@ -75,8 +76,10 @@ TEST_F(OffloadCallbackTest, checkErrorStatus) {
       .WillByDefault(testing::Invoke(
           [&status_](OffloadStatus status) -> void { status_ = status; }));
   offload_callback_.reset(new OffloadCallback(handlers_.get()));
-  offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_ERROR);
-  EXPECT_EQ(status_, OffloadStatus::OFFLOAD_STATUS_ERROR);
+  OffloadStatus status =
+      OffloadTestUtils::createOffloadStatus(OffloadStatusCode::ERROR);
+  offload_callback_->onError(status);
+  EXPECT_EQ(status_.code, OffloadStatusCode::ERROR);
 }
 
 }  // namespace wificond
