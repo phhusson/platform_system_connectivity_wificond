@@ -137,13 +137,15 @@ class OffloadScanManager {
   bool ConfigureScans(android::hardware::wifi::offload::V1_0::ScanParam,
                       android::hardware::wifi::offload::V1_0::ScanFilter,
                       OffloadScanManager::ReasonCode* reason_code);
+  /* Handle binder death */
+  void OnObjectDeath(uint64_t /* cookie */);
 
   android::sp<android::hardware::wifi::offload::V1_0::IOffload>
       wifi_offload_hal_;
   android::sp<OffloadCallback> wifi_offload_callback_;
+  android::sp<OffloadDeathRecipient> death_recipient_;
   StatusCode offload_status_;
   bool subscription_enabled_;
-  bool service_available_;
 
   const std::unique_ptr<OffloadCallbackHandlersImpl> offload_callback_handlers_;
   OnNativeScanResultsReadyHandler scan_result_handler_;
