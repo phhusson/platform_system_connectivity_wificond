@@ -37,6 +37,9 @@ class MockOffloadServiceUtils : public OffloadServiceUtils {
                sp<android::hardware::wifi::offload::V1_0::IOffload>());
   MOCK_METHOD1(GetOffloadCallback,
                sp<OffloadCallback>(OffloadCallbackHandlers* handlers));
+  MOCK_METHOD1(GetOffloadDeathRecipient,
+               android::wificond::OffloadDeathRecipient*(
+                   OffloadDeathRecipientHandler handler));
 };
 
 }  // namespace wificond

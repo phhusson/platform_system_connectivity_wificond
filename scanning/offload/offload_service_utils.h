@@ -23,6 +23,22 @@
 namespace android {
 namespace wificond {
 
+typedef std::function<void(uint64_t)> OffloadDeathRecipientHandler;
+
+class OffloadDeathRecipient : public android::hardware::hidl_death_recipient {
+ public:
+  OffloadDeathRecipient(OffloadDeathRecipientHandler handler);
+
+  void serviceDied(
+      uint64_t cookie,
+      const android::wp<android::hidl::base::V1_0::IBase>& who) override {
+    this->handler_(cookie);
+  }
+
+ private:
+  OffloadDeathRecipientHandler handler_;
+};
+
 // Provides methods to get Offload HAL service and create callback
 class OffloadServiceUtils {
  public:
@@ -32,6 +48,8 @@ class OffloadServiceUtils {
       GetOffloadService();
   virtual android::sp<OffloadCallback> GetOffloadCallback(
       OffloadCallbackHandlers* handlers);
+  virtual OffloadDeathRecipient* GetOffloadDeathRecipient(
+      OffloadDeathRecipientHandler handler);
 };
 
 }  // namespace wificond
