@@ -58,7 +58,8 @@ class OffloadCallbackHandlersImpl : public OffloadCallbackHandlers {
       const std::vector<android::hardware::wifi::offload::V1_0::ScanResult>&
           scanResult) override;
   void OnErrorHandler(
-      android::hardware::wifi::offload::V1_0::OffloadStatus status) override;
+      const android::hardware::wifi::offload::V1_0::OffloadStatus& status)
+      override;
 
  private:
   OffloadScanManager* offload_scan_manager_;
@@ -68,35 +69,29 @@ class OffloadCallbackHandlersImpl : public OffloadCallbackHandlers {
 class OffloadScanManager {
  public:
   enum StatusCode {
-    /* Corresponds to
-       android::hardware::wifi::offload::V1_0::OffloadStatus::OFFLOAD_STATUS_OK
-     */
+    /* Corresponds to OffloadStatusCode::OK */
     kNoError,
     /* Offload HAL service not avaialble */
     kNoService,
-    /* Corresponds to
-       android::hardware::wifi::offload::V1_0::OffloadStatus::OFFLOAD_STATUS_NO_CONNECTION
-     */
+    /* Corresponds to OffloadStatusCode::NO_CONNECTION */
     kNotConnected,
-    /* Corresponds to
-       android::hardware::wifi::offload::V1_0::OffloadStatus::OFFLOAD_STATUS_TIMEOUT
-     */
+    /* Corresponds to OffloadStatusCode::TIMEOUT */
     kTimeOut,
-    /* Corresponds to
-       android::hardware::wifi::offload::V1_0::OffloadStatus::OFFLOAD_STATUS_ERROR
-     */
+    /* Corresponds to OffloadStatusCode::ERROR */
     kError
   };
 
   enum ReasonCode {
     /* Default value */
     kNone,
-    /* Offload HAL service not available */
-    kNotSupported,
-    /* Offload HAL service is not connected */
+    /* Offload HAL scans is not available */
     kNotAvailable,
     /* Offload HAL service is not subscribed to */
     kNotSubscribed,
+    /* Offload HAL requested operation failure */
+    kOperationFailed,
+    /* Binder failed to deliver message to Offload HAL*/
+    kTransactionFailed,
   };
 
   explicit OffloadScanManager(OffloadServiceUtils* utils,
@@ -128,17 +123,29 @@ class OffloadScanManager {
 
  private:
   void ReportScanResults(
-      const std::vector<android::hardware::wifi::offload::V1_0::ScanResult>
+      const std::vector<android::hardware::wifi::offload::V1_0::ScanResult>&
           scanResult);
   void ReportError(
-      android::hardware::wifi::offload::V1_0::OffloadStatus status);
+      const android::hardware::wifi::offload::V1_0::OffloadStatus& status);
+  bool VerifyAndConvertHIDLStatus(
+      std::pair<android::hardware::wifi::offload::V1_0::OffloadStatus, bool>
+          result,
+      OffloadScanManager::ReasonCode* reason_code);
+  bool GetScanStats(
+      ::com::android::server::wifi::wificond::NativeScanStats* stats);
+  bool SubscribeScanResults(OffloadScanManager::ReasonCode* reason_code);
+  bool ConfigureScans(android::hardware::wifi::offload::V1_0::ScanParam,
+                      android::hardware::wifi::offload::V1_0::ScanFilter,
+                      OffloadScanManager::ReasonCode* reason_code);
+  /* Handle binder death */
+  void OnObjectDeath(uint64_t /* cookie */);
 
   android::sp<android::hardware::wifi::offload::V1_0::IOffload>
       wifi_offload_hal_;
   android::sp<OffloadCallback> wifi_offload_callback_;
+  android::sp<OffloadDeathRecipient> death_recipient_;
   StatusCode offload_status_;
   bool subscription_enabled_;
-  bool service_available_;
 
   const std::unique_ptr<OffloadCallbackHandlersImpl> offload_callback_handlers_;
   OnNativeScanResultsReadyHandler scan_result_handler_;

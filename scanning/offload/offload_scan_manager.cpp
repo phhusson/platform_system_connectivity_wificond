@@ -19,6 +19,7 @@
 
 #include <android-base/logging.h>
 
+#include "wificond/scanning/offload/hidl_call_util.h"
 #include "wificond/scanning/offload/offload_scan_utils.h"
 #include "wificond/scanning/offload/offload_service_utils.h"
 #include "wificond/scanning/offload/scan_stats.h"
@@ -31,6 +32,7 @@ using android::hardware::wifi::offload::V1_0::ScanFilter;
 using android::hardware::wifi::offload::V1_0::ScanParam;
 using android::hardware::wifi::offload::V1_0::ScanStats;
 using android::hardware::wifi::offload::V1_0::OffloadStatus;
+using android::hardware::wifi::offload::V1_0::OffloadStatusCode;
 
 using android::wificond::OffloadCallback;
 using android::wificond::OnNativeScanResultsReadyHandler;
@@ -59,7 +61,7 @@ void OffloadCallbackHandlersImpl::OnScanResultHandler(
   }
 }
 
-void OffloadCallbackHandlersImpl::OnErrorHandler(OffloadStatus status) {
+void OffloadCallbackHandlersImpl::OnErrorHandler(const OffloadStatus& status) {
   if (offload_scan_manager_ != nullptr) {
     offload_scan_manager_->ReportError(status);
   }
@@ -71,7 +73,6 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
       wifi_offload_callback_(nullptr),
       offload_status_(OffloadScanManager::kError),
       subscription_enabled_(false),
-      service_available_(false),
       offload_callback_handlers_(new OffloadCallbackHandlersImpl(this)),
       scan_result_handler_(handler) {
   if (utils == nullptr) {
@@ -87,6 +88,18 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
     LOG(ERROR) << "No Offload Service available";
     return;
   }
+
+  death_recipient_ = utils->GetOffloadDeathRecipient(
+      std::bind(&OffloadScanManager::OnObjectDeath, this, _1));
+  uint64_t cookie = reinterpret_cast<uint64_t>(wifi_offload_hal_.get());
+  auto link_to_death_status =
+      wifi_offload_hal_->linkToDeath(death_recipient_, cookie);
+  if (!link_to_death_status.isOk()) {
+    LOG(ERROR) << "Unable to register death handler "
+               << link_to_death_status.description();
+    return;
+  }
+
   wifi_offload_callback_ =
       utils->GetOffloadCallback(offload_callback_handlers_.get());
   if (wifi_offload_callback_ == nullptr) {
@@ -94,7 +107,6 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
     return;
   }
   wifi_offload_hal_->setEventCallback(wifi_offload_callback_);
-  service_available_ = true;
   offload_status_ = OffloadScanManager::kNoError;
 }
 
@@ -104,11 +116,45 @@ bool OffloadScanManager::stopScan(OffloadScanManager::ReasonCode* reason_code) {
     *reason_code = OffloadScanManager::kNotSubscribed;
     return false;
   }
-  if (service_available_) {
+  if (wifi_offload_hal_ != nullptr) {
     wifi_offload_hal_->unsubscribeScanResults();
     subscription_enabled_ = false;
   }
   *reason_code = OffloadScanManager::kNone;
+  return true;
+}
+
+bool OffloadScanManager::GetScanStats(NativeScanStats* native_scan_stats) {
+  const auto& result = HIDL_INVOKE(wifi_offload_hal_, getScanStats);
+  const auto& offload_status_and_scan_stats = result.first;
+  bool transport_status = result.second;
+  if (!transport_status) {
+    return false;
+  }
+  OffloadStatus offload_status = offload_status_and_scan_stats.first;
+  ScanStats scan_stats = offload_status_and_scan_stats.second;
+  if (offload_status.code != OffloadStatusCode::OK) {
+    LOG(WARNING) << offload_status.description;
+    return false;
+  }
+  *native_scan_stats = OffloadScanUtils::convertToNativeScanStats(scan_stats);
+  return true;
+}
+
+bool OffloadScanManager::VerifyAndConvertHIDLStatus(
+    std::pair<OffloadStatus, bool> result,
+    OffloadScanManager::ReasonCode* reason_code) {
+  const auto& offload_status = result.first;
+  bool transport_status = result.second;
+  if (!transport_status) {
+    *reason_code = OffloadScanManager::kTransactionFailed;
+    return false;
+  }
+  if (offload_status.code != OffloadStatusCode::OK) {
+    LOG(WARNING) << offload_status.description;
+    *reason_code = OffloadScanManager::kOperationFailed;
+    return false;
+  }
   return true;
 }
 
@@ -118,32 +164,52 @@ bool OffloadScanManager::startScan(
     const vector<vector<uint8_t>>& match_ssids,
     const vector<uint8_t>& match_security, const vector<uint32_t>& freqs,
     OffloadScanManager::ReasonCode* reason_code) {
-  if (!service_available_) {
-    *reason_code = OffloadScanManager::kNotSupported;
-    LOG(WARNING) << "Offload HAL scans are not supported";
-    return false;
-  } else if (offload_status_ == OffloadScanManager::kNotConnected) {
-    LOG(WARNING) << "Offload HAL scans are not available";
+  if (getOffloadStatus() != OffloadScanManager::kNoError) {
     *reason_code = OffloadScanManager::kNotAvailable;
+    LOG(WARNING) << "Offload HAL scans are not available";
     return false;
   }
-
   ScanParam param =
       OffloadScanUtils::createScanParam(scan_ssids, freqs, interval_ms);
   ScanFilter filter = OffloadScanUtils::createScanFilter(
       match_ssids, match_security, rssi_threshold);
 
-  wifi_offload_hal_->configureScans(param, filter);
-  if (!subscription_enabled_) {
-    wifi_offload_hal_->subscribeScanResults(kSubscriptionDelayMs);
+  if (!ConfigureScans(param, filter, reason_code)) {
+    return false;
   }
+
+  if (!subscription_enabled_ && !SubscribeScanResults(reason_code)) {
+    return false;
+  }
+
   subscription_enabled_ = true;
   *reason_code = OffloadScanManager::kNone;
   return true;
 }
 
+bool OffloadScanManager::ConfigureScans(
+    ScanParam param, ScanFilter filter,
+    OffloadScanManager::ReasonCode* reason_code) {
+  const auto& result =
+      HIDL_INVOKE(wifi_offload_hal_, configureScans, param, filter);
+  if (!VerifyAndConvertHIDLStatus(result, reason_code)) {
+    return false;
+  }
+  return true;
+}
+
+bool OffloadScanManager::SubscribeScanResults(
+    OffloadScanManager::ReasonCode* reason_code) {
+  const auto& result = HIDL_INVOKE(wifi_offload_hal_, subscribeScanResults,
+                                   kSubscriptionDelayMs);
+  if (!VerifyAndConvertHIDLStatus(result, reason_code)) {
+    return false;
+  }
+  return true;
+}
+
 OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
-  if (!service_available_) {
+  if (wifi_offload_hal_ == nullptr) {
     return OffloadScanManager::kNoService;
   }
   return offload_status_;
@@ -163,18 +229,17 @@ bool OffloadScanManager::getScanStats(NativeScanStats* native_scan_stats) {
     LOG(WARNING) << "Unable to get scan stats due to Wifi Offload HAL error";
     return false;
   }
-  wifi_offload_hal_->getScanStats(
-      [&native_scan_stats](ScanStats offload_scan_stats) -> void {
-        *native_scan_stats =
-            OffloadScanUtils::convertToNativeScanStats(offload_scan_stats);
-      });
-  return true;
+  return GetScanStats(native_scan_stats);
 }
 
-OffloadScanManager::~OffloadScanManager() {}
+OffloadScanManager::~OffloadScanManager() {
+  if (wifi_offload_hal_ != nullptr) {
+    wifi_offload_hal_->unlinkToDeath(death_recipient_);
+  }
+}
 
 void OffloadScanManager::ReportScanResults(
-    const vector<ScanResult> scanResult) {
+    const vector<ScanResult>& scanResult) {
   if (scan_result_handler_ != nullptr) {
     scan_result_handler_(
         OffloadScanUtils::convertToNativeScanResults(scanResult));
@@ -183,19 +248,20 @@ void OffloadScanManager::ReportScanResults(
   }
 }
 
-void OffloadScanManager::ReportError(OffloadStatus status) {
+void OffloadScanManager::ReportError(const OffloadStatus& status) {
+  OffloadStatusCode status_code = status.code;
   OffloadScanManager::StatusCode status_result = OffloadScanManager::kNoError;
-  switch (status) {
-    case OffloadStatus::OFFLOAD_STATUS_OK:
+  switch (status_code) {
+    case OffloadStatusCode::OK:
       status_result = OffloadScanManager::kNoError;
       break;
-    case OffloadStatus::OFFLOAD_STATUS_TIMEOUT:
+    case OffloadStatusCode::TIMEOUT:
       status_result = OffloadScanManager::kTimeOut;
       break;
-    case OffloadStatus::OFFLOAD_STATUS_NO_CONNECTION:
+    case OffloadStatusCode::NO_CONNECTION:
       status_result = OffloadScanManager::kNotConnected;
       break;
-    case OffloadStatus::OFFLOAD_STATUS_ERROR:
+    case OffloadStatusCode::ERROR:
       status_result = OffloadScanManager::kError;
       break;
     default:
@@ -203,9 +269,16 @@ void OffloadScanManager::ReportError(OffloadStatus status) {
       return;
   }
   if (status_result != OffloadScanManager::kNoError) {
-    LOG(WARNING) << "Offload Error reported " << status_result;
+    LOG(WARNING) << "Offload Error reported " << status.description;
   }
   offload_status_ = status_result;
+}
+
+void OffloadScanManager::OnObjectDeath(uint64_t cookie) {
+  if (wifi_offload_hal_ == reinterpret_cast<IOffload*>(cookie)) {
+    wifi_offload_hal_.clear();
+    LOG(ERROR) << "Death Notification for Wifi Offload HAL";
+  }
 }
 
 }  // namespace wificond

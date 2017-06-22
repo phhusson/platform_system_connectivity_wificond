@@ -46,6 +46,8 @@ extern const uint32_t kDefaultNumScansRequestedByWifi;
 extern const uint32_t kDefaultNumScansServicedByWifi;
 extern const uint64_t kScanDurationTotalMs;
 extern const uint32_t kNumChannelsTotalScanned;
+extern const uint32_t kNumChannelsInHistogram;
+extern const uint64_t kDeathCode;
 
 }  // namespace offload_hal_test_constants
 }  // namespace wificond

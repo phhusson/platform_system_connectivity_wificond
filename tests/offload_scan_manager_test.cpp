@@ -32,17 +32,21 @@
 #include "wificond/scanning/offload/offload_scan_manager.h"
 #include "wificond/scanning/scan_result.h"
 
+using android::hardware::Return;
+using android::hardware::Void;
+using android::hardware::wifi::offload::V1_0::IOffload;
 using android::hardware::wifi::offload::V1_0::ScanResult;
 using android::hardware::wifi::offload::V1_0::OffloadStatus;
+using android::hardware::wifi::offload::V1_0::OffloadStatusCode;
 using android::hardware::wifi::offload::V1_0::ScanParam;
 using android::hardware::wifi::offload::V1_0::ScanFilter;
 using android::hardware::wifi::offload::V1_0::ScanStats;
+using android::sp;
 using com::android::server::wifi::wificond::NativeScanResult;
 using com::android::server::wifi::wificond::NativeScanStats;
 using testing::NiceMock;
 using testing::_;
 using testing::Invoke;
-using android::sp;
 using std::unique_ptr;
 using std::vector;
 using std::bind;
@@ -53,32 +57,101 @@ using namespace android::wificond::offload_hal_test_constants;
 namespace android {
 namespace wificond {
 
-sp<OffloadCallback> CaptureReturnValue(OffloadCallbackHandlers* handler,
-                                       sp<OffloadCallback>* offload_callback) {
+sp<OffloadCallback> CaptureCallback(OffloadCallbackHandlers* handler,
+                                    sp<OffloadCallback>* offload_callback) {
   *offload_callback = sp<OffloadCallback>(new OffloadCallback(handler));
   return *offload_callback;
+}
+
+OffloadDeathRecipient* CaptureDeathRecipient(
+    OffloadDeathRecipientHandler handler,
+    sp<OffloadDeathRecipient>* death_recipient_) {
+  OffloadDeathRecipient* death_recipient = new OffloadDeathRecipient(handler);
+  *death_recipient_ = sp<OffloadDeathRecipient>(death_recipient);
+  return death_recipient;
+}
+
+Return<void> HidlStatusReturn(android::wificond::StatusCallback cb,
+                              OffloadStatus* status) {
+  cb(*status);
+  return Void();
+}
+
+Return<void> ScanStatusReturn(android::wificond::OnScanStatsCallback cb,
+                              OffloadStatus* status) {
+  ScanStats stats;
+  cb(*status, stats);
+  return Void();
 }
 
 class OffloadScanManagerTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     ON_CALL(*mock_offload_service_utils_, GetOffloadCallback(_))
+        .WillByDefault(Invoke(bind(CaptureCallback, _1, &offload_callback_)));
+    ON_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_))
         .WillByDefault(
-            Invoke(bind(CaptureReturnValue, _1, &offload_callback_)));
+            Invoke(bind(CaptureDeathRecipient, _1, &death_recipient_)));
+    status = OffloadTestUtils::createOffloadStatus(OffloadStatusCode::OK);
+    ON_CALL(*mock_offload_, configureScans(_, _, _))
+        .WillByDefault(Invoke(bind(HidlStatusReturn, _3, &status)));
+    ON_CALL(*mock_offload_, subscribeScanResults(_, _))
+        .WillByDefault(Invoke(bind(HidlStatusReturn, _2, &status)));
+    ON_CALL(*mock_offload_, getScanStats(_))
+        .WillByDefault(Invoke(bind(ScanStatusReturn, _1, &status)));
   }
 
-  void TearDown() override { offload_callback_.clear(); }
+  void TearDown() override {
+    offload_callback_.clear();
+    death_recipient_.clear();
+  }
 
   sp<NiceMock<MockOffload>> mock_offload_{new NiceMock<MockOffload>()};
   sp<OffloadCallback> offload_callback_;
+  sp<OffloadDeathRecipient> death_recipient_;
   unique_ptr<NiceMock<MockOffloadServiceUtils>> mock_offload_service_utils_{
       new NiceMock<MockOffloadServiceUtils>()};
   unique_ptr<OffloadScanManager> offload_scan_manager_;
+  OffloadStatus status;
   vector<vector<uint8_t>> scan_ssids{kSsid1, kSsid2};
   vector<vector<uint8_t>> match_ssids{kSsid1, kSsid2};
   vector<uint8_t> security_flags{kNetworkFlags, kNetworkFlags};
   vector<uint32_t> frequencies{kFrequency1, kFrequency2};
+  uint64_t cookie_ = reinterpret_cast<uint64_t>(mock_offload_.get());
 };
+
+/**
+ * Testing OffloadScanManager for binder death with registered cookie
+ */
+TEST_F(OffloadScanManagerTest, BinderDeathRegisteredCookieAndService) {
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
+  ON_CALL(*mock_offload_service_utils_, GetOffloadService())
+      .WillByDefault(testing::Return(mock_offload_));
+  offload_scan_manager_.reset(new OffloadScanManager(
+      mock_offload_service_utils_.get(),
+      [](vector<NativeScanResult> scanResult) -> void {}));
+  death_recipient_->serviceDied(cookie_, mock_offload_);
+  EXPECT_EQ(OffloadScanManager::kNoService,
+            offload_scan_manager_->getOffloadStatus());
+}
+
+/**
+ * Testing OffloadScanManager for binder death with invalid cookie
+ */
+TEST_F(OffloadScanManagerTest, BinderDeathUnregisteredCookie) {
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
+  ON_CALL(*mock_offload_service_utils_, GetOffloadService())
+      .WillByDefault(testing::Return(mock_offload_));
+  offload_scan_manager_.reset(new OffloadScanManager(
+      mock_offload_service_utils_.get(),
+      [](vector<NativeScanResult> scanResult) -> void {}));
+  death_recipient_->serviceDied(kDeathCode, mock_offload_);
+  EXPECT_FALSE(OffloadScanManager::kNoService ==
+               offload_scan_manager_->getOffloadStatus());
+}
 
 /**
  * Testing OffloadScanManager with OffloadServiceUtils null argument
@@ -94,6 +167,7 @@ TEST_F(OffloadScanManagerTest, ServiceUtilsNotAvailableTest) {
  * and no registered handler for Offload Scan results
  */
 TEST_F(OffloadScanManagerTest, ServiceNotAvailableTest) {
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(nullptr));
   offload_scan_manager_.reset(new OffloadScanManager(
@@ -109,6 +183,8 @@ TEST_F(OffloadScanManagerTest, ServiceNotAvailableTest) {
  */
 TEST_F(OffloadScanManagerTest, ServiceAvailableTest) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
@@ -126,6 +202,8 @@ TEST_F(OffloadScanManagerTest, ServiceAvailableTest) {
 TEST_F(OffloadScanManagerTest, CallbackInvokedTest) {
   bool callback_invoked = false;
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
@@ -145,12 +223,16 @@ TEST_F(OffloadScanManagerTest, CallbackInvokedTest) {
  */
 TEST_F(OffloadScanManagerTest, ErrorCallbackInvokedTest) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [](vector<NativeScanResult> scanResult) -> void {}));
-  offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_ERROR);
+  OffloadStatus status =
+      OffloadTestUtils::createOffloadStatus(OffloadStatusCode::ERROR);
+  offload_callback_->onError(status);
   EXPECT_EQ(offload_scan_manager_->getOffloadStatus(),
             OffloadScanManager::kError);
 }
@@ -161,13 +243,15 @@ TEST_F(OffloadScanManagerTest, ErrorCallbackInvokedTest) {
  */
 TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsOk) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [](vector<NativeScanResult> scanResult) -> void {}));
-  EXPECT_CALL(*mock_offload_, subscribeScanResults(_));
-  EXPECT_CALL(*mock_offload_, configureScans(_, _));
+  EXPECT_CALL(*mock_offload_, subscribeScanResults(_, _));
+  EXPECT_CALL(*mock_offload_, configureScans(_, _, _));
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
   bool result = offload_scan_manager_->startScan(
       kDisconnectedModeScanIntervalMs, kRssiThreshold, scan_ssids, match_ssids,
@@ -191,7 +275,7 @@ TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsNotAvailable) {
       kDisconnectedModeScanIntervalMs, kRssiThreshold, scan_ssids, match_ssids,
       security_flags, frequencies, &reason_code);
   EXPECT_EQ(result, false);
-  EXPECT_EQ(reason_code, OffloadScanManager::kNotSupported);
+  EXPECT_EQ(reason_code, OffloadScanManager::kNotAvailable);
 }
 
 /**
@@ -200,12 +284,16 @@ TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsNotAvailable) {
  */
 TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsNotConnected) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [](vector<NativeScanResult> scanResult) -> void {}));
-  offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_NO_CONNECTION);
+  OffloadStatus status =
+      OffloadTestUtils::createOffloadStatus(OffloadStatusCode::NO_CONNECTION);
+  offload_callback_->onError(status);
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
   bool result = offload_scan_manager_->startScan(
       kDisconnectedModeScanIntervalMs, kRssiThreshold, scan_ssids, match_ssids,
@@ -220,13 +308,15 @@ TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsNotConnected) {
  */
 TEST_F(OffloadScanManagerTest, StartScanTwiceTestWhenServiceIsOk) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [](vector<NativeScanResult> scanResult) -> void {}));
-  EXPECT_CALL(*mock_offload_, subscribeScanResults(_)).Times(1);
-  EXPECT_CALL(*mock_offload_, configureScans(_, _)).Times(2);
+  EXPECT_CALL(*mock_offload_, subscribeScanResults(_, _)).Times(1);
+  EXPECT_CALL(*mock_offload_, configureScans(_, _, _)).Times(2);
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
   bool result = offload_scan_manager_->startScan(
       kDisconnectedModeScanIntervalMs, kRssiThreshold, scan_ssids, match_ssids,
@@ -244,13 +334,15 @@ TEST_F(OffloadScanManagerTest, StartScanTwiceTestWhenServiceIsOk) {
  */
 TEST_F(OffloadScanManagerTest, StopScanTestWhenServiceIsOk) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [](vector<NativeScanResult> scanResult) -> void {}));
-  EXPECT_CALL(*mock_offload_, subscribeScanResults(_));
-  EXPECT_CALL(*mock_offload_, configureScans(_, _));
+  EXPECT_CALL(*mock_offload_, subscribeScanResults(_, _));
+  EXPECT_CALL(*mock_offload_, configureScans(_, _, _));
   EXPECT_CALL(*mock_offload_, unsubscribeScanResults());
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
   bool result = offload_scan_manager_->startScan(
@@ -267,6 +359,8 @@ TEST_F(OffloadScanManagerTest, StopScanTestWhenServiceIsOk) {
  */
 TEST_F(OffloadScanManagerTest, StopScanTestWithoutStartWhenServiceIsOk) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
@@ -284,20 +378,23 @@ TEST_F(OffloadScanManagerTest, StopScanTestWithoutStartWhenServiceIsOk) {
  */
 TEST_F(OffloadScanManagerTest, StopScanTestWhenServiceIsNotConnectedAnymore) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [](vector<NativeScanResult> scanResult) -> void {}));
-  EXPECT_CALL(*mock_offload_, subscribeScanResults(_));
-  EXPECT_CALL(*mock_offload_, configureScans(_, _));
+  EXPECT_CALL(*mock_offload_, subscribeScanResults(_, _));
+  EXPECT_CALL(*mock_offload_, configureScans(_, _, _));
   EXPECT_CALL(*mock_offload_, unsubscribeScanResults());
   OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
   bool result = offload_scan_manager_->startScan(
       kDisconnectedModeScanIntervalMs, kRssiThreshold, scan_ssids, match_ssids,
       security_flags, frequencies, &reason_code);
   EXPECT_EQ(result, true);
-  offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_NO_CONNECTION);
+  OffloadStatus status =
+      OffloadTestUtils::createOffloadStatus(OffloadStatusCode::NO_CONNECTION);
+  offload_callback_->onError(status);
   result = offload_scan_manager_->stopScan(&reason_code);
   EXPECT_EQ(result, true);
 }
@@ -308,6 +405,8 @@ TEST_F(OffloadScanManagerTest, StopScanTestWhenServiceIsNotConnectedAnymore) {
  */
 TEST_F(OffloadScanManagerTest, getScanStatsTestWhenServiceIsOk) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
@@ -325,13 +424,61 @@ TEST_F(OffloadScanManagerTest, getScanStatsTestWhenServiceIsOk) {
  */
 TEST_F(OffloadScanManagerTest, getScanStatsTestWhenServiceIsNotOk) {
   EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(mock_offload_));
   offload_scan_manager_.reset(new OffloadScanManager(
       mock_offload_service_utils_.get(),
       [](vector<NativeScanResult> scanResult) -> void {}));
-  offload_callback_->onError(OffloadStatus::OFFLOAD_STATUS_NO_CONNECTION);
+  OffloadStatus status =
+      OffloadTestUtils::createOffloadStatus(OffloadStatusCode::NO_CONNECTION);
+  offload_callback_->onError(status);
   EXPECT_CALL(*mock_offload_, getScanStats(_)).Times(0);
+  NativeScanStats stats;
+  bool result = offload_scan_manager_->getScanStats(&stats);
+  EXPECT_EQ(result, false);
+}
+
+/**
+ * Testing OffloadScanManager for subscribing to the scan results from
+ * Offload HAL when service is running without errors, operation failure
+ */
+TEST_F(OffloadScanManagerTest, StartScanFailedTest) {
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
+  ON_CALL(*mock_offload_service_utils_, GetOffloadService())
+      .WillByDefault(testing::Return(mock_offload_));
+  offload_scan_manager_.reset(new OffloadScanManager(
+      mock_offload_service_utils_.get(),
+      [](vector<NativeScanResult> scanResult) -> void {}));
+  EXPECT_CALL(*mock_offload_, subscribeScanResults(_, _)).Times(0);
+  EXPECT_CALL(*mock_offload_, configureScans(_, _, _)).Times(1);
+  status = OffloadTestUtils::createOffloadStatus(OffloadStatusCode::ERROR);
+  OffloadScanManager::ReasonCode reason_code = OffloadScanManager::kNone;
+  bool result = offload_scan_manager_->startScan(
+      kDisconnectedModeScanIntervalMs, kRssiThreshold, scan_ssids, match_ssids,
+      security_flags, frequencies, &reason_code);
+  EXPECT_EQ(result, false);
+  EXPECT_EQ(reason_code, OffloadScanManager::kOperationFailed);
+}
+
+/**
+ * Testing OffloadScanManager for getting scan statistics when the
+ * Offload HAL service is running without errors, getting scan stats failure
+ */
+TEST_F(OffloadScanManagerTest, getScanStatsFailedTest) {
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadCallback(_));
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadDeathRecipient(_));
+  ON_CALL(*mock_offload_service_utils_, GetOffloadService())
+      .WillByDefault(testing::Return(mock_offload_));
+  offload_scan_manager_.reset(new OffloadScanManager(
+      mock_offload_service_utils_.get(),
+      [](vector<NativeScanResult> scanResult) -> void {}));
+  status = OffloadTestUtils::createOffloadStatus(OffloadStatusCode::TIMEOUT);
+  EXPECT_CALL(*mock_offload_, getScanStats(_));
   NativeScanStats stats;
   bool result = offload_scan_manager_->getScanStats(&stats);
   EXPECT_EQ(result, false);

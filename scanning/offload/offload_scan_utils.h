@@ -43,8 +43,8 @@ namespace wificond {
 class OffloadScanUtils {
  public:
   static std::vector<::com::android::server::wifi::wificond::NativeScanResult>
-  convertToNativeScanResults(
-      const std::vector<android::hardware::wifi::offload::V1_0::ScanResult>&);
+      convertToNativeScanResults(
+          const std::vector<android::hardware::wifi::offload::V1_0::ScanResult>&);
   static android::hardware::wifi::offload::V1_0::ScanParam createScanParam(
       const std::vector<std::vector<uint8_t>>& ssid_list,
       const std::vector<uint32_t>& frequency_list, uint32_t scan_interval_ms);
@@ -58,8 +58,8 @@ class OffloadScanUtils {
       const std::vector<std::vector<uint8_t>>& ssids,
       const std::vector<uint8_t>& flags, int8_t rssi_threshold);
   static ::com::android::server::wifi::wificond::NativeScanStats
-  convertToNativeScanStats(
-      const android::hardware::wifi::offload::V1_0::ScanStats& /* scanStats */);
+      convertToNativeScanStats(
+          const android::hardware::wifi::offload::V1_0::ScanStats& /* scanStats */);
 };
 
 }  // namespace wificond

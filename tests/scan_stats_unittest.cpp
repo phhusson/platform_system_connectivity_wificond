@@ -27,20 +27,17 @@ using namespace android::wificond::offload_hal_test_constants;
 namespace android {
 namespace wificond {
 
-class ScanStatsTest : public ::testing::Test {
-};
+class ScanStatsTest : public ::testing::Test {};
 
 TEST_F(ScanStatsTest, ParcelableTest) {
   std::vector<uint8_t> histogram_channels;
-  for(size_t i = 0; i < 256; i++) {
-    histogram_channels.push_back(255 - i);
+  for (size_t i = 0; i < kNumChannelsInHistogram; i++) {
+    histogram_channels.push_back(kNumChannelsInHistogram - 1 - i);
   }
-  NativeScanStats  scan_stats_in(kDefaultNumScansRequestedByWifi,
-      kDefaultNumScansServicedByWifi,
-      kScanDurationTotalMs,
-      kSubscriptionDurationMs,
-      kNumChannelsTotalScanned,
-      histogram_channels);
+  NativeScanStats scan_stats_in(kDefaultNumScansRequestedByWifi,
+                                kDefaultNumScansServicedByWifi,
+                                kScanDurationTotalMs, kSubscriptionDurationMs,
+                                kNumChannelsTotalScanned, histogram_channels);
   Parcel parcel;
   EXPECT_EQ(::android::OK, scan_stats_in.writeToParcel(&parcel));
   NativeScanStats scan_stats_out;
@@ -49,5 +46,5 @@ TEST_F(ScanStatsTest, ParcelableTest) {
   EXPECT_TRUE(scan_stats_in == scan_stats_out);
 }
 
-} // namespace wificond
-} // namespace android
+}  // namespace wificond
+}  // namespace android

@@ -42,6 +42,8 @@ const uint32_t kDefaultNumScansRequestedByWifi = 2;
 const uint32_t kDefaultNumScansServicedByWifi = 2;
 const uint64_t kScanDurationTotalMs = 2000;
 const uint32_t kNumChannelsTotalScanned = 20;
+const uint32_t kNumChannelsInHistogram = 256;
+const uint64_t kDeathCode = 0xBEEF;
 
 }  // namespace offload_hal_test_constants
 }  // namespace wificond
