@@ -46,7 +46,7 @@ Return<void> OffloadCallback::onScanResult(
   return Void();
 }
 
-Return<void> OffloadCallback::onError(OffloadStatus status) {
+Return<void> OffloadCallback::onError(const OffloadStatus& status) {
   if (handlers_ != nullptr) {
     handlers_->OnErrorHandler(status);
   } else {

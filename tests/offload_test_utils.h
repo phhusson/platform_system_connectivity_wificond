@@ -33,6 +33,13 @@ class OffloadTestUtils {
   static android::hardware::wifi::offload::V1_0::ScanStats createScanStats(
       ::com::android::server::wifi::wificond::
           NativeScanStats* /* nativeScanStats */);
+  static android::hardware::wifi::offload::V1_0::OffloadStatus
+      createOffloadStatus(
+          android::hardware::wifi::offload::V1_0::OffloadStatusCode code);
+  static android::hardware::wifi::offload::V1_0::OffloadStatus
+      createOffloadStatus(
+          android::hardware::wifi::offload::V1_0::OffloadStatusCode code,
+          const std::string& desc);
 };
 
 }  // namespace wificond

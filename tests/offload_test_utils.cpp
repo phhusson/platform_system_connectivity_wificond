@@ -23,6 +23,7 @@ using android::hardware::wifi::offload::V1_0::ScanResult;
 using android::hardware::wifi::offload::V1_0::ScanStats;
 using android::hardware::wifi::offload::V1_0::ScanRecord;
 using android::hardware::wifi::offload::V1_0::OffloadStatus;
+using android::hardware::wifi::offload::V1_0::OffloadStatusCode;
 
 using ::com::android::server::wifi::wificond::NativeScanResult;
 using ::com::android::server::wifi::wificond::NativeScanStats;
@@ -85,6 +86,15 @@ ScanStats OffloadTestUtils::createScanStats(NativeScanStats* nativeScanStats) {
                                     num_channels_scanned, histogram_channels);
   *nativeScanStats = native_scan_stats;
   return scan_stats;
+}
+
+OffloadStatus OffloadTestUtils::createOffloadStatus(OffloadStatusCode code) {
+  return createOffloadStatus(code, "");
+}
+
+OffloadStatus OffloadTestUtils::createOffloadStatus(OffloadStatusCode code,
+                                                    const std::string& desc) {
+  return {code, desc};
 }
 
 }  // namespace wificond

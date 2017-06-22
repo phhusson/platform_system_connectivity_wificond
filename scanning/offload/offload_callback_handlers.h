@@ -30,7 +30,8 @@ class OffloadCallbackHandlers {
       const std::vector<::android::hardware::wifi::offload::V1_0::ScanResult>&
           scanResult) = 0;
   virtual void OnErrorHandler(
-      ::android::hardware::wifi::offload::V1_0::OffloadStatus status) = 0;
+      const ::android::hardware::wifi::offload::V1_0::OffloadStatus&
+          status) = 0;
 };
 
 }  // namespace wificond
