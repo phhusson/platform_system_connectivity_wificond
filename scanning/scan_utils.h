@@ -69,11 +69,13 @@ class ScanUtils {
   // If |ssids| contains an empty string, it will a scan for all ssids.
   // |freqs| is a vector of frequencies we request to scan.
   // If |freqs| is an empty vector, it will scan all supported frequencies.
+  // |error_code| contains the errno kernel replied when this returns false.
   // Returns true on success.
   virtual bool Scan(uint32_t interface_index,
                     bool request_random_mac,
                     const std::vector<std::vector<uint8_t>>& ssids,
-                    const std::vector<uint32_t>& freqs);
+                    const std::vector<uint32_t>& freqs,
+                    int* error_code);
 
   // Send scan request to kernel for interface with index |interface_index|.
   // |inteval_ms| is the expected scan interval in milliseconds.
@@ -91,6 +93,7 @@ class ScanUtils {
   // If |freqs| is an empty vector, it will scan all supported frequencies.
   // Only BSSs match the |match_ssids| and |rssi_threshold| will be returned as
   // scan results.
+  // |error_code| contains the errno kernel replied when this returns false.
   // Returns true on success.
   virtual bool StartScheduledScan(
       uint32_t interface_index,
@@ -99,7 +102,8 @@ class ScanUtils {
       bool request_random_mac,
       const std::vector<std::vector<uint8_t>>& scan_ssids,
       const std::vector<std::vector<uint8_t>>& match_ssids,
-      const std::vector<uint32_t>& freqs);
+      const std::vector<uint32_t>& freqs,
+      int* error_code);
 
   // Stop existing scheduled scan on interface with index |interface_index|.
   // Returns true on success.

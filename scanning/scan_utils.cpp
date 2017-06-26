@@ -220,7 +220,8 @@ bool ScanUtils::GetSSIDFromInfoElement(const vector<uint8_t>& ie,
 bool ScanUtils::Scan(uint32_t interface_index,
                      bool request_random_mac,
                      const vector<vector<uint8_t>>& ssids,
-                     const vector<uint32_t>& freqs) {
+                     const vector<uint32_t>& freqs,
+                     int* error_code) {
   NL80211Packet trigger_scan(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_TRIGGER_SCAN,
@@ -261,8 +262,13 @@ bool ScanUtils::Scan(uint32_t interface_index,
   // scan results here, so it is OK to expect a timely response because
   // kernel is supposed to send the ERROR/ACK back before the scan starts.
   vector<unique_ptr<const NL80211Packet>> response;
-  if (!netlink_manager_->SendMessageAndGetAck(trigger_scan)) {
-    LOG(ERROR) << "NL80211_CMD_TRIGGER_SCAN failed";
+  if (!netlink_manager_->SendMessageAndGetAckOrError(trigger_scan,
+                                                     error_code)) {
+    // Logging is done inside |SendMessageAndGetAckOrError|.
+    return false;
+  }
+  if (*error_code != 0) {
+    LOG(ERROR) << "NL80211_CMD_TRIGGER_SCAN failed: " << strerror(*error_code);
     return false;
   }
   return true;
@@ -323,7 +329,8 @@ bool ScanUtils::StartScheduledScan(
     bool request_random_mac,
     const std::vector<std::vector<uint8_t>>& scan_ssids,
     const std::vector<std::vector<uint8_t>>& match_ssids,
-    const std::vector<uint32_t>& freqs) {
+    const std::vector<uint32_t>& freqs,
+    int* error_code) {
   NL80211Packet start_sched_scan(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_START_SCHED_SCAN,
@@ -374,8 +381,13 @@ bool ScanUtils::StartScheduledScan(
   }
 
   vector<unique_ptr<const NL80211Packet>> response;
-  if (!netlink_manager_->SendMessageAndGetAck(start_sched_scan)) {
-    LOG(ERROR) << "NL80211_CMD_START_SCHED_SCAN failed";
+  if (!netlink_manager_->SendMessageAndGetAckOrError(start_sched_scan,
+                                                     error_code)) {
+    // Logging is done inside |SendMessageAndGetAckOrError|.
+    return false;
+  }
+  if (*error_code != 0) {
+    LOG(ERROR) << "NL80211_CMD_START_SCHED_SCAN failed: " << strerror(*error_code);
     return false;
   }
 
