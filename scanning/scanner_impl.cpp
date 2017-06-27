@@ -204,7 +204,10 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
     freqs.push_back(channel.frequency_);
   }
 
-  if (!scan_utils_->Scan(interface_index_, request_random_mac, ssids, freqs)) {
+  int error_code = 0;
+  if (!scan_utils_->Scan(interface_index_, request_random_mac, ssids, freqs,
+                         &error_code)) {
+    CHECK(error_code != ENODEV) << "Driver is in a bad state, restarting wificond";
     *out_success = false;
     return Status::ok();
   }
@@ -297,6 +300,7 @@ bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
   bool request_random_mac = wiphy_features_.supports_random_mac_sched_scan &&
       !client_interface_->IsAssociated();
 
+  int error_code = 0;
   if (!scan_utils_->StartScheduledScan(interface_index_,
                                        pno_settings.interval_ms_,
                                        // TODO: honor both rssi thresholds.
@@ -304,8 +308,10 @@ bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
                                        request_random_mac,
                                        scan_ssids,
                                        match_ssids,
-                                       freqs)) {
+                                       freqs,
+                                       &error_code)) {
     LOG(ERROR) << "Failed to start pno scan";
+    CHECK(error_code != ENODEV) << "Driver is in a bad state, restarting wificond";
     return false;
   }
   LOG(INFO) << "Pno scan started";

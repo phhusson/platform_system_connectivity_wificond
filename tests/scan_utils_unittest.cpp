@@ -130,7 +130,9 @@ TEST_F(ScanUtilsTest, CanSendScanRequest) {
               WillOnce(Invoke(bind(
                   AppendMessageAndReturn, response, true, _1, _2)));
 
-  EXPECT_TRUE(scan_utils_.Scan(kFakeInterfaceIndex, kFakeUseRandomMAC, {}, {}));
+  int errno_ignored;
+  EXPECT_TRUE(scan_utils_.Scan(kFakeInterfaceIndex, kFakeUseRandomMAC, {}, {},
+                               &errno_ignored));
   // TODO(b/34231420): Add validation of requested scan ssids, threshold,
   // and frequencies.
 }
@@ -143,7 +145,10 @@ TEST_F(ScanUtilsTest, CanHandleScanRequestFailure) {
           DoesNL80211PacketMatchCommand(NL80211_CMD_TRIGGER_SCAN), _)).
               WillOnce(Invoke(bind(
                   AppendMessageAndReturn, response, true, _1, _2)));
-  EXPECT_FALSE(scan_utils_.Scan(kFakeInterfaceIndex, kFakeUseRandomMAC, {}, {}));
+  int error_code;
+  EXPECT_FALSE(scan_utils_.Scan(kFakeInterfaceIndex, kFakeUseRandomMAC, {}, {},
+                                &error_code));
+  EXPECT_EQ(kFakeErrorCode, error_code);
 }
 
 TEST_F(ScanUtilsTest, CanSendSchedScanRequest) {
@@ -154,10 +159,11 @@ TEST_F(ScanUtilsTest, CanSendSchedScanRequest) {
            DoesNL80211PacketMatchCommand(NL80211_CMD_START_SCHED_SCAN), _)).
               WillOnce(Invoke(bind(
                   AppendMessageAndReturn, response, true, _1, _2)));
+  int errno_ignored;
   EXPECT_TRUE(scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
       kFakeScheduledScanIntervalMs,
-      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}));
+      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &errno_ignored));
   // TODO(b/34231420): Add validation of requested scan ssids, threshold,
   // and frequencies.
 }
@@ -170,10 +176,12 @@ TEST_F(ScanUtilsTest, CanHandleSchedScanRequestFailure) {
            DoesNL80211PacketMatchCommand(NL80211_CMD_START_SCHED_SCAN), _)).
               WillOnce(Invoke(bind(
                   AppendMessageAndReturn, response, true, _1, _2)));
+  int error_code;
   EXPECT_FALSE(scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
       kFakeScheduledScanIntervalMs,
-      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}));
+      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &error_code));
+  EXPECT_EQ(kFakeErrorCode, error_code);
 }
 
 }  // namespace wificond
