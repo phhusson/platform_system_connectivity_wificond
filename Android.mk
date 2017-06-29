@@ -170,6 +170,7 @@ LOCAL_SRC_FILES := \
     tests/client_interface_impl_unittest.cpp \
     tests/looper_backed_event_loop_unittest.cpp \
     tests/main.cpp \
+    tests/mock_client_interface_impl.cpp \
     tests/mock_netlink_manager.cpp \
     tests/mock_netlink_utils.cpp \
     tests/mock_offload.cpp \
@@ -185,6 +186,7 @@ LOCAL_SRC_FILES := \
     tests/offload_scan_manager_test.cpp \
     tests/offload_scan_utils_test.cpp \
     tests/offload_test_utils.cpp \
+    tests/scanner_unittest.cpp \
     tests/scan_result_unittest.cpp \
     tests/scan_settings_unittest.cpp \
     tests/scan_stats_unittest.cpp \
