@@ -67,7 +67,7 @@ class ClientInterfaceImpl {
       android::wifi_system::SupplicantManager* supplicant_manager,
       NetlinkUtils* netlink_utils,
       ScanUtils* scan_utils);
-  ~ClientInterfaceImpl();
+  virtual ~ClientInterfaceImpl();
 
   // Get a pointer to the binder representing this ClientInterfaceImpl.
   android::sp<android::net::wifi::IClientInterface> GetBinder() const;
@@ -82,7 +82,7 @@ class ClientInterfaceImpl {
   bool requestANQP(
       const ::std::vector<uint8_t>& bssid,
       const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback);
-  bool IsAssociated() const;
+  virtual bool IsAssociated() const;
   void Dump(std::stringstream* ss) const;
 
  private:
