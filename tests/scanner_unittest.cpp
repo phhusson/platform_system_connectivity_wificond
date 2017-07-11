@@ -31,10 +31,12 @@ using ::android::binder::Status;
 using ::android::wifi_system::MockInterfaceTool;
 using ::android::wifi_system::MockSupplicantManager;
 using ::com::android::server::wifi::wificond::SingleScanSettings;
+using ::com::android::server::wifi::wificond::NativeScanResult;
 using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::_;
+using std::vector;
 
 using namespace std::placeholders;
 
@@ -113,6 +115,28 @@ TEST_F(ScannerTest, TestProcessAbortsOnScanReturningNoDeviceError) {
   EXPECT_DEATH(
       scanner_.scan(SingleScanSettings(), &success_ignored),
       "Driver is in a bad state*");
+}
+
+TEST_F(ScannerTest, TestAbortScan) {
+  bool single_scan_success = false;
+  EXPECT_CALL(scan_utils_, Scan(_, _, _, _, _)).WillOnce(Return(true));
+  EXPECT_TRUE(scanner_.scan(SingleScanSettings(),
+                            &single_scan_success).isOk());
+  EXPECT_TRUE(single_scan_success);
+
+  EXPECT_CALL(scan_utils_, AbortScan(_));
+  EXPECT_TRUE(scanner_.abortScan().isOk());
+}
+
+TEST_F(ScannerTest, TestAbortScanNotIssuedIfNoOngoingScan) {
+  EXPECT_CALL(scan_utils_, AbortScan(_)).Times(0);
+  EXPECT_TRUE(scanner_.abortScan().isOk());
+}
+
+TEST_F(ScannerTest, TestGetScanResults) {
+  vector<NativeScanResult> scan_results;
+  EXPECT_CALL(scan_utils_, GetScanResult(_, _)).WillOnce(Return(true));
+  EXPECT_TRUE(scanner_.getScanResults(&scan_results).isOk());
 }
 
 //TODO(b/33452931): Add more test cases for ScannerImpl.
