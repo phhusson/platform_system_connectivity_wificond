@@ -112,6 +112,11 @@ class NL80211Packet {
 
   bool HasAttribute(int id) const;
   bool GetAttribute(int id, NL80211NestedAttr* attribute) const;
+  // Get all attributes to |*attribute| as a vector.
+  // In case of failure, attributes up until the first invalid attribute
+  // actually will be present in |attributes|.
+  bool GetAllAttributes(
+      std::vector<BaseNL80211Attr>* attributes) const;
 
   template <typename T>
   bool GetAttributeValue(int id, T* value) const {
