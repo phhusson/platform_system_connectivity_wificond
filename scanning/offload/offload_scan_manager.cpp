@@ -38,8 +38,10 @@ using android::wificond::OffloadCallback;
 using android::wificond::OnNativeScanResultsReadyHandler;
 using ::com::android::server::wifi::wificond::NativeScanResult;
 using ::com::android::server::wifi::wificond::NativeScanStats;
-using namespace std::placeholders;
 using std::vector;
+using std::weak_ptr;
+
+using namespace std::placeholders;
 
 namespace {
 const uint32_t kSubscriptionDelayMs = 5000;
@@ -67,7 +69,7 @@ void OffloadCallbackHandlersImpl::OnErrorHandler(const OffloadStatus& status) {
   }
 }
 
-OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
+OffloadScanManager::OffloadScanManager(weak_ptr<OffloadServiceUtils> utils,
                                        OnNativeScanResultsReadyHandler handler)
     : wifi_offload_hal_(nullptr),
       wifi_offload_callback_(nullptr),
@@ -75,21 +77,18 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
       subscription_enabled_(false),
       offload_callback_handlers_(new OffloadCallbackHandlersImpl(this)),
       scan_result_handler_(handler) {
-  if (utils == nullptr) {
-    LOG(ERROR) << "Invalid arguments for Offload ScanManager";
-    return;
-  }
+  auto offload_scan_utils = utils.lock();
   if (scan_result_handler_ == nullptr) {
     LOG(ERROR) << "Invalid Offload scan result handler";
     return;
   }
-  wifi_offload_hal_ = utils->GetOffloadService();
+  wifi_offload_hal_ = offload_scan_utils->GetOffloadService();
   if (wifi_offload_hal_ == nullptr) {
     LOG(ERROR) << "No Offload Service available";
     return;
   }
 
-  death_recipient_ = utils->GetOffloadDeathRecipient(
+  death_recipient_ = offload_scan_utils->GetOffloadDeathRecipient(
       std::bind(&OffloadScanManager::OnObjectDeath, this, _1));
   uint64_t cookie = reinterpret_cast<uint64_t>(wifi_offload_hal_.get());
   auto link_to_death_status =
@@ -101,7 +100,7 @@ OffloadScanManager::OffloadScanManager(OffloadServiceUtils* utils,
   }
 
   wifi_offload_callback_ =
-      utils->GetOffloadCallback(offload_callback_handlers_.get());
+      offload_scan_utils->GetOffloadCallback(offload_callback_handlers_.get());
   if (wifi_offload_callback_ == nullptr) {
     LOG(ERROR) << "Invalid Offload callback object";
     return;
@@ -213,15 +212,6 @@ OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
     return OffloadScanManager::kNoService;
   }
   return offload_status_;
-}
-
-bool OffloadScanManager::isOffloadScanSupported() const {
-  bool result = false;
-#ifdef WIFI_OFFLOAD_SCANS
-  LOG(VERBOSE) << "Offload HAL supported";
-  result = true;
-#endif
-  return result;
 }
 
 bool OffloadScanManager::getScanStats(NativeScanStats* native_scan_stats) {

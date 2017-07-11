@@ -94,7 +94,7 @@ class OffloadScanManager {
     kTransactionFailed,
   };
 
-  explicit OffloadScanManager(OffloadServiceUtils* utils,
+  explicit OffloadScanManager(std::weak_ptr<OffloadServiceUtils> utils,
                               OnNativeScanResultsReadyHandler handler);
   virtual ~OffloadScanManager();
   /* Request start of offload scans with scan parameters and scan filter
@@ -118,8 +118,6 @@ class OffloadScanManager {
       ::com::android::server::wifi::wificond::NativeScanStats* /* scanStats */);
   /* Otain status of the Offload HAL service */
   StatusCode getOffloadStatus() const;
-  /* Check if Offload service is supported on this device */
-  bool isOffloadScanSupported() const;
 
  private:
   void ReportScanResults(
