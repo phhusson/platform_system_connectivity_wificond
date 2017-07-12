@@ -39,9 +39,11 @@ vector<NativeScanResult> OffloadScanUtils::convertToNativeScanResults(
   native_scan_result.reserve(scan_result.size());
   for (size_t i = 0; i < scan_result.size(); i++) {
     NativeScanResult single_scan_result;
-    single_scan_result.ssid = scan_result[i].networkInfo.ssid;
-    single_scan_result.bssid.assign(scan_result[i].networkInfo.ssid.begin(),
-                                    scan_result[i].networkInfo.ssid.end());
+    single_scan_result.ssid.assign(scan_result[i].networkInfo.ssid.begin(),
+                                   scan_result[i].networkInfo.ssid.end());
+    for (size_t j = 0; j < scan_result[i].bssid.elementCount(); j++) {
+      single_scan_result.bssid.push_back(scan_result[i].bssid[j]);
+    }
     single_scan_result.frequency = scan_result[i].frequency;
     single_scan_result.signal_mbm = scan_result[i].rssi;
     single_scan_result.tsf = scan_result[i].tsf;
