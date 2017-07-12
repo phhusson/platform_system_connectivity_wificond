@@ -25,7 +25,7 @@ namespace android {
 namespace wificond {
 
 android::sp<IOffload> OffloadServiceUtils::GetOffloadService() {
-  return IOffload::getService();
+  return IOffload::tryGetService();
 }
 
 android::sp<OffloadCallback> OffloadServiceUtils::GetOffloadCallback(
