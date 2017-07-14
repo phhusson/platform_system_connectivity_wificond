@@ -46,6 +46,8 @@ class OffloadServiceUtils {
   virtual ~OffloadServiceUtils() = default;
   virtual android::sp<android::hardware::wifi::offload::V1_0::IOffload>
       GetOffloadService();
+  // Check if Offload scan is supported on this device.
+  virtual bool IsOffloadScanSupported() const;
   virtual android::sp<OffloadCallback> GetOffloadCallback(
       OffloadCallbackHandlers* handlers);
   virtual OffloadDeathRecipient* GetOffloadDeathRecipient(

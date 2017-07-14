@@ -35,6 +35,15 @@ OffloadDeathRecipient* OffloadServiceUtils::GetOffloadDeathRecipient(
   return new OffloadDeathRecipient(handler);
 }
 
+bool OffloadServiceUtils::IsOffloadScanSupported() const {
+  bool result = false;
+#ifdef WIFI_OFFLOAD_SCANS
+  LOG(VERBOSE) << "Offload HAL supported";
+  result = true;
+#endif
+  return result;
+}
+
 OffloadDeathRecipient::OffloadDeathRecipient(
     OffloadDeathRecipientHandler handler)
     : handler_(handler) {}
