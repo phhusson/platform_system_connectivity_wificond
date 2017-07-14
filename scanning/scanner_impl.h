@@ -30,6 +30,7 @@ namespace android {
 namespace wificond {
 
 class ClientInterfaceImpl;
+class OffloadServiceUtils;
 class ScanUtils;
 
 class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
@@ -40,7 +41,8 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
               const WiphyFeatures& wiphy_features,
               ClientInterfaceImpl* client_interface,
               NetlinkUtils* netlink_utils,
-              ScanUtils* scan_utils);
+              ScanUtils* scan_utils,
+              std::weak_ptr<OffloadServiceUtils> offload_service_utils);
   ~ScannerImpl();
   // Returns a vector of available frequencies for 2.4GHz channels.
   ::android::binder::Status getAvailable2gChannels(

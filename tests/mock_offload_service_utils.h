@@ -32,7 +32,7 @@ class MockOffloadServiceUtils : public OffloadServiceUtils {
  public:
   MockOffloadServiceUtils();
   ~MockOffloadServiceUtils() override = default;
-
+  MOCK_CONST_METHOD0(IsOffloadScanSupported, bool());
   MOCK_METHOD0(GetOffloadService,
                sp<android::hardware::wifi::offload::V1_0::IOffload>());
   MOCK_METHOD1(GetOffloadCallback,

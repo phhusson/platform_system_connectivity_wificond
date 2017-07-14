@@ -29,8 +29,14 @@ class MockScanUtils : public ScanUtils {
   MockScanUtils(NetlinkManager* netlink_manager);
   ~MockScanUtils() override = default;
 
+  MOCK_METHOD1(UnsubscribeScanResultNotification,
+               void(uint32_t interface_index));
   MOCK_METHOD1(AbortScan, bool(uint32_t interface_index));
+  MOCK_METHOD1(StopScheduledScan, bool(uint32_t interface_index));
 
+  MOCK_METHOD2(SubscribeScanResultNotification,void(
+      uint32_t interface_index,
+      OnScanResultsReadyHandler handler));
   MOCK_METHOD2(GetScanResult, bool(
       uint32_t interface_index,
       std::vector<::com::android::server::wifi::wificond::NativeScanResult>* out_scan_results));
@@ -42,12 +48,15 @@ class MockScanUtils : public ScanUtils {
       const std::vector<uint32_t>& freqs,
       int* error_code));
 
-  MOCK_METHOD2(SubscribeScanResultNotification,void(
+  MOCK_METHOD8(StartScheduledScan, bool(
       uint32_t interface_index,
-      OnScanResultsReadyHandler handler));
-
-  MOCK_METHOD1(UnsubscribeScanResultNotification,
-               void(uint32_t interface_index));
+      uint32_t interval_ms,
+      int32_t rssi_threshold,
+      bool request_random_mac,
+      const std::vector<std::vector<uint8_t>>& scan_ssids,
+      const std::vector<std::vector<uint8_t>>& match_ssids,
+      const std::vector<uint32_t>& freqs,
+      int* error_code));
 
 };  // class MockScanUtils
 

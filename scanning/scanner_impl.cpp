@@ -37,6 +37,7 @@ using com::android::server::wifi::wificond::SingleScanSettings;
 
 using std::string;
 using std::vector;
+using std::weak_ptr;
 
 using namespace std::placeholders;
 
@@ -49,7 +50,8 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index,
                          const WiphyFeatures& wiphy_features,
                          ClientInterfaceImpl* client_interface,
                          NetlinkUtils* netlink_utils,
-                         ScanUtils* scan_utils)
+                         ScanUtils* scan_utils,
+                         weak_ptr<OffloadServiceUtils> offload_service_utils)
     : valid_(true),
       scan_started_(false),
       pno_scan_started_(false),
@@ -77,10 +79,11 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index,
                 this,
                 _1, _2));
   offload_scan_manager_.reset(
-      new OffloadScanManager(new OffloadServiceUtils(),
+      new OffloadScanManager(
+          offload_service_utils,
           std::bind(&ScannerImpl::OnOffloadScanResult,
               this, _1)));
-  offload_scan_supported_ = offload_scan_manager_->isOffloadScanSupported();
+  offload_scan_supported_ = offload_service_utils.lock()->IsOffloadScanSupported();
 }
 
 ScannerImpl::~ScannerImpl() {

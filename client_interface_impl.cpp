@@ -24,6 +24,7 @@
 #include "wificond/client_interface_binder.h"
 #include "wificond/net/mlme_event.h"
 #include "wificond/net/netlink_utils.h"
+#include "wificond/scanning/offload/offload_service_utils.h"
 #include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/scan_utils.h"
 #include "wificond/scanning/scanner_impl.h"
@@ -116,6 +117,7 @@ ClientInterfaceImpl::ClientInterfaceImpl(
       supplicant_manager_(supplicant_manager),
       netlink_utils_(netlink_utils),
       scan_utils_(scan_utils),
+      offload_service_utils_(new OffloadServiceUtils()),
       mlme_event_handler_(new MlmeEventHandlerImpl(this)),
       binder_(new ClientInterfaceBinder(this)),
       is_associated_(false) {
@@ -136,7 +138,8 @@ ClientInterfaceImpl::ClientInterfaceImpl(
                              wiphy_features_,
                              this,
                              netlink_utils_,
-                             scan_utils_);
+                             scan_utils_,
+                             offload_service_utils_);
 }
 
 ClientInterfaceImpl::~ClientInterfaceImpl() {

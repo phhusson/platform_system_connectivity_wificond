@@ -25,17 +25,21 @@
 #include "wificond/tests/mock_client_interface_impl.h"
 #include "wificond/tests/mock_netlink_manager.h"
 #include "wificond/tests/mock_netlink_utils.h"
+#include "wificond/tests/mock_offload_service_utils.h"
 #include "wificond/tests/mock_scan_utils.h"
 
 using ::android::binder::Status;
 using ::android::wifi_system::MockInterfaceTool;
 using ::android::wifi_system::MockSupplicantManager;
 using ::com::android::server::wifi::wificond::SingleScanSettings;
+using ::com::android::server::wifi::wificond::PnoSettings;
 using ::com::android::server::wifi::wificond::NativeScanResult;
 using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::_;
+using std::shared_ptr;
+using std::unique_ptr;
 using std::vector;
 
 using namespace std::placeholders;
@@ -69,6 +73,17 @@ bool ReturnErrorCodeForScanRequest(
 
 class ScannerTest : public ::testing::Test {
  protected:
+  void SetUp() override {
+   ON_CALL(*offload_service_utils_, IsOffloadScanSupported()).WillByDefault(
+      Return(false));
+   netlink_scanner_.reset(new ScannerImpl(
+       kFakeWiphyIndex, kFakeInterfaceIndex,
+       scan_capabilities_, wiphy_features_,
+       &client_interface_impl_,
+       &netlink_utils_, &scan_utils_, offload_service_utils_));
+  }
+
+  unique_ptr<ScannerImpl> netlink_scanner_;
   NiceMock<MockNetlinkManager> netlink_manager_;
   NiceMock<MockNetlinkUtils> netlink_utils_{&netlink_manager_};
   NiceMock<MockScanUtils> scan_utils_{&netlink_manager_};
@@ -76,19 +91,16 @@ class ScannerTest : public ::testing::Test {
   NiceMock<MockSupplicantManager> supplicant_manager_;
   NiceMock<MockClientInterfaceImpl> client_interface_impl_{
       &if_tool_, &supplicant_manager_, &netlink_utils_, &scan_utils_};
+  shared_ptr<NiceMock<MockOffloadServiceUtils>> offload_service_utils_{
+      new NiceMock<MockOffloadServiceUtils>()};
   ScanCapabilities scan_capabilities_;
   WiphyFeatures wiphy_features_;
-  ScannerImpl scanner_{
-    kFakeWiphyIndex, kFakeInterfaceIndex,
-    scan_capabilities_, wiphy_features_,
-    &client_interface_impl_,
-    &netlink_utils_, &scan_utils_};
 };
 
 TEST_F(ScannerTest, TestSingleScan) {
   EXPECT_CALL(scan_utils_, Scan(_, _, _, _, _)).WillOnce(Return(true));
   bool success = false;
-  EXPECT_TRUE(scanner_.scan(SingleScanSettings(), &success).isOk());
+  EXPECT_TRUE(netlink_scanner_->scan(SingleScanSettings(), &success).isOk());
   EXPECT_TRUE(success);
 }
 
@@ -100,7 +112,7 @@ TEST_F(ScannerTest, TestSingleScanFailure) {
               ReturnErrorCodeForScanRequest, EBUSY, _1, _2, _3, _4, _5)));
 
   bool success = false;
-  EXPECT_TRUE(scanner_.scan(SingleScanSettings(), &success).isOk());
+  EXPECT_TRUE(netlink_scanner_->scan(SingleScanSettings(), &success).isOk());
   EXPECT_FALSE(success);
 }
 
@@ -113,33 +125,48 @@ TEST_F(ScannerTest, TestProcessAbortsOnScanReturningNoDeviceError) {
 
   bool success_ignored;
   EXPECT_DEATH(
-      scanner_.scan(SingleScanSettings(), &success_ignored),
+      netlink_scanner_->scan(SingleScanSettings(), &success_ignored),
       "Driver is in a bad state*");
 }
 
 TEST_F(ScannerTest, TestAbortScan) {
   bool single_scan_success = false;
   EXPECT_CALL(scan_utils_, Scan(_, _, _, _, _)).WillOnce(Return(true));
-  EXPECT_TRUE(scanner_.scan(SingleScanSettings(),
+  EXPECT_TRUE(netlink_scanner_->scan(SingleScanSettings(),
                             &single_scan_success).isOk());
   EXPECT_TRUE(single_scan_success);
 
   EXPECT_CALL(scan_utils_, AbortScan(_));
-  EXPECT_TRUE(scanner_.abortScan().isOk());
+  EXPECT_TRUE(netlink_scanner_->abortScan().isOk());
 }
 
 TEST_F(ScannerTest, TestAbortScanNotIssuedIfNoOngoingScan) {
   EXPECT_CALL(scan_utils_, AbortScan(_)).Times(0);
-  EXPECT_TRUE(scanner_.abortScan().isOk());
+  EXPECT_TRUE(netlink_scanner_->abortScan().isOk());
 }
 
 TEST_F(ScannerTest, TestGetScanResults) {
   vector<NativeScanResult> scan_results;
   EXPECT_CALL(scan_utils_, GetScanResult(_, _)).WillOnce(Return(true));
-  EXPECT_TRUE(scanner_.getScanResults(&scan_results).isOk());
+  EXPECT_TRUE(netlink_scanner_->getScanResults(&scan_results).isOk());
 }
 
-//TODO(b/33452931): Add more test cases for ScannerImpl.
+TEST_F(ScannerTest, TestStartPnoScanViaNetlink) {
+  bool success = false;
+  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _)).
+              WillOnce(Return(true));
+  EXPECT_TRUE(netlink_scanner_->startPnoScan(PnoSettings(), &success).isOk());
+  EXPECT_TRUE(success);
+}
+
+TEST_F(ScannerTest, TestStopPnoScanViaNetlink) {
+  bool success = false;
+  // StopScheduledScan() will be called no matter if there is an ongoing
+  // scheduled scan or not. This is for making the system more robust.
+  EXPECT_CALL(scan_utils_, StopScheduledScan(_)).WillOnce(Return(true));
+  EXPECT_TRUE(netlink_scanner_->stopPnoScan(&success).isOk());
+  EXPECT_TRUE(success);
+}
 
 }  // namespace wificond
 }  // namespace android
