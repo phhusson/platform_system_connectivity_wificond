@@ -32,8 +32,10 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using std::unique_ptr;
 using std::vector;
+using testing::AllOf;
 using testing::Invoke;
 using testing::NiceMock;
+using testing::Not;
 using testing::Return;
 using testing::_;
 
@@ -106,6 +108,11 @@ MATCHER_P(DoesNL80211PacketMatchCommand, command,
   return arg.GetCommand() == command;
 }
 
+MATCHER_P(DoesNL80211PacketHaveAttribute, attr,
+          "Check if the netlink packet has atttribute |attr|") {
+  return arg.HasAttribute(attr);
+}
+
 TEST_F(ScanUtilsTest, CanGetScanResult) {
   vector<NativeScanResult> scan_results;
   EXPECT_CALL(
@@ -162,7 +169,7 @@ TEST_F(ScanUtilsTest, CanSendSchedScanRequest) {
   int errno_ignored;
   EXPECT_TRUE(scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
-      kFakeScheduledScanIntervalMs,
+      SchedScanIntervalSetting(),
       kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &errno_ignored));
   // TODO(b/34231420): Add validation of requested scan ssids, threshold,
   // and frequencies.
@@ -179,9 +186,49 @@ TEST_F(ScanUtilsTest, CanHandleSchedScanRequestFailure) {
   int error_code;
   EXPECT_FALSE(scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
-      kFakeScheduledScanIntervalMs,
+      SchedScanIntervalSetting(),
       kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &error_code));
   EXPECT_EQ(kFakeErrorCode, error_code);
+}
+
+TEST_F(ScanUtilsTest, CanSpecifyScanPlansForSchedScanRequest) {
+  EXPECT_CALL(
+      netlink_manager_,
+       SendMessageAndGetResponses(
+           AllOf(
+               DoesNL80211PacketMatchCommand(NL80211_CMD_START_SCHED_SCAN),
+               DoesNL80211PacketHaveAttribute(NL80211_ATTR_SCHED_SCAN_PLANS),
+               Not(DoesNL80211PacketHaveAttribute(
+                   NL80211_ATTR_SCHED_SCAN_INTERVAL))),
+           _));
+  int errno_ignored;
+  SchedScanIntervalSetting interval_setting{
+      {{kFakeScheduledScanIntervalMs, 10 /* repeated times */}},
+      kFakeScheduledScanIntervalMs * 3 /* interval for infinite scans */};
+
+  scan_utils_.StartScheduledScan(
+      kFakeInterfaceIndex,
+      interval_setting,
+      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &errno_ignored);
+}
+
+TEST_F(ScanUtilsTest, CanSpecifySingleIntervalForSchedScanRequest) {
+  EXPECT_CALL(
+      netlink_manager_,
+       SendMessageAndGetResponses(
+           AllOf(
+               DoesNL80211PacketMatchCommand(NL80211_CMD_START_SCHED_SCAN),
+               DoesNL80211PacketHaveAttribute(NL80211_ATTR_SCHED_SCAN_INTERVAL),
+               Not(DoesNL80211PacketHaveAttribute(
+                   NL80211_ATTR_SCHED_SCAN_PLANS))),
+           _));
+  int errno_ignored;
+  SchedScanIntervalSetting interval_setting{{}, kFakeScheduledScanIntervalMs};
+
+  scan_utils_.StartScheduledScan(
+      kFakeInterfaceIndex,
+      interval_setting,
+      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &errno_ignored);
 }
 
 TEST_F(ScanUtilsTest, CanPrioritizeLastSeenSinceBootNetlinkAttribute) {

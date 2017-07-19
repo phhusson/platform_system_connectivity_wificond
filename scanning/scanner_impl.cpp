@@ -35,6 +35,7 @@ using com::android::server::wifi::wificond::NativeScanResult;
 using com::android::server::wifi::wificond::PnoSettings;
 using com::android::server::wifi::wificond::SingleScanSettings;
 
+using std::pair;
 using std::string;
 using std::vector;
 using std::weak_ptr;
@@ -305,7 +306,7 @@ bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
 
   int error_code = 0;
   if (!scan_utils_->StartScheduledScan(interface_index_,
-                                       pno_settings.interval_ms_,
+                                       GenerateIntervalSetting(pno_settings),
                                        // TODO: honor both rssi thresholds.
                                        pno_settings.min_5g_rssi_,
                                        request_random_mac,
@@ -444,6 +445,34 @@ void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
       LOG(INFO) << "Pno scan result ready event";
       pno_scan_event_handler_->OnPnoNetworkFound();
     }
+  }
+}
+
+SchedScanIntervalSetting ScannerImpl::GenerateIntervalSetting(
+    const ::com::android::server::wifi::wificond::PnoSettings&
+        pno_settings) const {
+  bool support_num_scan_plans = scan_capabilities_.max_num_scan_plans >= 2;
+  bool support_scan_plan_interval =
+      scan_capabilities_.max_scan_plan_interval * 1000 >=
+          pno_settings.interval_ms_ * PnoSettings::kSlowScanIntervalMultiplier;
+  bool support_scan_plan_iterations =
+      scan_capabilities_.max_scan_plan_iterations >=
+                  PnoSettings::kFastScanIterations;
+
+  uint32_t fast_scan_interval =
+      static_cast<uint32_t>(pno_settings.interval_ms_);
+  if (support_num_scan_plans && support_scan_plan_interval &&
+      support_scan_plan_iterations) {
+    return SchedScanIntervalSetting{
+        {{fast_scan_interval, PnoSettings::kFastScanIterations}},
+        fast_scan_interval * PnoSettings::kSlowScanIntervalMultiplier};
+  } else {
+    // Device doesn't support the provided scan plans.
+    // Specify single interval instead.
+    // In this case, the driver/firmware is expected to implement back off
+    // logic internally using |pno_settings.interval_ms_| as "fast scan"
+    // interval.
+    return SchedScanIntervalSetting{{}, fast_scan_interval};
   }
 }
 
