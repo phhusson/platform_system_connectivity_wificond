@@ -233,6 +233,7 @@ Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                  bool* out_success) {
   pno_settings_ = pno_settings;
   pno_scan_results_from_offload_ = false;
+  LOG(VERBOSE) << "startPnoScan";
   if (offload_scan_supported_ && StartPnoScanOffload(pno_settings)) {
     // scanning over offload succeeded
     *out_success = true;
@@ -252,7 +253,6 @@ bool ScannerImpl::StartPnoScanOffload(const PnoSettings& pno_settings) {
 
   ParsePnoSettings(pno_settings, &scan_ssids, &match_ssids, &freqs,
                    &match_security);
-
   pno_scan_running_over_offload_ = offload_scan_manager_->startScan(
       pno_settings.interval_ms_,
       // TODO: honor both rssi thresholds.
@@ -464,6 +464,7 @@ void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
       pno_scan_started_ = false;
     } else {
       LOG(INFO) << "Pno scan result ready event";
+      pno_scan_results_from_offload_ = false;
       pno_scan_event_handler_->OnPnoNetworkFound();
     }
   }
@@ -540,7 +541,7 @@ void ScannerImpl::OnOffloadError(
       LOG(WARNING) << "Invalid Error code";
       break;
   }
-  bool success;
+  bool success = false;
   // Stop scans over Offload HAL and request them over netlink
   stopPnoScan(&success);
   if (success) {
