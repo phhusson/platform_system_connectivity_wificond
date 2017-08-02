@@ -36,6 +36,7 @@ namespace wificond {
 namespace {
 
 constexpr uint8_t kElemIdSsid = 0;
+constexpr unsigned int kMsecPerSec = 1000;
 
 }  // namespace
 
@@ -348,7 +349,7 @@ bool ScanUtils::AbortScan(uint32_t interface_index) {
 
 bool ScanUtils::StartScheduledScan(
     uint32_t interface_index,
-    uint32_t interval_ms,
+    const SchedScanIntervalSetting& interval_setting,
     int32_t rssi_threshold,
     bool request_random_mac,
     const std::vector<std::vector<uint8_t>>& scan_ssids,
@@ -385,6 +386,7 @@ bool ScanUtils::StartScheduledScan(
         NL80211Attr<int32_t>(NL80211_SCHED_SCAN_MATCH_ATTR_RSSI, rssi_threshold));
     scan_match_attr.AddAttribute(match_group);
   }
+  start_sched_scan.AddAttribute(scan_match_attr);
 
   // Append all attributes to the NL80211_CMD_START_SCHED_SCAN packet.
   start_sched_scan.AddAttribute(
@@ -395,9 +397,31 @@ bool ScanUtils::StartScheduledScan(
   if (!freqs.empty()) {
     start_sched_scan.AddAttribute(freqs_attr);
   }
-  start_sched_scan.AddAttribute(
-      NL80211Attr<uint32_t>(NL80211_ATTR_SCHED_SCAN_INTERVAL, interval_ms));
-  start_sched_scan.AddAttribute(scan_match_attr);
+
+  if (!interval_setting.plans.empty()) {
+    NL80211NestedAttr scan_plans(NL80211_ATTR_SCHED_SCAN_PLANS);
+    for (unsigned int i = 0; i < interval_setting.plans.size(); i++) {
+      NL80211NestedAttr scan_plan(i + 1);
+      scan_plan.AddAttribute(
+          NL80211Attr<uint32_t>(NL80211_SCHED_SCAN_PLAN_INTERVAL,
+                                interval_setting.plans[i].interval_ms / kMsecPerSec));
+      scan_plan.AddAttribute(
+          NL80211Attr<uint32_t>(NL80211_SCHED_SCAN_PLAN_ITERATIONS,
+                                interval_setting.plans[i].n_iterations));
+      scan_plans.AddAttribute(scan_plan);
+    }
+    NL80211NestedAttr last_scan_plan(interval_setting.plans.size() + 1);
+    last_scan_plan.AddAttribute(
+        NL80211Attr<uint32_t>(NL80211_SCHED_SCAN_PLAN_INTERVAL,
+                              interval_setting.final_interval_ms / kMsecPerSec));
+    scan_plans.AddAttribute(last_scan_plan);
+    start_sched_scan.AddAttribute(scan_plans);
+  } else {
+    start_sched_scan.AddAttribute(
+        NL80211Attr<uint32_t>(NL80211_ATTR_SCHED_SCAN_INTERVAL,
+                              interval_setting.final_interval_ms));
+  }
+
   if (request_random_mac) {
     start_sched_scan.AddAttribute(
         NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,

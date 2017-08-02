@@ -44,6 +44,17 @@ namespace wificond {
 class NL80211NestedAttr;
 class NL80211Packet;
 
+struct SchedScanIntervalSetting {
+  struct ScanPlan {
+    uint32_t interval_ms;
+    uint32_t n_iterations;
+  };
+  std::vector<ScanPlan> plans;
+  // After |plans| has been exhausted, scan at every
+  // |final_interval_ms|.
+  uint32_t final_interval_ms{0};
+};
+
 // Provides scanning helper functions.
 class ScanUtils {
  public:
@@ -98,7 +109,7 @@ class ScanUtils {
   // Returns true on success.
   virtual bool StartScheduledScan(
       uint32_t interface_index,
-      uint32_t interval_ms,
+      const SchedScanIntervalSetting& interval_setting,
       int32_t rssi_threshold,
       bool request_random_mac,
       const std::vector<std::vector<uint8_t>>& scan_ssids,
