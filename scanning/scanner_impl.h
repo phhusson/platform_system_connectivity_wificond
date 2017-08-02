@@ -25,13 +25,13 @@
 #include "android/net/wifi/BnWifiScannerImpl.h"
 #include "wificond/net/netlink_utils.h"
 #include "wificond/scanning/offload/offload_scan_manager.h"
+#include "wificond/scanning/scan_utils.h"
 
 namespace android {
 namespace wificond {
 
 class ClientInterfaceImpl;
 class OffloadServiceUtils;
-class ScanUtils;
 
 class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
  public:
@@ -99,6 +99,9 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
     std::vector<std::vector<uint8_t>>* match_ssids,
     std::vector<uint32_t>* freqs,
     std::vector<uint8_t>* match_security);
+  SchedScanIntervalSetting GenerateIntervalSetting(
+    const ::com::android::server::wifi::wificond::PnoSettings& pno_settings) const;
+
   // Boolean variables describing current scanner status.
   bool valid_;
   bool scan_started_;
