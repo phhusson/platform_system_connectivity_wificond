@@ -51,6 +51,7 @@ namespace {
 
 constexpr uint32_t kFakeInterfaceIndex = 12;
 constexpr uint32_t kFakeWiphyIndex = 5;
+constexpr uint32_t kFakeScanIntervalMs = 10000;
 
 // This is a helper function to mock the behavior of ScanUtils::Scan()
 // when we expect a error code.
@@ -67,6 +68,20 @@ bool ReturnErrorCodeForScanRequest(
   *error_code = mock_error_code;
   // Returing false because this helper function is used for failure case.
   return false;
+}
+
+bool CaptureSchedScanIntervalSetting(
+    uint32_t /* interface_index */,
+    const SchedScanIntervalSetting&  interval_setting,
+    int32_t /* rssi_threshold */,
+    bool /* request_random_mac */,
+    const  std::vector<std::vector<uint8_t>>& /* scan_ssids */,
+    const std::vector<std::vector<uint8_t>>& /* match_ssids */,
+    const  std::vector<uint32_t>& /* freqs */,
+    int* /* error_code */,
+    SchedScanIntervalSetting* out_interval_setting) {
+  *out_interval_setting = interval_setting;
+  return true;
 }
 
 }  // namespace
@@ -166,6 +181,72 @@ TEST_F(ScannerTest, TestStopPnoScanViaNetlink) {
   EXPECT_CALL(scan_utils_, StopScheduledScan(_)).WillOnce(Return(true));
   EXPECT_TRUE(netlink_scanner_->stopPnoScan(&success).isOk());
   EXPECT_TRUE(success);
+}
+
+TEST_F(ScannerTest, TestGenerateScanPlansIfDeviceSupports) {
+  ScanCapabilities scan_capabilities_scan_plan_supported(
+      0 /* max_num_scan_ssids */,
+      0 /* max_num_sched_scan_ssids */,
+      0 /* max_match_sets */,
+      // Parameters above are not related to this test.
+      2 /* 1 plan for finite repeated scan and 1 plan for ininfite scan loop */,
+      kFakeScanIntervalMs * PnoSettings::kSlowScanIntervalMultiplier / 1000,
+      PnoSettings::kFastScanIterations);
+  ScannerImpl scanner(
+      kFakeWiphyIndex, kFakeInterfaceIndex,
+      scan_capabilities_scan_plan_supported, wiphy_features_,
+      &client_interface_impl_,
+      &netlink_utils_, &scan_utils_, offload_service_utils_);
+
+  PnoSettings pno_settings;
+  pno_settings.interval_ms_ = kFakeScanIntervalMs;
+
+  SchedScanIntervalSetting interval_setting;
+  EXPECT_CALL(
+      scan_utils_,
+      StartScheduledScan(_, _, _, _, _, _, _, _)).
+              WillOnce(Invoke(bind(
+                  CaptureSchedScanIntervalSetting,
+                  _1, _2, _3, _4, _5, _6, _7, _8, &interval_setting)));
+
+  bool success_ignored = 0;
+  EXPECT_TRUE(scanner.startPnoScan(pno_settings, &success_ignored).isOk());
+  /* 1 plan for finite repeated scan */
+  EXPECT_EQ(1U, interval_setting.plans.size());
+  EXPECT_EQ(kFakeScanIntervalMs * PnoSettings::kSlowScanIntervalMultiplier,
+            interval_setting.final_interval_ms);
+}
+
+TEST_F(ScannerTest, TestGenerateSingleIntervalIfDeviceDoesNotSupportScanPlan) {
+  ScanCapabilities scan_capabilities_no_scan_plan_support(
+      0 /* max_num_scan_ssids */,
+      0 /* max_num_sched_scan_ssids */,
+      0 /* max_match_sets */,
+      // Parameters above are not related to this test.
+      0 /* max_num_scan_plans */,
+      0 /* max_scan_plan_interval */,
+      0 /* max_scan_plan_iterations */);
+  ScannerImpl scanner(
+      kFakeWiphyIndex, kFakeInterfaceIndex,
+      scan_capabilities_no_scan_plan_support, wiphy_features_,
+      &client_interface_impl_,
+      &netlink_utils_, &scan_utils_, offload_service_utils_);
+  PnoSettings pno_settings;
+  pno_settings.interval_ms_ = kFakeScanIntervalMs;
+
+  SchedScanIntervalSetting interval_setting;
+  EXPECT_CALL(
+      scan_utils_,
+      StartScheduledScan(_, _, _, _, _, _, _, _)).
+              WillOnce(Invoke(bind(
+                  CaptureSchedScanIntervalSetting,
+                  _1, _2, _3, _4, _5, _6, _7, _8, &interval_setting)));
+
+  bool success_ignored = 0;
+  EXPECT_TRUE(scanner.startPnoScan(pno_settings, &success_ignored).isOk());
+
+  EXPECT_EQ(0U, interval_setting.plans.size());
+  EXPECT_EQ(kFakeScanIntervalMs, interval_setting.final_interval_ms);
 }
 
 }  // namespace wificond
