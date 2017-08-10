@@ -350,7 +350,8 @@ bool ScanUtils::AbortScan(uint32_t interface_index) {
 bool ScanUtils::StartScheduledScan(
     uint32_t interface_index,
     const SchedScanIntervalSetting& interval_setting,
-    int32_t rssi_threshold,
+    int32_t rssi_threshold_2g,
+    int32_t rssi_threshold_5g,
     bool request_random_mac,
     const std::vector<std::vector<uint8_t>>& scan_ssids,
     const std::vector<std::vector<uint8_t>>& match_ssids,
@@ -383,10 +384,21 @@ bool ScanUtils::StartScheduledScan(
     match_group.AddAttribute(
         NL80211Attr<vector<uint8_t>>(NL80211_SCHED_SCAN_MATCH_ATTR_SSID, match_ssids[i]));
     match_group.AddAttribute(
-        NL80211Attr<int32_t>(NL80211_SCHED_SCAN_MATCH_ATTR_RSSI, rssi_threshold));
+        NL80211Attr<int32_t>(NL80211_SCHED_SCAN_MATCH_ATTR_RSSI, rssi_threshold_5g));
     scan_match_attr.AddAttribute(match_group);
   }
   start_sched_scan.AddAttribute(scan_match_attr);
+
+  // We set 5g threshold for default and ajust threshold for 2g band.
+  struct nl80211_bss_select_rssi_adjust rssi_adjust;
+  rssi_adjust.band = NL80211_BAND_2GHZ;
+  rssi_adjust.delta = static_cast<int8_t>(rssi_threshold_2g - rssi_threshold_5g);
+  NL80211Attr<vector<uint8_t>> rssi_adjust_attr(
+      NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST,
+      vector<uint8_t>(
+          reinterpret_cast<uint8_t*>(&rssi_adjust),
+          reinterpret_cast<uint8_t*>(&rssi_adjust) + sizeof(rssi_adjust)));
+  start_sched_scan.AddAttribute(rssi_adjust_attr);
 
   // Append all attributes to the NL80211_CMD_START_SCHED_SCAN packet.
   start_sched_scan.AddAttribute(

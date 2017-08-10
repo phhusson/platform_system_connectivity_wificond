@@ -266,7 +266,7 @@ bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
   int error_code = 0;
   if (!scan_utils_->StartScheduledScan(interface_index_,
                                        GenerateIntervalSetting(pno_settings),
-                                       // TODO: honor both rssi thresholds.
+                                       pno_settings.min_2g_rssi_,
                                        pno_settings.min_5g_rssi_,
                                        request_random_mac,
                                        scan_ssids,

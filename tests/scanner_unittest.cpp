@@ -76,7 +76,8 @@ bool ReturnErrorCodeForScanRequest(
 bool CaptureSchedScanIntervalSetting(
     uint32_t /* interface_index */,
     const SchedScanIntervalSetting&  interval_setting,
-    int32_t /* rssi_threshold */,
+    int32_t /* rssi_threshold_2g */,
+    int32_t /* rssi_threshold_5g */,
     bool /* request_random_mac */,
     const  std::vector<std::vector<uint8_t>>& /* scan_ssids */,
     const std::vector<std::vector<uint8_t>>& /* match_ssids */,
@@ -223,8 +224,8 @@ TEST_F(ScannerTest, TestStartPnoScanViaNetlink) {
                                       scan_capabilities_, wiphy_features_,
                                       &client_interface_impl_,
                                       &scan_utils_, offload_service_utils_));
-  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _)).
-              WillOnce(Return(true));
+  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _, _))
+              .WillOnce(Return(true));
   EXPECT_TRUE(scanner_impl_->startPnoScan(PnoSettings(), &success).isOk());
   EXPECT_TRUE(success);
 }
@@ -277,7 +278,7 @@ TEST_F(ScannerTest, TestStartScanOverNetlinkFallback) {
   EXPECT_CALL(*offload_scan_manager_, startScan(_, _, _, _, _, _, _))
       .WillOnce(Return(false));
   EXPECT_CALL(*offload_scan_manager_, stopScan(_)).Times(0);
-  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _))
+  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _, _))
       .WillOnce(Return(true));
   EXPECT_CALL(scan_utils_, StopScheduledScan(_)).WillOnce(Return(true));
   EXPECT_TRUE(scanner_impl_->startPnoScan(PnoSettings(), &success).isOk());
@@ -301,7 +302,7 @@ TEST_F(ScannerTest, TestAsyncErrorOverOffload) {
                                       scan_capabilities_, wiphy_features_,
                                       &client_interface_impl_,
                                       &scan_utils_, offload_service_utils_));
-  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _))
+  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _, _))
       .WillOnce(Return(true));
   EXPECT_CALL(scan_utils_, StopScheduledScan(_)).WillOnce(Return(true));
   scanner_impl_->startPnoScan(PnoSettings(), &success);
@@ -361,7 +362,7 @@ TEST_F(ScannerTest, TestGetScanResultsWhenOffloadFails) {
                                       scan_capabilities_, wiphy_features_,
                                       &client_interface_impl_,
                                       &scan_utils_, offload_service_utils_));
-  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _))
+  EXPECT_CALL(scan_utils_, StartScheduledScan(_, _, _, _, _, _, _, _, _))
       .WillOnce(Return(true));
   EXPECT_CALL(scan_utils_, StopScheduledScan(_)).WillOnce(Return(true));
   EXPECT_TRUE(scanner_impl_->startPnoScan(PnoSettings(), &success).isOk());
@@ -396,10 +397,10 @@ TEST_F(ScannerTest, TestGenerateScanPlansIfDeviceSupports) {
   SchedScanIntervalSetting interval_setting;
   EXPECT_CALL(
       scan_utils_,
-      StartScheduledScan(_, _, _, _, _, _, _, _)).
+      StartScheduledScan(_, _, _, _, _, _, _, _, _)).
               WillOnce(Invoke(bind(
                   CaptureSchedScanIntervalSetting,
-                  _1, _2, _3, _4, _5, _6, _7, _8, &interval_setting)));
+                  _1, _2, _3, _4, _5, _6, _7, _8, _9, &interval_setting)));
 
   bool success_ignored = 0;
   EXPECT_TRUE(scanner.startPnoScan(pno_settings, &success_ignored).isOk());
@@ -429,10 +430,10 @@ TEST_F(ScannerTest, TestGenerateSingleIntervalIfDeviceDoesNotSupportScanPlan) {
   SchedScanIntervalSetting interval_setting;
   EXPECT_CALL(
       scan_utils_,
-      StartScheduledScan(_, _, _, _, _, _, _, _)).
+      StartScheduledScan(_, _, _, _, _, _, _, _, _)).
               WillOnce(Invoke(bind(
                   CaptureSchedScanIntervalSetting,
-                  _1, _2, _3, _4, _5, _6, _7, _8, &interval_setting)));
+                  _1, _2, _3, _4, _5, _6, _7, _8, _9, &interval_setting)));
 
   bool success_ignored = 0;
   EXPECT_TRUE(scanner.startPnoScan(pno_settings, &success_ignored).isOk());
