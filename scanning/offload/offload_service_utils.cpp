@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 #include "wificond/scanning/offload/offload_service_utils.h"
+
+#include <android-base/logging.h>
+
 #include "wificond/scanning/offload/offload_scan_manager.h"
 
 using ::android::hardware::wifi::offload::V1_0::IOffload;
