@@ -74,39 +74,64 @@ OffloadScanManager::OffloadScanManager(
     shared_ptr<OffloadScanCallbackInterface> callback)
     : wifi_offload_hal_(nullptr),
       wifi_offload_callback_(nullptr),
+      death_recipient_(nullptr),
       offload_status_(OffloadScanManager::kError),
+      service_available_(false),
+      offload_service_utils_(utils),
       offload_callback_handlers_(new OffloadCallbackHandlersImpl(this)),
       event_callback_(callback) {
-  auto offload_scan_utils = utils.lock();
-  wifi_offload_hal_ = offload_scan_utils->GetOffloadService();
+  if (InitService()) {
+    offload_status_ = OffloadScanManager::kNoError;
+  }
+}
+
+bool OffloadScanManager::InitService() {
+  wifi_offload_hal_ = offload_service_utils_.lock()->GetOffloadService();
   if (wifi_offload_hal_ == nullptr) {
     LOG(ERROR) << "No Offload Service available";
-    return;
+    return false;
   }
 
-  death_recipient_ = offload_scan_utils->GetOffloadDeathRecipient(
+  death_recipient_ = offload_service_utils_.lock()->GetOffloadDeathRecipient(
       std::bind(&OffloadScanManager::OnObjectDeath, this, _1));
   uint64_t cookie = reinterpret_cast<uint64_t>(wifi_offload_hal_.get());
+
   auto link_to_death_status =
       wifi_offload_hal_->linkToDeath(death_recipient_, cookie);
   if (!link_to_death_status.isOk()) {
     LOG(ERROR) << "Unable to register death handler "
                << link_to_death_status.description();
-    return;
+    return false;
   }
 
-  wifi_offload_callback_ =
-      offload_scan_utils->GetOffloadCallback(offload_callback_handlers_.get());
+  wifi_offload_callback_ = offload_service_utils_.lock()->GetOffloadCallback(
+      offload_callback_handlers_.get());
   if (wifi_offload_callback_ == nullptr) {
     LOG(ERROR) << "Invalid Offload callback object";
-    return;
+    return false;
   }
-  wifi_offload_hal_->setEventCallback(wifi_offload_callback_);
-  offload_status_ = OffloadScanManager::kNoError;
+
+  auto set_callback_status =
+      wifi_offload_hal_->setEventCallback(wifi_offload_callback_);
+  if (!set_callback_status.isOk()) {
+    LOG(ERROR) << "Unable to set event callback for Offload HAL";
+    return false;
+  }
+
+  service_available_ = true;
+  return true;
+}
+
+bool OffloadScanManager::InitServiceIfNeeded() {
+  if (!service_available_) {
+    return InitService();
+  }
+  return true;
 }
 
 bool OffloadScanManager::stopScan(OffloadScanManager::ReasonCode* reason_code) {
-  if (getOffloadStatus() != OffloadScanManager::kNoError) {
+  if (!InitServiceIfNeeded() ||
+      (getOffloadStatus() != OffloadScanManager::kNoError)) {
     *reason_code = OffloadScanManager::kNotAvailable;
     return false;
   }
@@ -160,7 +185,8 @@ bool OffloadScanManager::startScan(
     const vector<vector<uint8_t>>& match_ssids,
     const vector<uint8_t>& match_security, const vector<uint32_t>& freqs,
     OffloadScanManager::ReasonCode* reason_code) {
-  if (getOffloadStatus() != OffloadScanManager::kNoError) {
+  if (!InitServiceIfNeeded() ||
+      getOffloadStatus() != OffloadScanManager::kNoError) {
     *reason_code = OffloadScanManager::kNotAvailable;
     LOG(WARNING) << "Offload HAL scans are not available";
     return false;
@@ -206,7 +232,7 @@ bool OffloadScanManager::SubscribeScanResults(
 }
 
 OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
-  if (wifi_offload_hal_ == nullptr) {
+  if (!service_available_) {
     return OffloadScanManager::kNoService;
   }
   return offload_status_;
@@ -221,6 +247,10 @@ bool OffloadScanManager::getScanResults(
 }
 
 bool OffloadScanManager::getScanStats(NativeScanStats* native_scan_stats) {
+  if (!InitServiceIfNeeded()) {
+    LOG(ERROR) << "Offload HAL service unavailable";
+    return false;
+  }
   if (getOffloadStatus() != OffloadScanManager::kNoError) {
     LOG(WARNING) << "Unable to get scan stats due to Wifi Offload HAL error";
     return false;
@@ -280,6 +310,7 @@ void OffloadScanManager::ReportError(const OffloadStatus& status) {
 
 void OffloadScanManager::OnObjectDeath(uint64_t cookie) {
   if (wifi_offload_hal_ == reinterpret_cast<IOffload*>(cookie)) {
+    LOG(ERROR) << "Death Notification for Wifi Offload HAL";
     wifi_offload_hal_.clear();
     if (event_callback_ != nullptr) {
       event_callback_->OnOffloadError(
@@ -288,8 +319,8 @@ void OffloadScanManager::OnObjectDeath(uint64_t cookie) {
       LOG(WARNING)
           << "No callback to report Offload HAL Binder death to wificond";
     }
-
-    LOG(ERROR) << "Death Notification for Wifi Offload HAL";
+    service_available_ = false;
+    death_recipient_.clear();
   }
 }
 

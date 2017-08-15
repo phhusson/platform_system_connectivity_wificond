@@ -252,7 +252,7 @@ TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsOk) {
  * Offload HAL when service is not available
  */
 TEST_F(OffloadScanManagerTest, StartScanTestWhenServiceIsNotAvailable) {
-  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService());
+  EXPECT_CALL(*mock_offload_service_utils_, GetOffloadService()).Times(2);
   ON_CALL(*mock_offload_service_utils_, GetOffloadService())
       .WillByDefault(testing::Return(nullptr));
   offload_scan_manager_.reset(new OffloadScanManager(

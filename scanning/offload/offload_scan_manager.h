@@ -132,6 +132,9 @@ class OffloadScanManager {
   bool ConfigureScans(android::hardware::wifi::offload::V1_0::ScanParam,
                       android::hardware::wifi::offload::V1_0::ScanFilter,
                       OffloadScanManager::ReasonCode* reason_code);
+  bool InitServiceIfNeeded();
+  bool InitService();
+
   /* Handle binder death */
   void OnObjectDeath(uint64_t /* cookie */);
 
@@ -142,7 +145,9 @@ class OffloadScanManager {
   StatusCode offload_status_;
   std::vector<::com::android::server::wifi::wificond::NativeScanResult>
       cached_scan_results_;
+  bool service_available_;
 
+  const std::weak_ptr<OffloadServiceUtils> offload_service_utils_;
   const std::unique_ptr<OffloadCallbackHandlersImpl> offload_callback_handlers_;
   std::shared_ptr<OffloadScanCallbackInterface> event_callback_;
 
