@@ -56,6 +56,8 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index, uint32_t interface_index,
       scan_started_(false),
       pno_scan_started_(false),
       offload_scan_supported_(false),
+      pno_scan_running_over_offload_(false),
+      pno_scan_results_from_offload_(false),
       wiphy_index_(wiphy_index),
       interface_index_(interface_index),
       scan_capabilities_(scan_capabilities),
@@ -166,6 +168,23 @@ Status ScannerImpl::getScanResults(vector<NativeScanResult>* out_scan_results) {
   return Status::ok();
 }
 
+Status ScannerImpl::getPnoScanResults(
+    vector<NativeScanResult>* out_scan_results) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+  if (pno_scan_results_from_offload_) {
+    if (!offload_scan_manager_->getScanResults(out_scan_results)) {
+      LOG(ERROR) << "Failed to get scan results via Offload HAL";
+    }
+  } else {
+    if (!scan_utils_->GetScanResult(interface_index_, out_scan_results)) {
+      LOG(ERROR) << "Failed to get scan results via NL80211";
+    }
+  }
+  return Status::ok();
+}
+
 Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
                          bool* out_success) {
   if (!CheckIsValid()) {
@@ -214,6 +233,7 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
 Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                  bool* out_success) {
   pno_settings_ = pno_settings;
+  pno_scan_results_from_offload_ = false;
   if (offload_scan_supported_ && StartPnoScanOffload(pno_settings)) {
     // scanning over offload succeeded
     *out_success = true;
@@ -485,6 +505,7 @@ void ScannerImpl::OnOffloadScanResult() {
     return;
   }
   LOG(INFO) << "Offload Scan results received";
+  pno_scan_results_from_offload_ = true;
   if (pno_scan_event_handler_ != nullptr) {
     pno_scan_event_handler_->OnPnoNetworkFound();
   } else {
