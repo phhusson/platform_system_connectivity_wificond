@@ -54,8 +54,13 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
   // Returns a vector of available frequencies for DFS channels.
   ::android::binder::Status getAvailableDFSChannels(
       ::std::unique_ptr<::std::vector<int32_t>>* out_frequencies) override;
-  // Get the latest scan results from kernel.
+  // Get the latest single scan results from kernel.
   ::android::binder::Status getScanResults(
+      std::vector<com::android::server::wifi::wificond::NativeScanResult>*
+          out_scan_results) override;
+  // Get the latest pno scan results from the interface that most recently
+  // completed PNO scans
+  ::android::binder::Status getPnoScanResults(
       std::vector<com::android::server::wifi::wificond::NativeScanResult>*
           out_scan_results) override;
   ::android::binder::Status scan(
@@ -108,6 +113,7 @@ class ScannerImpl : public android::net::wifi::BnWifiScannerImpl {
   bool pno_scan_started_;
   bool offload_scan_supported_;
   bool pno_scan_running_over_offload_;
+  bool pno_scan_results_from_offload_;
   ::com::android::server::wifi::wificond::PnoSettings pno_settings_;
 
   const uint32_t wiphy_index_;
