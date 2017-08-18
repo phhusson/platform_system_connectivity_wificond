@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_H_
-#define WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_H_
+#ifndef WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_IMPL_H__
+#define WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_IMPL_H__
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "wificond/scanning/offload_scan_callback_interface.h"
+#include "wificond/scanning/offload_scan_callback_interface_impl.h"
 
 namespace android {
 namespace wificond {
 
-class MockOffloadScanCallbackInterface : public OffloadScanCallbackInterface {
+class ScannerImpl;
+
+class MockOffloadScanCallbackInterfaceImpl
+    : public OffloadScanCallbackInterfaceImpl {
  public:
-  MockOffloadScanCallbackInterface();
-  ~MockOffloadScanCallbackInterface() override = default;
+  MockOffloadScanCallbackInterfaceImpl(ScannerImpl*);
+  ~MockOffloadScanCallbackInterfaceImpl() override = default;
 
   MOCK_METHOD0(OnOffloadScanResult, void());
   MOCK_METHOD1(OnOffloadError,
@@ -38,4 +41,4 @@ class MockOffloadScanCallbackInterface : public OffloadScanCallbackInterface {
 }  // namespace wificond
 }  // namespace android
 
-#endif  // WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_H_
+#endif  // WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_IMPL_H__

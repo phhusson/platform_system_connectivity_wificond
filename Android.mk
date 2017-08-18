@@ -177,6 +177,8 @@ LOCAL_SRC_FILES := \
     tests/mock_offload.cpp \
     tests/mock_offload_callback_handlers.cpp \
     tests/mock_offload_scan_callback_interface.cpp \
+    tests/mock_offload_scan_callback_interface_impl.cpp \
+    tests/mock_offload_scan_manager.cpp \
     tests/mock_offload_service_utils.cpp \
     tests/mock_scan_utils.cpp \
     tests/netlink_manager_unittest.cpp \

@@ -25,6 +25,8 @@
 #include "wificond/tests/mock_client_interface_impl.h"
 #include "wificond/tests/mock_netlink_manager.h"
 #include "wificond/tests/mock_netlink_utils.h"
+#include "wificond/tests/mock_offload_scan_callback_interface_impl.h"
+#include "wificond/tests/mock_offload_scan_manager.h"
 #include "wificond/tests/mock_offload_service_utils.h"
 #include "wificond/tests/mock_scan_utils.h"
 
@@ -91,6 +93,10 @@ class ScannerTest : public ::testing::Test {
   void SetUp() override {
    ON_CALL(*offload_service_utils_, IsOffloadScanSupported()).WillByDefault(
       Return(false));
+   ON_CALL(*offload_service_utils_, GetOffloadScanManager(_, _))
+       .WillByDefault(Return(offload_scan_manager_));
+   ON_CALL(*offload_service_utils_, GetOffloadScanCallbackInterface(_))
+       .WillByDefault(Return(offload_scan_callback_interface_));
    netlink_scanner_.reset(new ScannerImpl(
        kFakeWiphyIndex, kFakeInterfaceIndex,
        scan_capabilities_, wiphy_features_,
@@ -108,6 +114,13 @@ class ScannerTest : public ::testing::Test {
       &if_tool_, &supplicant_manager_, &netlink_utils_, &scan_utils_};
   shared_ptr<NiceMock<MockOffloadServiceUtils>> offload_service_utils_{
       new NiceMock<MockOffloadServiceUtils>()};
+  shared_ptr<NiceMock<MockOffloadScanCallbackInterfaceImpl>>
+      offload_scan_callback_interface_{
+          new NiceMock<MockOffloadScanCallbackInterfaceImpl>(
+              netlink_scanner_.get())};
+  std::shared_ptr<NiceMock<MockOffloadScanManager>> offload_scan_manager_{
+      new NiceMock<MockOffloadScanManager>(offload_service_utils_,
+                                           offload_scan_callback_interface_)};
   ScanCapabilities scan_capabilities_;
   WiphyFeatures wiphy_features_;
 };

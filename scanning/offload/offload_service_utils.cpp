@@ -18,6 +18,7 @@
 #include <android-base/logging.h>
 
 #include "wificond/scanning/offload/offload_scan_manager.h"
+#include "wificond/scanning/scanner_impl.h"
 
 using ::android::hardware::wifi::offload::V1_0::IOffload;
 
@@ -45,6 +46,17 @@ bool OffloadServiceUtils::IsOffloadScanSupported() const {
   result = true;
 #endif
   return result;
+}
+
+std::shared_ptr<OffloadScanCallbackInterfaceImpl>
+OffloadServiceUtils::GetOffloadScanCallbackInterface(ScannerImpl* parent) {
+  return std::make_shared<OffloadScanCallbackInterfaceImpl>(parent);
+}
+
+std::shared_ptr<OffloadScanManager> OffloadServiceUtils::GetOffloadScanManager(
+    std::weak_ptr<OffloadServiceUtils> service_utils,
+    std::shared_ptr<OffloadScanCallbackInterfaceImpl> callback_interface) {
+  return std::make_shared<OffloadScanManager>(service_utils, callback_interface);
 }
 
 OffloadDeathRecipient::OffloadDeathRecipient(
