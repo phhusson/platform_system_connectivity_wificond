@@ -80,10 +80,9 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index, uint32_t interface_index,
                 _1, _2));
   std::shared_ptr<OffloadScanCallbackInterfaceImpl>
       offload_scan_callback_interface =
-          std::make_shared<OffloadScanCallbackInterfaceImpl>(
-              *(new OffloadScanCallbackInterfaceImpl(this)));
-  offload_scan_manager_.reset(new OffloadScanManager(
-      offload_service_utils, offload_scan_callback_interface));
+          offload_service_utils.lock()->GetOffloadScanCallbackInterface(this);
+  offload_scan_manager_ = offload_service_utils.lock()->GetOffloadScanManager(
+      offload_service_utils, offload_scan_callback_interface);
   offload_scan_supported_ = offload_service_utils.lock()->IsOffloadScanSupported();
 }
 

@@ -19,8 +19,7 @@
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
 #include "wificond/scanning/offload/offload_callback.h"
 #include "wificond/scanning/offload/offload_callback_handlers.h"
-#include "wificond/scanning/offload/offload_service_utils.h"
-#include "wificond/scanning/offload_scan_callback_interface.h"
+#include "wificond/scanning/offload_scan_callback_interface_impl.h"
 
 #include <vector>
 
@@ -43,6 +42,8 @@ namespace android {
 namespace wificond {
 
 class OffloadScanManager;
+class OffloadDeathRecipient;
+class OffloadServiceUtils;
 
 // Provides callback interface implementation from Offload HAL
 class OffloadCallbackHandlersImpl : public OffloadCallbackHandlers {
@@ -148,7 +149,7 @@ class OffloadScanManager {
   bool service_available_;
 
   const std::weak_ptr<OffloadServiceUtils> offload_service_utils_;
-  const std::unique_ptr<OffloadCallbackHandlersImpl> offload_callback_handlers_;
+  const std::shared_ptr<OffloadCallbackHandlersImpl> offload_callback_handlers_;
   std::shared_ptr<OffloadScanCallbackInterface> event_callback_;
 
   friend class OffloadCallbackHandlersImpl;
