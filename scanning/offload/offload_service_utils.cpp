@@ -40,12 +40,7 @@ OffloadDeathRecipient* OffloadServiceUtils::GetOffloadDeathRecipient(
 }
 
 bool OffloadServiceUtils::IsOffloadScanSupported() const {
-  bool result = false;
-#ifdef WIFI_OFFLOAD_SCANS
-  LOG(VERBOSE) << "Offload HAL supported";
-  result = true;
-#endif
-  return result;
+  return false;
 }
 
 std::shared_ptr<OffloadScanCallbackInterfaceImpl>
