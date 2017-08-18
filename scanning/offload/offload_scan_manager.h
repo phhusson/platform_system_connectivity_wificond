@@ -97,23 +97,24 @@ class OffloadScanManager {
    * settings. Internally calls Offload HAL service with configureScans()
    * and subscribeScanResults() APIs. Reason code indicates failure reason.
    */
-  bool startScan(uint32_t /* interval_ms */, int32_t /* rssi_threshold */,
-                 const std::vector<std::vector<uint8_t>>& /* scan_ssids */,
-                 const std::vector<std::vector<uint8_t>>& /* match_ssids */,
-                 const std::vector<uint8_t>& /* match_security */,
-                 const std::vector<uint32_t>& /* freqs */,
-                 ReasonCode* /* failure reason */);
+  virtual bool startScan(
+      uint32_t /* interval_ms */, int32_t /* rssi_threshold */,
+      const std::vector<std::vector<uint8_t>>& /* scan_ssids */,
+      const std::vector<std::vector<uint8_t>>& /* match_ssids */,
+      const std::vector<uint8_t>& /* match_security */,
+      const std::vector<uint32_t>& /* freqs */,
+      ReasonCode* /* failure reason */);
   /* Request stop of offload scans, returns true if the operation succeeds
    * Otherwise, returns false. Reason code is updated in case of failure.
    */
-  bool stopScan(ReasonCode* /* failure reason */);
+  virtual bool stopScan(ReasonCode* /* failure reason */);
   /* Get statistics for scans performed by Offload HAL */
-  bool getScanStats(
+  virtual bool getScanStats(
       ::com::android::server::wifi::wificond::NativeScanStats* /* scanStats */);
   /* Otain status of the Offload HAL service */
-  StatusCode getOffloadStatus() const;
+  virtual StatusCode getOffloadStatus() const;
   /* Returns the most recent scan result available from Offload HAL */
-  bool getScanResults(
+  virtual bool getScanResults(
       std::vector<::com::android::server::wifi::wificond::NativeScanResult>*
           out_scan_results);
 
@@ -129,10 +130,12 @@ class OffloadScanManager {
       OffloadScanManager::ReasonCode* reason_code);
   bool GetScanStats(
       ::com::android::server::wifi::wificond::NativeScanStats* stats);
-  bool SubscribeScanResults(OffloadScanManager::ReasonCode* reason_code);
-  bool ConfigureScans(android::hardware::wifi::offload::V1_0::ScanParam,
-                      android::hardware::wifi::offload::V1_0::ScanFilter,
-                      OffloadScanManager::ReasonCode* reason_code);
+  bool SubscribeScanResults(
+      OffloadScanManager::ReasonCode* reason_code);
+  bool ConfigureScans(
+      android::hardware::wifi::offload::V1_0::ScanParam,
+      android::hardware::wifi::offload::V1_0::ScanFilter,
+      OffloadScanManager::ReasonCode* reason_code);
   bool InitServiceIfNeeded();
   bool InitService();
 
