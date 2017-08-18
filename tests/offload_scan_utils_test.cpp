@@ -50,13 +50,13 @@ class OffloadScanUtilsTest : public ::testing::Test {
 };
 
 TEST_F(OffloadScanUtilsTest, verifyConversion) {
-  vector<NativeScanResult> native_scan_results =
-      OffloadScanUtils::convertToNativeScanResults(dummy_scan_results_);
+  vector<NativeScanResult> native_scan_results;
+  EXPECT_TRUE(OffloadScanUtils::convertToNativeScanResults(
+      dummy_scan_results_, &native_scan_results));
   EXPECT_EQ(native_scan_results.size(), dummy_scan_results_.size());
   for (size_t i = 0; i < native_scan_results.size(); i++) {
     EXPECT_EQ(native_scan_results[i].frequency,
               dummy_scan_results_[i].frequency);
-    EXPECT_EQ(native_scan_results[i].tsf, dummy_scan_results_[i].tsf);
     EXPECT_EQ(native_scan_results[i].signal_mbm, dummy_scan_results_[i].rssi);
     EXPECT_EQ(native_scan_results[i].ssid.size(),
               dummy_scan_results_[i].networkInfo.ssid.size());

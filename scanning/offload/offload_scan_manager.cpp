@@ -76,6 +76,7 @@ OffloadScanManager::OffloadScanManager(
       wifi_offload_callback_(nullptr),
       death_recipient_(nullptr),
       offload_status_(OffloadScanManager::kError),
+      cached_scan_results_(new std::vector<NativeScanResult>()),
       service_available_(false),
       offload_service_utils_(utils),
       offload_callback_handlers_(new OffloadCallbackHandlersImpl(this)),
@@ -205,8 +206,6 @@ bool OffloadScanManager::startScan(
   }
 
   *reason_code = OffloadScanManager::kNone;
-  /* Clear up the scan cache every time a new scan is requested */
-  cached_scan_results_.clear();
   return true;
 }
 
@@ -240,7 +239,7 @@ OffloadScanManager::StatusCode OffloadScanManager::getOffloadStatus() const {
 
 bool OffloadScanManager::getScanResults(
     std::vector<NativeScanResult>* out_scan_results) {
-  for (auto scan_result : cached_scan_results_) {
+  for (auto scan_result : *cached_scan_results_) {
     out_scan_results->push_back(scan_result);
   }
   return true;
@@ -262,12 +261,17 @@ OffloadScanManager::~OffloadScanManager() {
   if (wifi_offload_hal_ != nullptr) {
     wifi_offload_hal_->unlinkToDeath(death_recipient_);
   }
+  delete cached_scan_results_;
 }
 
 void OffloadScanManager::ReportScanResults(
     const vector<ScanResult>& scanResult) {
-  cached_scan_results_ =
-      OffloadScanUtils::convertToNativeScanResults(scanResult);
+  cached_scan_results_->clear();
+  if (!OffloadScanUtils::convertToNativeScanResults(scanResult,
+                                                    cached_scan_results_)) {
+    LOG(WARNING) << "Unable to convert scan results to native format";
+    return;
+  }
   if (event_callback_ != nullptr) {
     event_callback_->OnOffloadScanResult();
   } else {
