@@ -54,6 +54,9 @@ class NL80211Packet {
   // However we keep this copy constructor because it makes unit tests easy.
   // It prints WARNING log when this copy constructor is called.
   NL80211Packet(const NL80211Packet& packet);
+  // Explicitly specify the move constructor. Otherwise, copy constructor will
+  // be called on if we move a NL80211Packet object.
+  NL80211Packet(NL80211Packet&& packet) = default;
   ~NL80211Packet() = default;
 
   // Returns whether a packet has consistent header fields.
