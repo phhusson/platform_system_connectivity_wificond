@@ -42,9 +42,9 @@ namespace wificond {
 // Provides utility methods for Offload Scan Manager
 class OffloadScanUtils {
  public:
-  static std::vector<::com::android::server::wifi::wificond::NativeScanResult>
-      convertToNativeScanResults(
-          const std::vector<android::hardware::wifi::offload::V1_0::ScanResult>&);
+  static bool convertToNativeScanResults(
+      const std::vector<android::hardware::wifi::offload::V1_0::ScanResult>&,
+      std::vector<::com::android::server::wifi::wificond::NativeScanResult>*);
   static android::hardware::wifi::offload::V1_0::ScanParam createScanParam(
       const std::vector<std::vector<uint8_t>>& ssid_list,
       const std::vector<uint32_t>& frequency_list, uint32_t scan_interval_ms);
