@@ -14,9 +14,6 @@
 
 LOCAL_PATH := $(call my-dir)
 wificond_cpp_flags := -Wall -Werror -Wno-unused-parameter
-ifdef WIFI_OFFLOAD_SCANS
-wificond_cpp_flags += -DWIFI_OFFLOAD_SCANS=\"$(WIFI_OFFLOAD_SCANS)\"
-endif
 wificond_parent_dir := $(LOCAL_PATH)/../
 wificond_includes := \
     $(wificond_parent_dir)
@@ -177,6 +174,8 @@ LOCAL_SRC_FILES := \
     tests/mock_offload.cpp \
     tests/mock_offload_callback_handlers.cpp \
     tests/mock_offload_scan_callback_interface.cpp \
+    tests/mock_offload_scan_callback_interface_impl.cpp \
+    tests/mock_offload_scan_manager.cpp \
     tests/mock_offload_service_utils.cpp \
     tests/mock_scan_utils.cpp \
     tests/netlink_manager_unittest.cpp \

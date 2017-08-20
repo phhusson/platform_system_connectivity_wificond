@@ -19,11 +19,15 @@
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
 #include "wificond/scanning/offload/offload_callback.h"
 #include "wificond/scanning/offload/offload_callback_handlers.h"
+#include "wificond/scanning/offload_scan_callback_interface_impl.h"
 
 namespace android {
 namespace wificond {
 
 typedef std::function<void(uint64_t)> OffloadDeathRecipientHandler;
+class ScannerImpl;
+class OffloadServiceUtils;
+class OffloadScanManager;
 
 class OffloadDeathRecipient : public android::hardware::hidl_death_recipient {
  public:
@@ -52,6 +56,11 @@ class OffloadServiceUtils {
       OffloadCallbackHandlers* handlers);
   virtual OffloadDeathRecipient* GetOffloadDeathRecipient(
       OffloadDeathRecipientHandler handler);
+  virtual std::shared_ptr<OffloadScanCallbackInterfaceImpl>
+  GetOffloadScanCallbackInterface(ScannerImpl* parent);
+  virtual std::shared_ptr<OffloadScanManager> GetOffloadScanManager(
+      std::weak_ptr<OffloadServiceUtils> service_utils,
+      std::shared_ptr<OffloadScanCallbackInterfaceImpl> callback_interface);
 };
 
 }  // namespace wificond

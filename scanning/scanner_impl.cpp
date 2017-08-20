@@ -56,6 +56,8 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index, uint32_t interface_index,
       scan_started_(false),
       pno_scan_started_(false),
       offload_scan_supported_(false),
+      pno_scan_running_over_offload_(false),
+      pno_scan_results_from_offload_(false),
       wiphy_index_(wiphy_index),
       interface_index_(interface_index),
       scan_capabilities_(scan_capabilities),
@@ -78,10 +80,9 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index, uint32_t interface_index,
                 _1, _2));
   std::shared_ptr<OffloadScanCallbackInterfaceImpl>
       offload_scan_callback_interface =
-          std::make_shared<OffloadScanCallbackInterfaceImpl>(
-              *(new OffloadScanCallbackInterfaceImpl(this)));
-  offload_scan_manager_.reset(new OffloadScanManager(
-      offload_service_utils, offload_scan_callback_interface));
+          offload_service_utils.lock()->GetOffloadScanCallbackInterface(this);
+  offload_scan_manager_ = offload_service_utils.lock()->GetOffloadScanManager(
+      offload_service_utils, offload_scan_callback_interface);
   offload_scan_supported_ = offload_service_utils.lock()->IsOffloadScanSupported();
 }
 
@@ -166,6 +167,23 @@ Status ScannerImpl::getScanResults(vector<NativeScanResult>* out_scan_results) {
   return Status::ok();
 }
 
+Status ScannerImpl::getPnoScanResults(
+    vector<NativeScanResult>* out_scan_results) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+  if (pno_scan_results_from_offload_) {
+    if (!offload_scan_manager_->getScanResults(out_scan_results)) {
+      LOG(ERROR) << "Failed to get scan results via Offload HAL";
+    }
+  } else {
+    if (!scan_utils_->GetScanResult(interface_index_, out_scan_results)) {
+      LOG(ERROR) << "Failed to get scan results via NL80211";
+    }
+  }
+  return Status::ok();
+}
+
 Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
                          bool* out_success) {
   if (!CheckIsValid()) {
@@ -214,6 +232,8 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
 Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                  bool* out_success) {
   pno_settings_ = pno_settings;
+  pno_scan_results_from_offload_ = false;
+  LOG(VERBOSE) << "startPnoScan";
   if (offload_scan_supported_ && StartPnoScanOffload(pno_settings)) {
     // scanning over offload succeeded
     *out_success = true;
@@ -233,7 +253,6 @@ bool ScannerImpl::StartPnoScanOffload(const PnoSettings& pno_settings) {
 
   ParsePnoSettings(pno_settings, &scan_ssids, &match_ssids, &freqs,
                    &match_security);
-
   pno_scan_running_over_offload_ = offload_scan_manager_->startScan(
       pno_settings.interval_ms_,
       // TODO: honor both rssi thresholds.
@@ -445,6 +464,7 @@ void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
       pno_scan_started_ = false;
     } else {
       LOG(INFO) << "Pno scan result ready event";
+      pno_scan_results_from_offload_ = false;
       pno_scan_event_handler_->OnPnoNetworkFound();
     }
   }
@@ -485,6 +505,7 @@ void ScannerImpl::OnOffloadScanResult() {
     return;
   }
   LOG(INFO) << "Offload Scan results received";
+  pno_scan_results_from_offload_ = true;
   if (pno_scan_event_handler_ != nullptr) {
     pno_scan_event_handler_->OnPnoNetworkFound();
   } else {
@@ -494,7 +515,6 @@ void ScannerImpl::OnOffloadScanResult() {
 
 void ScannerImpl::OnOffloadError(
     OffloadScanCallbackInterface::AsyncErrorReason error_code) {
-  bool success;
   if (!pno_scan_running_over_offload_) {
     // Ignore irrelevant error notifications
     LOG(WARNING) << "Offload HAL Async Error occured but Offload HAL is not "
@@ -502,19 +522,16 @@ void ScannerImpl::OnOffloadError(
     return;
   }
   LOG(ERROR) << "Offload Service Async Failure error_code=" << error_code;
-  // Stop scans over Offload HAL and request them over netlink
-  stopPnoScan(&success);
-  if (success) {
-    LOG(INFO) << "Pno scans stopped";
-  }
   switch (error_code) {
     case OffloadScanCallbackInterface::AsyncErrorReason::BINDER_DEATH:
+      LOG(ERROR) << "Binder death";
       if (pno_scan_event_handler_ != nullptr) {
         pno_scan_event_handler_->OnPnoScanOverOffloadFailed(
             net::wifi::IPnoScanEvent::PNO_SCAN_OVER_OFFLOAD_BINDER_FAILURE);
       }
       break;
     case OffloadScanCallbackInterface::AsyncErrorReason::REMOTE_FAILURE:
+      LOG(ERROR) << "Remote failure";
       if (pno_scan_event_handler_ != nullptr) {
         pno_scan_event_handler_->OnPnoScanOverOffloadFailed(
             net::wifi::IPnoScanEvent::PNO_SCAN_OVER_OFFLOAD_REMOTE_FAILURE);
@@ -524,7 +541,14 @@ void ScannerImpl::OnOffloadError(
       LOG(WARNING) << "Invalid Error code";
       break;
   }
-  startPnoScan(pno_settings_, &success);
+  bool success = false;
+  // Stop scans over Offload HAL and request them over netlink
+  stopPnoScan(&success);
+  if (success) {
+    LOG(INFO) << "Pno scans stopped";
+  }
+  // Restart PNO scans over netlink interface
+  success = StartPnoScanDefault(pno_settings_);
   if (success) {
     LOG(INFO) << "Pno scans restarted";
   }
