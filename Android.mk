@@ -59,8 +59,6 @@ LOCAL_SRC_FILES := \
     client_interface_impl.cpp \
     logging_utils.cpp \
     looper_backed_event_loop.cpp \
-    rtt/rtt_controller_binder.cpp \
-    rtt/rtt_controller_impl.cpp \
     scanning/channel_settings.cpp \
     scanning/hidden_network.cpp \
     scanning/offload_scan_callback_interface_impl.cpp \
@@ -122,8 +120,6 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IClientInterface.aidl \
     aidl/android/net/wifi/IInterfaceEventCallback.aidl \
     aidl/android/net/wifi/IPnoScanEvent.aidl \
-    aidl/android/net/wifi/IRttClient.aidl \
-    aidl/android/net/wifi/IRttController.aidl \
     aidl/android/net/wifi/IScanEvent.aidl \
     aidl/android/net/wifi/IWificond.aidl \
     aidl/android/net/wifi/IWifiScannerImpl.aidl \
