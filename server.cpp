@@ -35,8 +35,6 @@ using android::IBinder;
 using android::net::wifi::IApInterface;
 using android::net::wifi::IClientInterface;
 using android::net::wifi::IInterfaceEventCallback;
-using android::net::wifi::IRttClient;
-using android::net::wifi::IRttController;
 using android::wifi_system::HostapdManager;
 using android::wifi_system::InterfaceTool;
 using android::wifi_system::SupplicantManager;
@@ -93,25 +91,6 @@ Status Server::UnregisterCallback(const sp<IInterfaceEventCallback>& callback) {
   }
   LOG(WARNING) << "Failed to find registered interface event callback"
                << " to unregister";
-  return Status::ok();
-}
-
-Status Server::registerRttClient(const sp<IRttClient>& rtt_client,
-                                 sp<IRttController>* out_rtt_controller) {
-  if (rtt_controller_ == nullptr) {
-    rtt_controller_.reset(new RttControllerImpl());
-  }
-  rtt_controller_->RegisterRttClient(rtt_client);
-
-  *out_rtt_controller = rtt_controller_->GetBinder();
-  return Status::ok();
-}
-
-Status Server::unregisterRttClient(const sp<IRttClient>& rttClient) {
-  rtt_controller_->UnregisterRttClient(rttClient);
-  if (rtt_controller_->GetClientCount() == 0) {
-    rtt_controller_.reset();
-  }
   return Status::ok();
 }
 
