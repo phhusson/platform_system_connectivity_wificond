@@ -141,6 +141,9 @@ NL80211NestedAttr GenerateBandsAttributeFor5gAndDfs() {
                                                kFakeFrequency4));
   freq_5g_2.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
                                                kFakeFrequency5));
+  // This channel is passive only.
+  freq_5g_2.AddFlagAttribute(NL80211_FREQUENCY_ATTR_NO_IR);
+
   // DFS frequency.
   freq_dfs_1.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
                                                 kFakeFrequency6));
@@ -205,8 +208,10 @@ void VerifyScanCapabilities(const ScanCapabilities& scan_capabilities,
 void VerifyBandInfo(const BandInfo& band_info) {
   vector<uint32_t> band_2g_expected = {kFakeFrequency1,
       kFakeFrequency2, kFakeFrequency3};
-  vector<uint32_t> band_5g_expected = {kFakeFrequency4, kFakeFrequency5};
-  vector<uint32_t> band_dfs_expected = {kFakeFrequency6};
+  vector<uint32_t> band_5g_expected = {kFakeFrequency4};
+  // Frequency5 is doesn't belong to a DFS channel. However, our convetion
+  // requires us to return any passive only channels in DFS band.
+  vector<uint32_t> band_dfs_expected = {kFakeFrequency5, kFakeFrequency6};
   EXPECT_EQ(band_info.band_2g, band_2g_expected);
   EXPECT_EQ(band_info.band_5g, band_5g_expected);
   EXPECT_EQ(band_info.band_dfs, band_dfs_expected);

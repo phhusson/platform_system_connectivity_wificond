@@ -385,6 +385,12 @@ bool NetlinkUtils::ParseBandInfo(const NL80211Packet* const packet,
                dfs_state == NL80211_DFS_USABLE)) {
         frequencies_dfs.push_back(frequency_value);
       } else {
+        // Put non-dfs passive-only channels into the dfs category.
+        // This aligns with what framework always assumes.
+        if (freq.HasAttribute(NL80211_FREQUENCY_ATTR_NO_IR)) {
+          frequencies_dfs.push_back(frequency_value);
+          continue;
+        }
         // Since there is no guarantee for the order of band attributes,
         // we do some math here.
         if (frequency_value > k2GHzFrequencyLowerBound &&

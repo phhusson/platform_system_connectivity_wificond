@@ -32,6 +32,7 @@ interface IWifiScannerImpl {
   @nullable int[] getAvailable5gNonDFSChannels();
 
   // Returns an array of available frequencies for DFS channels.
+  // This also includes passive only frequecies which are not for DFS channels.
   // Returrns null on failure.
   @nullable int[] getAvailableDFSChannels();
 
