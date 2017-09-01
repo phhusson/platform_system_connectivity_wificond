@@ -16,6 +16,7 @@
 #include "wificond/scanning/offload/offload_service_utils.h"
 
 #include <android-base/logging.h>
+#include <cutils/properties.h>
 
 #include "wificond/scanning/offload/offload_scan_manager.h"
 #include "wificond/scanning/scanner_impl.h"
@@ -40,6 +41,11 @@ OffloadDeathRecipient* OffloadServiceUtils::GetOffloadDeathRecipient(
 }
 
 bool OffloadServiceUtils::IsOffloadScanSupported() const {
+  if (property_get_bool("persist.wifi.offload.enable", false)) {
+    LOG(INFO) << "Offload HAL supported";
+    return true;
+  }
+  LOG(INFO) << "Offload HAL not supported ";
   return false;
 }
 
