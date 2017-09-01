@@ -551,6 +551,9 @@ void ScannerImpl::OnOffloadError(
   success = StartPnoScanDefault(pno_settings_);
   if (success) {
     LOG(INFO) << "Pno scans restarted";
+  } else {
+    LOG(ERROR) << "Unable to fall back to netlink pno scan";
+    pno_scan_event_handler_->OnPnoScanFailed();
   }
 }
 
