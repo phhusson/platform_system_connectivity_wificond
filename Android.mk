@@ -200,6 +200,7 @@ LOCAL_SHARED_LIBRARIES := \
     android.hardware.wifi.offload@1.0 \
     libbase \
     libbinder \
+    libcutils \
     libhidltransport \
     libhidlbase \
     libhwbinder \
