@@ -16,6 +16,8 @@
 
 package android.net.wifi;
 
+import android.net.wifi.IApInterfaceEventCallback;
+
 // IApInterface represents a network interface configured to act as a
 // WiFi access point.
 interface IApInterface {
@@ -25,8 +27,10 @@ interface IApInterface {
   const int ENCRYPTION_TYPE_WPA2 = 2;
 
   // Start up an instance of hostapd associated with this interface.
+  //
+  // @param callback Object to add a set of event callbacks.
   // @return true on success.
-  boolean startHostapd();
+  boolean startHostapd(IApInterfaceEventCallback callback);
 
   // Stop a previously started instance of hostapd.
   // @return true on success.

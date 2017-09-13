@@ -139,9 +139,14 @@ void ApInterfaceImpl::OnStationEvent(StationEvent event,
     if (number_of_associated_stations_ <= 0) {
       LOG(ERROR) << "Received DEL_STATION event when station counter is: "
                  << number_of_associated_stations_;
+      return;
     } else {
       number_of_associated_stations_--;
     }
+  }
+
+  if (event == NEW_STATION || event == DEL_STATION) {
+    binder_->NotifyNumAssociatedStationsChanged(number_of_associated_stations_);
   }
 }
 
