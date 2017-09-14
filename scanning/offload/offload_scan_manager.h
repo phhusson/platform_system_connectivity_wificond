@@ -147,7 +147,7 @@ class OffloadScanManager {
   android::sp<OffloadCallback> wifi_offload_callback_;
   android::sp<OffloadDeathRecipient> death_recipient_;
   StatusCode offload_status_;
-  std::vector<::com::android::server::wifi::wificond::NativeScanResult>*
+  std::vector<::com::android::server::wifi::wificond::NativeScanResult>
       cached_scan_results_;
   bool service_available_;
 
