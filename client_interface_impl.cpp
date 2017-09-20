@@ -188,7 +188,7 @@ bool ClientInterfaceImpl::DisableSupplicant() {
 bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters) {
   StationInfo station_info;
   if (!netlink_utils_->GetStationInfo(interface_index_,
-                                      interface_mac_addr_,
+                                      bssid_,
                                       &station_info)) {
     return false;
   }
