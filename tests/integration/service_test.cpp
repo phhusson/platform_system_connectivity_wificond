@@ -37,6 +37,7 @@ namespace wificond {
 namespace {
 
 constexpr int kTimeoutSeconds = 3;
+const char kInterfaceName[] = "wlan0";
 
 }  // namespace
 
@@ -46,7 +47,8 @@ TEST(ServiceTest, ShouldTearDownSystemOnStartup) {
   sp<IWificond> service = dev_mode.EnterDevModeOrDie();
 
   sp<IClientInterface> client_interface;
-  EXPECT_TRUE(service->createClientInterface(&client_interface).isOk());
+  EXPECT_TRUE(service->createClientInterface(
+       kInterfaceName, &client_interface).isOk());
 
   bool supplicant_started = false;
   EXPECT_TRUE(client_interface->enableSupplicant(&supplicant_started).isOk());

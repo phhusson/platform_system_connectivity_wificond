@@ -34,11 +34,13 @@ using std::vector;
 namespace android {
 namespace wificond {
 namespace {
+const char kInterfaceName[] = "wlan0";
 
 sp<IWifiScannerImpl> InitInterfaceAndReturnScanner(sp<IWificond> service) {
   sp<IWifiScannerImpl> scanner;
   sp<IClientInterface> client_interface;
-  if (!service->createClientInterface(&client_interface).isOk()) {
+  if (!service->createClientInterface(
+      kInterfaceName, &client_interface).isOk()) {
     LOG(FATAL) << "Failed to create client interface";
     return nullptr;
   }
