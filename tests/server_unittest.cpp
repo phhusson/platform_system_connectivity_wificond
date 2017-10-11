@@ -125,19 +125,19 @@ TEST_F(ServerTest, CanSetUpApInterface) {
   sp<IApInterface> ap_if;
   EXPECT_CALL(*netlink_utils_, SubscribeRegDomainChange(_, _));
 
-  EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(kFakeInterfaceName, &ap_if).isOk());
   EXPECT_NE(nullptr, ap_if.get());
 }
 
 TEST_F(ServerTest, DoesNotSupportMultipleInterfaces) {
   sp<IApInterface> ap_if;
 
-  EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(kFakeInterfaceName, &ap_if).isOk());
   EXPECT_NE(nullptr, ap_if.get());
 
   sp<IApInterface> second_ap_if;
   // We won't throw on a second interface request.
-  EXPECT_TRUE(server_.createApInterface(&second_ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(kFakeInterfaceName, &second_ap_if).isOk());
   // But this time we won't get an interface back.
   EXPECT_EQ(nullptr, second_ap_if.get());
 }
@@ -145,13 +145,13 @@ TEST_F(ServerTest, DoesNotSupportMultipleInterfaces) {
 TEST_F(ServerTest, CanDestroyInterfaces) {
   sp<IApInterface> ap_if;
 
-  EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(kFakeInterfaceName, &ap_if).isOk());
 
   // When we tear down the interface, we expect the driver to be unloaded.
   EXPECT_CALL(*netlink_utils_, UnsubscribeRegDomainChange(_));
   EXPECT_TRUE(server_.tearDownInterfaces().isOk());
   // After a teardown, we should be able to create another interface.
-  EXPECT_TRUE(server_.createApInterface(&ap_if).isOk());
+  EXPECT_TRUE(server_.createApInterface(kFakeInterfaceName, &ap_if).isOk());
 }
 
 }  // namespace wificond

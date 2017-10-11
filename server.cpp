@@ -94,9 +94,10 @@ Status Server::UnregisterCallback(const sp<IInterfaceEventCallback>& callback) {
   return Status::ok();
 }
 
-Status Server::createApInterface(sp<IApInterface>* created_interface) {
+Status Server::createApInterface(const std::string& iface_name,
+                                 sp<IApInterface>* created_interface) {
   InterfaceInfo interface;
-  if (!SetupInterface(&interface)) {
+  if (!SetupInterface(iface_name, &interface)) {
     return Status::ok();  // Logging was done internally
   }
 
@@ -113,9 +114,10 @@ Status Server::createApInterface(sp<IApInterface>* created_interface) {
   return Status::ok();
 }
 
-Status Server::createClientInterface(sp<IClientInterface>* created_interface) {
+Status Server::createClientInterface(const std::string& iface_name,
+                                     sp<IClientInterface>* created_interface) {
   InterfaceInfo interface;
-  if (!SetupInterface(&interface)) {
+  if (!SetupInterface(iface_name, &interface)) {
     return Status::ok();  // Logging was done internally
   }
 
@@ -220,7 +222,8 @@ void Server::CleanUpSystemState() {
   MarkDownAllInterfaces();
 }
 
-bool Server::SetupInterface(InterfaceInfo* interface) {
+bool Server::SetupInterface(const std::string& iface_name,
+                            InterfaceInfo* interface) {
   if (!ap_interfaces_.empty() || !client_interfaces_.empty()) {
     // In the future we may support multiple interfaces at once.  However,
     // today, we support just one.
@@ -245,13 +248,7 @@ bool Server::SetupInterface(InterfaceInfo* interface) {
   }
 
   for (const auto& iface : interfaces_) {
-    // Some kernel/driver uses station type for p2p interface.
-    // In that case we can only rely on hard-coded name to exclude
-    // p2p interface from station interfaces.
-    // Currently NAN interfaces also use station type.
-    // We should blacklist NAN interfaces as well.
-    if (iface.name != "p2p0" &&
-        !android::base::StartsWith(iface.name, "aware_data")) {
+    if (iface.name == iface_name) {
       *interface = iface;
       return true;
     }

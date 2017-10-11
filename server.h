@@ -58,10 +58,12 @@ class Server : public android::net::wifi::BnWificond {
           callback) override;
 
   android::binder::Status createApInterface(
+      const std::string& iface_name,
       android::sp<android::net::wifi::IApInterface>*
           created_interface) override;
 
   android::binder::Status createClientInterface(
+      const std::string& iface_name,
       android::sp<android::net::wifi::IClientInterface>*
           created_interface) override;
 
@@ -84,7 +86,7 @@ class Server : public android::net::wifi::BnWificond {
   // interface on behalf of createApInterace(), it is Hostapd that configure
   // the interface to Ap mode later.
   // Returns true on success, false otherwise.
-  bool SetupInterface(InterfaceInfo* interface);
+  bool SetupInterface(const std::string& iface_name, InterfaceInfo* interface);
   bool RefreshWiphyIndex();
   void LogSupportedBands();
   void OnRegDomainChanged(std::string& country_code);

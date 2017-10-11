@@ -39,6 +39,7 @@ namespace android {
 namespace wificond {
 namespace {
 
+const char kInterfaceName[] = "wlan0";
 constexpr int kSupplicantStartupTimeoutSeconds = 3;
 constexpr int kSupplicantDeathTimeoutSeconds = 3;
 
@@ -50,7 +51,8 @@ TEST(ClientInterfaceTest, CanCreateClientInterfaces) {
 
   // We should be able to create an client interface.
   sp<IClientInterface> client_interface;
-  EXPECT_TRUE(service->createClientInterface(&client_interface).isOk());
+  EXPECT_TRUE(service->createClientInterface(
+      kInterfaceName, &client_interface).isOk());
   EXPECT_NE(nullptr, client_interface.get());
 
   // The interface should start out down.
@@ -66,7 +68,8 @@ TEST(ClientInterfaceTest, CanCreateClientInterfaces) {
 
   // We should not be able to create two client interfaces.
   sp<IClientInterface> client_interface2;
-  EXPECT_TRUE(service->createClientInterface(&client_interface2).isOk());
+  EXPECT_TRUE(service->createClientInterface(
+      kInterfaceName, &client_interface2).isOk());
   EXPECT_EQ(nullptr, client_interface2.get());
 
   // We can tear down the created interface.
@@ -78,7 +81,8 @@ TEST(ClientInterfaceTest, CanStartStopSupplicant) {
   ScopedDevModeWificond dev_mode;
   sp<IWificond> service = dev_mode.EnterDevModeOrDie();
   sp<IClientInterface> client_interface;
-  EXPECT_TRUE(service->createClientInterface(&client_interface).isOk());
+  EXPECT_TRUE(service->createClientInterface(
+      kInterfaceName, &client_interface).isOk());
   ASSERT_NE(nullptr, client_interface.get());
 
   for (int iteration = 0; iteration < 4; iteration++) {
@@ -108,7 +112,8 @@ TEST(ClientInterfaceTest, CanGetMacAddress) {
   ScopedDevModeWificond dev_mode;
   sp<IWificond> service = dev_mode.EnterDevModeOrDie();
   sp<IClientInterface> client_interface;
-  EXPECT_TRUE(service->createClientInterface(&client_interface).isOk());
+  EXPECT_TRUE(service->createClientInterface(
+      kInterfaceName, &client_interface).isOk());
   ASSERT_NE(nullptr, client_interface.get());
   vector<uint8_t> mac_address;
   EXPECT_TRUE(client_interface->getMacAddress(&mac_address).isOk());

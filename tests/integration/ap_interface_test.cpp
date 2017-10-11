@@ -41,6 +41,7 @@ namespace {
 constexpr int kHostapdStartupTimeoutSeconds = 3;
 constexpr int kHostapdDeathTimeoutSeconds = 3;
 
+const char kInterfaceName[] = "wlan0";
 const char kValidSsid[] = "foobar";
 const char kInvalidSsid[] = "0123456789"
                             "0123456789"
@@ -56,7 +57,7 @@ TEST(ApInterfaceTest, CanCreateApInterfaces) {
 
   // We should be able to create an AP interface.
   sp<IApInterface> ap_interface;
-  EXPECT_TRUE(service->createApInterface(&ap_interface).isOk());
+  EXPECT_TRUE(service->createApInterface(kInterfaceName, &ap_interface).isOk());
   EXPECT_NE(nullptr, ap_interface.get());
 
   // The interface should start out down.
@@ -72,7 +73,8 @@ TEST(ApInterfaceTest, CanCreateApInterfaces) {
 
   // We should not be able to create two AP interfaces.
   sp<IApInterface> ap_interface2;
-  EXPECT_TRUE(service->createApInterface(&ap_interface2).isOk());
+  EXPECT_TRUE(service->createApInterface(
+      kInterfaceName, &ap_interface2).isOk());
   EXPECT_EQ(nullptr, ap_interface2.get());
 
   // We can tear down the created interface.
@@ -86,7 +88,7 @@ TEST(ApInterfaceTest, CanStartStopHostapd) {
   ScopedDevModeWificond dev_mode;
   sp<IWificond> service = dev_mode.EnterDevModeOrDie();
   sp<IApInterface> ap_interface;
-  EXPECT_TRUE(service->createApInterface(&ap_interface).isOk());
+  EXPECT_TRUE(service->createApInterface(kInterfaceName, &ap_interface).isOk());
   ASSERT_NE(nullptr, ap_interface.get());
 
   // Interface should start out down.
@@ -143,7 +145,7 @@ TEST(ApInterfaceTest, CanWriteHostapdConfig) {
   ScopedDevModeWificond dev_mode;
   sp<IWificond> service = dev_mode.EnterDevModeOrDie();
   sp<IApInterface> ap_interface;
-  EXPECT_TRUE(service->createApInterface(&ap_interface).isOk());
+  EXPECT_TRUE(service->createApInterface(kInterfaceName, &ap_interface).isOk());
   ASSERT_NE(nullptr, ap_interface.get());
 
   bool success = false;
