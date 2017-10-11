@@ -53,8 +53,12 @@ constexpr uint32_t kFakeFrequency4 = 5200;
 constexpr uint32_t kFakeFrequency5 = 5400;
 constexpr uint32_t kFakeFrequency6 = 5600;
 constexpr uint32_t kFakeSequenceNumber = 162;
+constexpr uint32_t kFakeProtocolFeatures = 0x02;
 constexpr uint16_t kFakeWiphyIndex = 8;
+constexpr uint16_t kFakeWiphyIndex1 = 10;
 constexpr int kFakeErrorCode = EIO;
+constexpr bool kFakeSupportsRandomMacOneshotScan = true;
+constexpr bool kFakeSupportsRandomMacSchedScan = false;
 const char kFakeInterfaceName[] = "testif0";
 const uint32_t kFakeInterfaceIndex = 34;
 const uint32_t kFakeInterfaceIndex1 = 36;
@@ -105,19 +109,34 @@ void AppendScanCapabilitiesAttributes(NL80211Packet* packet,
   }
 }
 
-void AppendBandInfoAttributes(NL80211Packet* packet) {
+NL80211NestedAttr GenerateBandsAttributeFor2g() {
   NL80211NestedAttr freq_2g_1(1);
   NL80211NestedAttr freq_2g_2(2);
   NL80211NestedAttr freq_2g_3(3);
-  NL80211NestedAttr freq_5g_1(4);
-  NL80211NestedAttr freq_5g_2(5);
-  NL80211NestedAttr freq_dfs_1(6);
   freq_2g_1.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
                                                kFakeFrequency1));
   freq_2g_2.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
                                                kFakeFrequency2));
   freq_2g_3.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
                                                kFakeFrequency3));
+
+  NL80211NestedAttr band_2g_freqs(NL80211_BAND_ATTR_FREQS);
+  band_2g_freqs.AddAttribute(freq_2g_1);
+  band_2g_freqs.AddAttribute(freq_2g_2);
+  band_2g_freqs.AddAttribute(freq_2g_3);
+
+  NL80211NestedAttr band_2g_attr(1);
+  band_2g_attr.AddAttribute(band_2g_freqs);
+
+  NL80211NestedAttr band_attr(NL80211_ATTR_WIPHY_BANDS);
+  band_attr.AddAttribute(band_2g_attr);
+  return band_attr;
+}
+
+NL80211NestedAttr GenerateBandsAttributeFor5gAndDfs() {
+  NL80211NestedAttr freq_5g_1(4);
+  NL80211NestedAttr freq_5g_2(5);
+  NL80211NestedAttr freq_dfs_1(6);
   freq_5g_1.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
                                                kFakeFrequency4));
   freq_5g_2.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
@@ -129,31 +148,36 @@ void AppendBandInfoAttributes(NL80211Packet* packet) {
       NL80211_FREQUENCY_ATTR_DFS_STATE,
       NL80211_DFS_USABLE));
 
-  NL80211NestedAttr band_2g_freqs(NL80211_BAND_ATTR_FREQS);
   NL80211NestedAttr band_5g_freqs(NL80211_BAND_ATTR_FREQS);
-  band_2g_freqs.AddAttribute(freq_2g_1);
-  band_2g_freqs.AddAttribute(freq_2g_2);
-  band_2g_freqs.AddAttribute(freq_2g_3);
   band_5g_freqs.AddAttribute(freq_5g_1);
   band_5g_freqs.AddAttribute(freq_5g_2);
   band_5g_freqs.AddAttribute(freq_dfs_1);
 
-  NL80211NestedAttr band_2g_attr(1);
-  NL80211NestedAttr band_5g_attr(2);
-  band_2g_attr.AddAttribute(band_2g_freqs);
+  NL80211NestedAttr band_5g_attr(1);
   band_5g_attr.AddAttribute(band_5g_freqs);
 
   NL80211NestedAttr band_attr(NL80211_ATTR_WIPHY_BANDS);
-  band_attr.AddAttribute(band_2g_attr);
   band_attr.AddAttribute(band_5g_attr);
+  return band_attr;
+}
 
-  packet->AddAttribute(band_attr);
+void AppendBandInfoAttributes(NL80211Packet* packet) {
+  NL80211NestedAttr attr_2g = GenerateBandsAttributeFor2g();
+  NL80211NestedAttr attr_5g_and_dfs = GenerateBandsAttributeFor5gAndDfs();
+  attr_2g.Merge(attr_5g_and_dfs);
+  packet->AddAttribute(attr_2g);
 }
 
 void AppendWiphyFeaturesAttributes(NL80211Packet* packet) {
-  packet->AddAttribute(NL80211Attr<uint32_t>(
-      NL80211_ATTR_FEATURE_FLAGS,
-      NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR));
+  uint32_t wiphy_features = 0;
+  if (kFakeSupportsRandomMacOneshotScan) {
+      wiphy_features |= NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR;
+  }
+  if (kFakeSupportsRandomMacSchedScan) {
+      wiphy_features |= NL80211_FEATURE_SCHED_SCAN_RANDOM_MAC_ADDR;
+  }
+  packet->AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_FEATURE_FLAGS, wiphy_features));
 }
 
 void VerifyScanCapabilities(const ScanCapabilities& scan_capabilities,
@@ -195,6 +219,15 @@ void VerifyWiphyFeatures(const WiphyFeatures& wiphy_features) {
 
 }  // namespace
 
+// This mocks the behavior of SendMessageAndGetResponses(), which returns a
+// vector of NL80211Packet using passed in pointer.
+ACTION_P(MakeupResponse, response) {
+  // arg1 is the second parameter: vector<unique_ptr<const NL80211Packet>>* responses.
+  for (auto& pkt : response) {
+    arg1->push_back(unique_ptr<NL80211Packet>(new NL80211Packet(pkt)));
+  }
+}
+
 class NetlinkUtilsTest : public ::testing::Test {
  protected:
   std::unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_;
@@ -209,16 +242,12 @@ class NetlinkUtilsTest : public ::testing::Test {
     ON_CALL(*netlink_manager_,
             GetFamilyId()).WillByDefault(Return(kFakeFamilyId));
   }
-};
 
-// This mocks the behavior of SendMessageAndGetResponses(), which returns a
-// vector of NL80211Packet using passed in pointer.
-ACTION_P(MakeupResponse, response) {
-  // arg1 is the second parameter: vector<unique_ptr<const NL80211Packet>>* responses.
-  for (auto& pkt : response) {
-    arg1->push_back(unique_ptr<NL80211Packet>(new NL80211Packet(pkt)));
+  void SetSplitWiphyDumpSupported(bool supported) {
+    netlink_utils_->supports_split_wiphy_dump_ = supported;
   }
-}
+
+};
 
 TEST_F(NetlinkUtilsTest, CanGetWiphyIndex) {
   NL80211Packet new_wiphy(
@@ -419,6 +448,7 @@ TEST_F(NetlinkUtilsTest, CanHandleGetInterfacesError) {
 }
 
 TEST_F(NetlinkUtilsTest, CanGetWiphyInfo) {
+  SetSplitWiphyDumpSupported(false);
   NL80211Packet new_wiphy(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_NEW_WIPHY,
@@ -426,15 +456,13 @@ TEST_F(NetlinkUtilsTest, CanGetWiphyInfo) {
       getpid());
   new_wiphy.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
                                                kFakeWiphyIndex));
-
   AppendBandInfoAttributes(&new_wiphy);
   AppendScanCapabilitiesAttributes(&new_wiphy, true);
   AppendWiphyFeaturesAttributes(&new_wiphy);
-
-  vector<NL80211Packet> response = {new_wiphy};
+  vector<NL80211Packet> get_wiphy_response = {new_wiphy};
 
   EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
-      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
 
   BandInfo band_info;
   ScanCapabilities scan_capabilities;
@@ -449,6 +477,7 @@ TEST_F(NetlinkUtilsTest, CanGetWiphyInfo) {
 }
 
 TEST_F(NetlinkUtilsTest, CanGetWiphyInfoScanPlanNotSupported) {
+  SetSplitWiphyDumpSupported(false);
   NL80211Packet new_wiphy(
       netlink_manager_->GetFamilyId(),
       NL80211_CMD_NEW_WIPHY,
@@ -456,15 +485,65 @@ TEST_F(NetlinkUtilsTest, CanGetWiphyInfoScanPlanNotSupported) {
       getpid());
   new_wiphy.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
                                                kFakeWiphyIndex));
-
   AppendBandInfoAttributes(&new_wiphy);
   AppendScanCapabilitiesAttributes(&new_wiphy, false);
   AppendWiphyFeaturesAttributes(&new_wiphy);
-
-  vector<NL80211Packet> response = {new_wiphy};
+  vector<NL80211Packet> get_wiphy_response = {new_wiphy};
 
   EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
-      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
+
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities;
+  WiphyFeatures wiphy_features;
+  EXPECT_TRUE(netlink_utils_->GetWiphyInfo(kFakeWiphyIndex,
+                                           &band_info,
+                                           &scan_capabilities,
+                                           &wiphy_features));
+  VerifyBandInfo(band_info);
+  VerifyScanCapabilities(scan_capabilities, false);
+  VerifyWiphyFeatures(wiphy_features);
+}
+
+TEST_F(NetlinkUtilsTest, CanGetWiphyInfoSplitDump) {
+  SetSplitWiphyDumpSupported(true);
+
+  NL80211Packet new_wiphy_packet1(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_WIPHY,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  new_wiphy_packet1.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
+                                                       kFakeWiphyIndex));
+  new_wiphy_packet1.AddAttribute(GenerateBandsAttributeFor5gAndDfs());
+
+  NL80211Packet new_wiphy_packet2(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_WIPHY,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  new_wiphy_packet2.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
+                                                       kFakeWiphyIndex));
+  new_wiphy_packet2.AddAttribute(GenerateBandsAttributeFor2g());
+  AppendScanCapabilitiesAttributes(&new_wiphy_packet2, false);
+  AppendWiphyFeaturesAttributes(&new_wiphy_packet2);
+
+  // Insert a packet for wiphy with index kFakeWiphyIndex1.
+  // This is unrelated and should be ingnored by |GetWiphyInfo|.
+  NL80211Packet new_wiphy_packet3(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_WIPHY,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  new_wiphy_packet3.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
+                                                       kFakeWiphyIndex1));
+  AppendBandInfoAttributes(&new_wiphy_packet3);
+
+  vector<NL80211Packet> get_wiphy_response =
+      {new_wiphy_packet1, new_wiphy_packet2, new_wiphy_packet3};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
 
   BandInfo band_info;
   ScanCapabilities scan_capabilities;
@@ -480,11 +559,13 @@ TEST_F(NetlinkUtilsTest, CanGetWiphyInfoScanPlanNotSupported) {
 
 
 TEST_F(NetlinkUtilsTest, CanHandleGetWiphyInfoError) {
+  SetSplitWiphyDumpSupported(false);
+
   // Mock an error response from kernel.
-  vector<NL80211Packet> response = {CreateControlMessageError(kFakeErrorCode)};
+  vector<NL80211Packet> get_wiphy_response = {CreateControlMessageError(kFakeErrorCode)};
 
   EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
-      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
 
   BandInfo band_info;
   ScanCapabilities scan_capabilities;
@@ -493,6 +574,39 @@ TEST_F(NetlinkUtilsTest, CanHandleGetWiphyInfoError) {
                                            &band_info,
                                            &scan_capabilities,
                                            &wiphy_features));
+}
+
+TEST_F(NetlinkUtilsTest, CanGetProtocolFeatures) {
+  // There is no specification for the response packet id for
+  // NL80211_CMD_GET_PROTOCOL_FEATURES.
+  // Still use NL80211_CMD_GET_PROTOCOL_FEATURES here.
+  NL80211Packet get_features_response(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_GET_PROTOCOL_FEATURES,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  get_features_response.AddAttribute(
+      NL80211Attr<uint32_t>(NL80211_ATTR_PROTOCOL_FEATURES,
+                            kFakeProtocolFeatures));
+  vector<NL80211Packet> response = {get_features_response};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+
+  uint32_t features;
+  EXPECT_TRUE(netlink_utils_->GetProtocolFeatures(&features));
+  EXPECT_EQ(kFakeProtocolFeatures, features);
+}
+
+TEST_F(NetlinkUtilsTest, CanHandleGetProtocolFeaturesError) {
+  // Mock an error response from kernel.
+  vector<NL80211Packet> response = {CreateControlMessageError(kFakeErrorCode)};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+
+  uint32_t features_ignored;
+  EXPECT_FALSE(netlink_utils_->GetProtocolFeatures(&features_ignored));
 }
 
 }  // namespace wificond

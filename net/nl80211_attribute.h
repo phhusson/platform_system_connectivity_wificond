@@ -32,6 +32,7 @@ namespace wificond {
 
 class BaseNL80211Attr {
  public:
+  BaseNL80211Attr(int id, const std::vector<uint8_t>& raw_buffer);
   virtual ~BaseNL80211Attr() = default;
 
   const std::vector<uint8_t>& GetConstData() const;
@@ -48,6 +49,10 @@ class BaseNL80211Attr {
                               int attr_id,
                               uint8_t** attr_start,
                               uint8_t** attr_end);
+  // Merge the payload of |attr| to current attribute.
+  // This is only used for merging attribute from the response of split dump.
+  // Returns true on success.
+  bool Merge(const BaseNL80211Attr& attr);
 
  protected:
   BaseNL80211Attr() = default;

@@ -182,6 +182,12 @@ class NetlinkUtils {
                               const std::vector<uint8_t>& mac_address,
                               StationInfo* out_station_info);
 
+  // Get a bitmap for nl80211 protocol features,
+  // i.e. features for the nl80211 protocol rather than device features.
+  // See enum nl80211_protocol_features in nl80211.h for decoding the bitmap.
+  // Returns true on success.
+  virtual bool GetProtocolFeatures(uint32_t* features);
+
   // Sign up to be notified when there is MLME event.
   // Only one handler can be registered per interface index.
   // New handler will replace the registered handler if they are for the
@@ -217,11 +223,24 @@ class NetlinkUtils {
   // Cancel the sign-up of receiving station events.
   virtual void UnsubscribeStationEvent(uint32_t interface_index);
 
+  // Visible for testing.
+  bool supports_split_wiphy_dump_;
+
  private:
+  bool ParseWiphyInfoFromPacket(
+      const NL80211Packet& packet,
+      BandInfo* out_band_info,
+      ScanCapabilities* out_scan_capabilities,
+      WiphyFeatures* out_wiphy_features);
   bool ParseBandInfo(const NL80211Packet* const packet,
                      BandInfo* out_band_info);
   bool ParseScanCapabilities(const NL80211Packet* const packet,
                              ScanCapabilities* out_scan_capabilities);
+
+  bool MergePacketsForSplitWiphyDump(
+      const std::vector<std::unique_ptr<const NL80211Packet>>& split_dump_info,
+      std::vector<NL80211Packet>* packet_per_wiphy);
+
   NetlinkManager* netlink_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(NetlinkUtils);

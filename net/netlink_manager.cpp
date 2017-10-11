@@ -530,12 +530,6 @@ void NetlinkManager::BroadcastHandler(unique_ptr<const NL80211Packet> packet) {
 }
 
 void NetlinkManager::OnRegChangeEvent(unique_ptr<const NL80211Packet> packet) {
-  uint32_t wiphy_index;
-  if (!packet->GetAttributeValue(NL80211_ATTR_WIPHY, &wiphy_index)) {
-    LOG(ERROR) << "Failed to get wiphy index from reg changed message";
-    return;
-  }
-
   uint8_t reg_type;
   if (!packet->GetAttributeValue(NL80211_ATTR_REG_TYPE, &reg_type)) {
     LOG(ERROR) << "Failed to get NL80211_ATTR_REG_TYPE";
@@ -565,13 +559,9 @@ void NetlinkManager::OnRegChangeEvent(unique_ptr<const NL80211Packet> packet) {
     return;
   }
 
-  const auto handler = on_reg_domain_changed_handler_.find(wiphy_index);
-  if (handler == on_reg_domain_changed_handler_.end()) {
-    LOG(DEBUG) << "No handler for country code changed event from wiphy"
-               << "with index: " << wiphy_index;
-    return;
+  for (const auto& handler : on_reg_domain_changed_handler_) {
+    handler.second(country_code);
   }
-  handler->second(country_code);
 }
 
 void NetlinkManager::OnMlmeEvent(unique_ptr<const NL80211Packet> packet) {
