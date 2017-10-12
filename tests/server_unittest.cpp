@@ -154,5 +154,37 @@ TEST_F(ServerTest, CanDestroyInterfaces) {
   EXPECT_TRUE(server_.createApInterface(kFakeInterfaceName, &ap_if).isOk());
 }
 
+TEST_F(ServerTest, ShouldReportEnableFailure) {
+  EXPECT_CALL(*supplicant_manager_, StartSupplicant())
+      .WillOnce(Return(false));
+  bool success;
+  EXPECT_TRUE(server_.enableSupplicant(&success).isOk());
+  EXPECT_FALSE(success);
+}
+
+TEST_F(ServerTest, ShouldReportenableSuccess) {
+  EXPECT_CALL(*supplicant_manager_, StartSupplicant())
+      .WillOnce(Return(true));
+  bool success;
+  EXPECT_TRUE(server_.enableSupplicant(&success).isOk());
+  EXPECT_TRUE(success);
+}
+
+TEST_F(ServerTest, ShouldReportDisableFailure) {
+  EXPECT_CALL(*supplicant_manager_, StopSupplicant())
+      .WillOnce(Return(false));
+  bool success;
+  EXPECT_TRUE(server_.disableSupplicant(&success).isOk());
+  EXPECT_FALSE(success);
+}
+
+TEST_F(ServerTest, ShouldReportDisableSuccess) {
+  EXPECT_CALL(*supplicant_manager_, StopSupplicant())
+      .WillOnce(Return(true));
+  bool success;
+  EXPECT_TRUE(server_.disableSupplicant(&success).isOk());
+  EXPECT_TRUE(success);
+}
+
 }  // namespace wificond
 }  // namespace android

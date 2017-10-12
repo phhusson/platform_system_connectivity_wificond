@@ -40,9 +40,6 @@ namespace wificond {
 namespace {
 
 const char kInterfaceName[] = "wlan0";
-constexpr int kSupplicantStartupTimeoutSeconds = 3;
-constexpr int kSupplicantDeathTimeoutSeconds = 3;
-
 }  // namespace
 
 TEST(ClientInterfaceTest, CanCreateClientInterfaces) {
@@ -75,37 +72,6 @@ TEST(ClientInterfaceTest, CanCreateClientInterfaces) {
   // We can tear down the created interface.
   EXPECT_TRUE(service->tearDownInterfaces().isOk());
   EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
-}
-
-TEST(ClientInterfaceTest, CanStartStopSupplicant) {
-  ScopedDevModeWificond dev_mode;
-  sp<IWificond> service = dev_mode.EnterDevModeOrDie();
-  sp<IClientInterface> client_interface;
-  EXPECT_TRUE(service->createClientInterface(
-      kInterfaceName, &client_interface).isOk());
-  ASSERT_NE(nullptr, client_interface.get());
-
-  for (int iteration = 0; iteration < 4; iteration++) {
-    bool supplicant_started = false;
-    EXPECT_TRUE(client_interface->enableSupplicant(&supplicant_started).isOk());
-    EXPECT_TRUE(supplicant_started);
-
-    EXPECT_TRUE(WaitForTrue(SupplicantIsRunning,
-                            kSupplicantStartupTimeoutSeconds))
-        << "Failed on iteration " << iteration;
-
-    // We look for supplicant so quickly that we miss when it dies on startup
-    sleep(1);
-    EXPECT_TRUE(SupplicantIsRunning()) << "Failed on iteration " << iteration;
-
-    bool supplicant_stopped = false;
-    EXPECT_TRUE(
-        client_interface->disableSupplicant(&supplicant_stopped).isOk());
-    EXPECT_TRUE(supplicant_stopped);
-
-    EXPECT_TRUE(WaitForTrue(SupplicantIsDead, kSupplicantDeathTimeoutSeconds))
-        << "Failed on iteration " << iteration;
-  }
 }
 
 TEST(ClientInterfaceTest, CanGetMacAddress) {

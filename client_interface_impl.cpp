@@ -19,7 +19,6 @@
 #include <vector>
 
 #include <android-base/logging.h>
-#include <wifi_system/supplicant_manager.h>
 
 #include "wificond/client_interface_binder.h"
 #include "wificond/net/mlme_event.h"
@@ -33,7 +32,6 @@ using android::net::wifi::IClientInterface;
 using com::android::server::wifi::wificond::NativeScanResult;
 using android::sp;
 using android::wifi_system::InterfaceTool;
-using android::wifi_system::SupplicantManager;
 
 using std::endl;
 using std::string;
@@ -101,7 +99,6 @@ ClientInterfaceImpl::ClientInterfaceImpl(
     uint32_t interface_index,
     const std::vector<uint8_t>& interface_mac_addr,
     InterfaceTool* if_tool,
-    SupplicantManager* supplicant_manager,
     NetlinkUtils* netlink_utils,
     ScanUtils* scan_utils)
     : wiphy_index_(wiphy_index),
@@ -109,7 +106,6 @@ ClientInterfaceImpl::ClientInterfaceImpl(
       interface_index_(interface_index),
       interface_mac_addr_(interface_mac_addr),
       if_tool_(if_tool),
-      supplicant_manager_(supplicant_manager),
       netlink_utils_(netlink_utils),
       scan_utils_(scan_utils),
       offload_service_utils_(new OffloadServiceUtils()),
@@ -138,7 +134,6 @@ ClientInterfaceImpl::ClientInterfaceImpl(
 ClientInterfaceImpl::~ClientInterfaceImpl() {
   binder_->NotifyImplDead();
   scanner_->Invalidate();
-  DisableSupplicant();
   netlink_utils_->UnsubscribeMlmeEvent(interface_index_);
   if_tool_->SetUpState(interface_name_.c_str(), false);
 }
@@ -168,14 +163,6 @@ void ClientInterfaceImpl::Dump(std::stringstream* ss) const {
   *ss << "Device supports random MAC for scheduled scan: "
       << wiphy_features_.supports_random_mac_sched_scan << endl;
   *ss << "------- Dump End -------" << endl;
-}
-
-bool ClientInterfaceImpl::EnableSupplicant() {
-  return supplicant_manager_->StartSupplicant();
-}
-
-bool ClientInterfaceImpl::DisableSupplicant() {
-  return supplicant_manager_->StopSupplicant();
 }
 
 bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters) {
