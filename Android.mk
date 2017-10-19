@@ -58,7 +58,6 @@ LOCAL_SRC_FILES := \
     client_interface_binder.cpp \
     client_interface_impl.cpp \
     logging_utils.cpp \
-    looper_backed_event_loop.cpp \
     scanning/channel_settings.cpp \
     scanning/hidden_network.cpp \
     scanning/offload_scan_callback_interface_impl.cpp \
@@ -85,7 +84,8 @@ LOCAL_SHARED_LIBRARIES := \
     libwifi-system-iface
 LOCAL_WHOLE_STATIC_LIBRARIES := \
     libwificond_ipc \
-    libwificond_nl
+    libwificond_nl \
+    libwificond_event_loop
 include $(BUILD_STATIC_LIBRARY)
 
 ###
@@ -103,6 +103,21 @@ LOCAL_SRC_FILES := \
     net/nl80211_packet.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase
+include $(BUILD_STATIC_LIBRARY)
+
+###
+### wificond event loop library
+###
+include $(CLEAR_VARS)
+LOCAL_MODULE := libwificond_event_loop
+LOCAL_CPPFLAGS := $(wificond_cpp_flags)
+LOCAL_C_INCLUDES := $(wificond_includes)
+LOCAL_SRC_FILES := \
+    looper_backed_event_loop.cpp
+LOCAL_WHOLE_STATIC_LIBRARIES := \
+    liblog \
+    libbase \
+    libutils
 include $(BUILD_STATIC_LIBRARY)
 
 ###
@@ -141,14 +156,14 @@ LOCAL_MODULE := libwificond_test_utils
 LOCAL_CPPFLAGS := $(wificond_cpp_flags)
 LOCAL_C_INCLUDES := $(wificond_includes)
 LOCAL_SRC_FILES := \
-    looper_backed_event_loop.cpp \
     tests/integration/binder_dispatcher.cpp \
     tests/integration/process_utils.cpp \
     tests/shell_utils.cpp
 LOCAL_SHARED_LIBRARIES := \
     libbase
 LOCAL_WHOLE_STATIC_LIBRARIES := \
-    libwificond_ipc
+    libwificond_ipc \
+    libwificond_event_loop
 include $(BUILD_STATIC_LIBRARY)
 
 ###
