@@ -40,6 +40,7 @@ namespace {
 const uint32_t kTestWiphyIndex = 2;
 const char kTestInterfaceName[] = "testwifi0";
 const uint32_t kTestInterfaceIndex = 42;
+const size_t kMacAddrLenBytes = ETH_ALEN;
 
 class ClientInterfaceImplTest : public ::testing::Test {
  protected:
@@ -76,6 +77,52 @@ class ClientInterfaceImplTest : public ::testing::Test {
 };  // class ClientInterfaceImplTest
 
 }  // namespace
+
+TEST_F(ClientInterfaceImplTest, SetMacAddressFailsOnInvalidInput) {
+  EXPECT_FALSE(client_interface_->SetMacAddress(
+      std::vector<uint8_t>(kMacAddrLenBytes - 1)));
+  EXPECT_FALSE(client_interface_->SetMacAddress(
+      std::vector<uint8_t>(kMacAddrLenBytes + 1)));
+}
+
+TEST_F(ClientInterfaceImplTest, SetMacAddressFailsOnInterfaceDownFailure) {
+  EXPECT_CALL(*if_tool_, SetWifiUpState(false)).WillOnce(Return(false));
+  EXPECT_FALSE(
+      client_interface_->SetMacAddress(std::vector<uint8_t>(kMacAddrLenBytes)));
+}
+
+TEST_F(ClientInterfaceImplTest, SetMacAddressFailsOnAddressChangeFailure) {
+  EXPECT_CALL(*if_tool_, SetWifiUpState(false)).WillOnce(Return(true));
+  EXPECT_CALL(*if_tool_, SetMacAddress(_, _)).WillOnce(Return(false));
+  EXPECT_FALSE(
+      client_interface_->SetMacAddress(std::vector<uint8_t>(kMacAddrLenBytes)));
+}
+
+TEST_F(ClientInterfaceImplTest, SetMacAddressFailsOnInterfaceUpFailure) {
+  EXPECT_CALL(*if_tool_, SetWifiUpState(false)).WillOnce(Return(true));
+  EXPECT_CALL(*if_tool_, SetMacAddress(_, _)).WillOnce(Return(true));
+  EXPECT_CALL(*if_tool_, SetWifiUpState(true)).WillOnce(Return(false));
+  EXPECT_FALSE(
+      client_interface_->SetMacAddress(std::vector<uint8_t>(kMacAddrLenBytes)));
+}
+
+TEST_F(ClientInterfaceImplTest, SetMacAddressReturnsTrueOnSuccess) {
+  EXPECT_CALL(*if_tool_, SetWifiUpState(false)).WillOnce(Return(true));
+  EXPECT_CALL(*if_tool_, SetMacAddress(_, _)).WillOnce(Return(true));
+  EXPECT_CALL(*if_tool_, SetWifiUpState(true)).WillOnce(Return(true));
+  EXPECT_TRUE(
+      client_interface_->SetMacAddress(std::vector<uint8_t>(kMacAddrLenBytes)));
+}
+
+TEST_F(ClientInterfaceImplTest, SetMacAddressPassesCorrectAddressToIfTool) {
+  EXPECT_CALL(*if_tool_, SetWifiUpState(false)).WillOnce(Return(true));
+  EXPECT_CALL(*if_tool_, SetMacAddress(_,
+      std::array<uint8_t, kMacAddrLenBytes>{{1, 2, 3, 4, 5, 6}}))
+    .WillOnce(Return(true));
+  EXPECT_CALL(*if_tool_, SetWifiUpState(true)).WillOnce(Return(true));
+  EXPECT_TRUE(client_interface_->SetMacAddress(
+      std::vector<uint8_t>{1, 2, 3, 4, 5, 6}));
+}
 
 }  // namespace wificond
 }  // namespace android

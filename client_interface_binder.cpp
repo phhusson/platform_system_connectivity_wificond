@@ -80,5 +80,11 @@ Status ClientInterfaceBinder::getWifiScannerImpl(
   return Status::ok();
 }
 
+
+Status ClientInterfaceBinder::setMacAddress(const vector<uint8_t>& mac, bool* success) {
+  *success = impl_ && impl_->SetMacAddress(mac);
+  return Status::ok();
+}
+
 }  // namespace wificond
 }  // namespace android
