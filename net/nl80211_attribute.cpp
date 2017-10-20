@@ -106,20 +106,21 @@ bool BaseNL80211Attr::Merge(const BaseNL80211Attr& other_attr) {
   auto other_header =
       reinterpret_cast<const nlattr*>(other_attr.GetConstData().data());
   int other_len_without_padding = other_header->nla_len;
-  // Update the length to including the content of |attr|.
-  our_header->nla_len =
+  // Update the length to include the content of |other_attr|.
+  int total_len_without_padding =
       our_len_without_padding + other_len_without_padding - NLA_HDRLEN;
+  our_header->nla_len = total_len_without_padding;
 
   // Remove padding 0s.
   data_.resize(our_len_without_padding);
-  // Insert content of |attr|.
+  // Insert content of |other_attr|.
   data_.insert(
       data_.end(),
       reinterpret_cast<const uint8_t*>(other_header) + NLA_HDRLEN,
       reinterpret_cast<const uint8_t*>(other_header) +
           other_len_without_padding);
   // Add padding 0s.
-  data_.resize(NLA_ALIGN(our_header->nla_len), 0);
+  data_.resize(NLA_ALIGN(total_len_without_padding), 0);
   return true;
 }
 
