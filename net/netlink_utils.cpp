@@ -44,7 +44,13 @@ namespace {
 uint32_t k2GHzFrequencyLowerBound = 2400;
 uint32_t k2GHzFrequencyUpperBound = 2500;
 
+uint32_t k5GHzFrequencyLowerBound = 5000;
+// This upper bound will exclude any 5.9Ghz channels which belong to 802.11p
+// for "vehicular communication systems".
+uint32_t k5GHzFrequencyUpperBound = 5900;
+
 }  // namespace
+
 NetlinkUtils::NetlinkUtils(NetlinkManager* netlink_manager)
     : netlink_manager_(netlink_manager) {
   if (!netlink_manager_->IsStarted()) {
@@ -376,30 +382,33 @@ bool NetlinkUtils::ParseBandInfo(const NL80211Packet* const packet,
       if (freq.HasAttribute(NL80211_FREQUENCY_ATTR_DISABLED)) {
         continue;
       }
-      // If this is an available/usable DFS frequency, we should save it to
-      // DFS frequencies list.
-      uint32_t dfs_state;
-      if (freq.GetAttributeValue(NL80211_FREQUENCY_ATTR_DFS_STATE,
-                                 &dfs_state) &&
-          (dfs_state == NL80211_DFS_AVAILABLE ||
-               dfs_state == NL80211_DFS_USABLE)) {
-        frequencies_dfs.push_back(frequency_value);
-      } else {
+      if (frequency_value > k2GHzFrequencyLowerBound &&
+            frequency_value < k2GHzFrequencyUpperBound) {
+          frequencies_2g.push_back(frequency_value);
+      } else if (frequency_value > k5GHzFrequencyLowerBound &&
+            frequency_value < k5GHzFrequencyUpperBound) {
+        // If this is an available/usable DFS frequency, we should save it to
+        // DFS frequencies list.
+        uint32_t dfs_state;
+        if (freq.GetAttributeValue(NL80211_FREQUENCY_ATTR_DFS_STATE,
+                                   &dfs_state) &&
+            (dfs_state == NL80211_DFS_AVAILABLE ||
+                 dfs_state == NL80211_DFS_USABLE)) {
+          frequencies_dfs.push_back(frequency_value);
+          continue;
+        }
+
         // Put non-dfs passive-only channels into the dfs category.
         // This aligns with what framework always assumes.
         if (freq.HasAttribute(NL80211_FREQUENCY_ATTR_NO_IR)) {
           frequencies_dfs.push_back(frequency_value);
           continue;
         }
-        // Since there is no guarantee for the order of band attributes,
-        // we do some math here.
-        if (frequency_value > k2GHzFrequencyLowerBound &&
-            frequency_value < k2GHzFrequencyUpperBound) {
-          frequencies_2g.push_back(frequency_value);
-        } else {
-          frequencies_5g.push_back(frequency_value);
-        }
+
+        // Otherwise, this is a regular 5g frequency.
+        frequencies_5g.push_back(frequency_value);
       }
+
     }
   }
   *out_band_info = BandInfo(frequencies_2g, frequencies_5g, frequencies_dfs);
