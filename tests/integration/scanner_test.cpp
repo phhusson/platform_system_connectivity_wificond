@@ -63,25 +63,5 @@ TEST(ScannerTest, CanGetValidWifiScannerImpl) {
   EXPECT_NE(nullptr, InitInterfaceAndReturnScanner(service).get());
 }
 
-TEST(ScannerTest, CanGetAvailableChannels) {
-  ScopedDevModeWificond dev_mode;
-  sp<IWificond> service = dev_mode.EnterDevModeOrDie();
-  sp<IWifiScannerImpl> scanner = InitInterfaceAndReturnScanner(service);
-  ASSERT_NE(nullptr, scanner.get());
-
-  unique_ptr<vector<int32_t>> freqs_2g;
-  ASSERT_TRUE(scanner->getAvailable2gChannels(&freqs_2g).isOk());
-  EXPECT_TRUE(freqs_2g->size() != 0);
-
-  unique_ptr<vector<int32_t>> freqs_5g;
-  ASSERT_TRUE(scanner->getAvailable5gNonDFSChannels(&freqs_5g).isOk());
-  EXPECT_TRUE(freqs_5g->size() != 0);
-
-  unique_ptr<vector<int32_t>> freqs_dfs;
-  ASSERT_TRUE(scanner->getAvailableDFSChannels(&freqs_dfs).isOk());
-  // DFS support should be enabled explicitly, so we don't expect a non-empty
-  // DFS frequency list here.
-}
-
 }  // namespace wificond
 }  // namespace android

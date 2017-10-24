@@ -222,6 +222,63 @@ void Server::CleanUpSystemState() {
   MarkDownAllInterfaces();
 }
 
+Status Server::getAvailable2gChannels(
+    std::unique_ptr<vector<int32_t>>* out_frequencies) {
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities_ignored;
+  WiphyFeatures wiphy_features_ignored;
+
+  if (!netlink_utils_->GetWiphyInfo(wiphy_index_, &band_info,
+                                    &scan_capabilities_ignored,
+                                    &wiphy_features_ignored)) {
+    LOG(ERROR) << "Failed to get wiphy info from kernel";
+    out_frequencies->reset(nullptr);
+    return Status::ok();
+  }
+
+  out_frequencies->reset(
+      new vector<int32_t>(band_info.band_2g.begin(), band_info.band_2g.end()));
+  return Status::ok();
+}
+
+Status Server::getAvailable5gNonDFSChannels(
+    std::unique_ptr<vector<int32_t>>* out_frequencies) {
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities_ignored;
+  WiphyFeatures wiphy_features_ignored;
+
+  if (!netlink_utils_->GetWiphyInfo(wiphy_index_, &band_info,
+                                    &scan_capabilities_ignored,
+                                    &wiphy_features_ignored)) {
+    LOG(ERROR) << "Failed to get wiphy info from kernel";
+    out_frequencies->reset(nullptr);
+    return Status::ok();
+  }
+
+  out_frequencies->reset(
+      new vector<int32_t>(band_info.band_5g.begin(), band_info.band_5g.end()));
+  return Status::ok();
+}
+
+Status Server::getAvailableDFSChannels(
+    std::unique_ptr<vector<int32_t>>* out_frequencies) {
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities_ignored;
+  WiphyFeatures wiphy_features_ignored;
+
+  if (!netlink_utils_->GetWiphyInfo(wiphy_index_, &band_info,
+                                    &scan_capabilities_ignored,
+                                    &wiphy_features_ignored)) {
+    LOG(ERROR) << "Failed to get wiphy info from kernel";
+    out_frequencies->reset(nullptr);
+    return Status::ok();
+  }
+
+  out_frequencies->reset(new vector<int32_t>(band_info.band_dfs.begin(),
+                                             band_info.band_dfs.end()));
+  return Status::ok();
+}
+
 bool Server::SetupInterface(const std::string& iface_name,
                             InterfaceInfo* interface) {
   if (!ap_interfaces_.empty() || !client_interfaces_.empty()) {
