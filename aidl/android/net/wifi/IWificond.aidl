@@ -40,6 +40,19 @@ interface IWificond {
     // @return list of the currently configured IApInterface instances.
     List<IBinder> GetApInterfaces();
 
+    // Returns an array of available frequencies for 2.4GHz channels.
+    // Returrns null on failure.
+    @nullable int[] getAvailable2gChannels();
+
+    // Returns an array of available frequencies for 5GHz non-DFS channels.
+    // Returrns null on failure.
+    @nullable int[] getAvailable5gNonDFSChannels();
+
+    // Returns an array of available frequencies for DFS channels.
+    // This also includes passive only frequecies which are not for DFS channels.
+    // Returrns null on failure.
+    @nullable int[] getAvailableDFSChannels();
+
     // Register a callback to receive interface status updates.
     //
     // Multiple callbacks can be registered simultaneously.
