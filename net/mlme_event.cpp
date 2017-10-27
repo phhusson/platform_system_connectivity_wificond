@@ -104,12 +104,6 @@ unique_ptr<MlmeRoamEvent> MlmeRoamEvent::InitFromPacket(
     return nullptr;
   }
 
-  if (!packet->GetAttributeValue(NL80211_ATTR_STATUS_CODE,
-                                 &(roam_event->status_code_))) {
-    LOG(WARNING) << "Failed to get NL80211_ATTR_STATUS_CODE";
-    roam_event->status_code_ = 0;
-  }
-
   return roam_event;
 }
 
