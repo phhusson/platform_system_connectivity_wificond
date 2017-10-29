@@ -65,14 +65,9 @@ void MlmeEventHandlerImpl::OnConnect(unique_ptr<MlmeConnectEvent> event) {
 }
 
 void MlmeEventHandlerImpl::OnRoam(unique_ptr<MlmeRoamEvent> event) {
-  if (event->GetStatusCode() == 0) {
-    client_interface_->is_associated_ = true;
-    client_interface_->RefreshAssociateFreq();
-    client_interface_->bssid_ = event->GetBSSID();
-  } else {
-    client_interface_->is_associated_ = false;
-    client_interface_->bssid_.clear();
-  }
+  client_interface_->is_associated_ = true;
+  client_interface_->RefreshAssociateFreq();
+  client_interface_->bssid_ = event->GetBSSID();
 }
 
 void MlmeEventHandlerImpl::OnAssociate(unique_ptr<MlmeAssociateEvent> event) {
