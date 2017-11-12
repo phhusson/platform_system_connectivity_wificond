@@ -23,10 +23,12 @@
 #include "android/net/wifi/IApInterface.h"
 #include "android/net/wifi/IWificond.h"
 #include "wificond/tests/integration/process_utils.h"
+#include "wificond/tests/mock_ap_interface_event_callback.h"
 
 using android::net::wifi::IApInterface;
 using android::net::wifi::IWificond;
 using android::wifi_system::InterfaceTool;
+using android::wificond::MockApInterfaceEventCallback;
 using android::wificond::tests::integration::HostapdIsDead;
 using android::wificond::tests::integration::HostapdIsRunning;
 using android::wificond::tests::integration::ScopedDevModeWificond;
@@ -109,9 +111,15 @@ TEST(ApInterfaceTest, CanStartStopHostapd) {
       &wrote_config).isOk());
   ASSERT_TRUE(wrote_config);
 
+  sp<MockApInterfaceEventCallback> ap_interface_event_callback(
+      new MockApInterfaceEventCallback());
+
   for (int iteration = 0; iteration < 4; iteration++) {
     bool hostapd_started = false;
-    EXPECT_TRUE(ap_interface->startHostapd(&hostapd_started).isOk());
+    EXPECT_TRUE(
+        ap_interface
+            ->startHostapd(ap_interface_event_callback, &hostapd_started)
+            .isOk());
     EXPECT_TRUE(hostapd_started);
 
     EXPECT_TRUE(WaitForTrue(HostapdIsRunning, kHostapdStartupTimeoutSeconds))

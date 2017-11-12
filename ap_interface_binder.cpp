@@ -21,24 +21,35 @@
 
 #include "wificond/ap_interface_impl.h"
 
+using android::net::wifi::IApInterfaceEventCallback;
 using android::wifi_system::HostapdManager;
 
 namespace android {
 namespace wificond {
 
-ApInterfaceBinder::ApInterfaceBinder(ApInterfaceImpl* impl) : impl_{impl} {
-}
+ApInterfaceBinder::ApInterfaceBinder(ApInterfaceImpl* impl)
+    : impl_{impl}, ap_interface_event_callback_(nullptr) {}
 
 ApInterfaceBinder::~ApInterfaceBinder() {
 }
 
-binder::Status ApInterfaceBinder::startHostapd(bool* out_success) {
+void ApInterfaceBinder::NotifyNumAssociatedStationsChanged(int num_stations) {
+  if (ap_interface_event_callback_ != nullptr) {
+    ap_interface_event_callback_->onNumAssociatedStationsChanged(num_stations);
+  }
+}
+
+binder::Status ApInterfaceBinder::startHostapd(
+    const sp<IApInterfaceEventCallback>& callback, bool* out_success) {
   *out_success = false;
   if (!impl_) {
     LOG(WARNING) << "Cannot start hostapd on dead ApInterface.";
     return binder::Status::ok();
   }
   *out_success = impl_->StartHostapd();
+  if (*out_success) {
+    ap_interface_event_callback_ = callback;
+  }
   return binder::Status::ok();
 }
 
@@ -49,6 +60,7 @@ binder::Status ApInterfaceBinder::stopHostapd(bool* out_success) {
     return binder::Status::ok();
   }
   *out_success = impl_->StopHostapd();
+  ap_interface_event_callback_.clear();
   return binder::Status::ok();
 }
 
