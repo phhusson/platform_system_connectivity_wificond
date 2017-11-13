@@ -48,10 +48,6 @@ class ClientInterfaceBinder : public android::net::wifi::BnClientInterface {
   ::android::binder::Status getInterfaceName(std::string* out_name) override;
   ::android::binder::Status getWifiScannerImpl(
       ::android::sp<::android::net::wifi::IWifiScannerImpl>* out_wifi_scanner_impl) override;
-  ::android::binder::Status requestANQP(
-      const ::std::vector<uint8_t>& bssid,
-      const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback,
-      bool* out_success) override;
 
  private:
   ClientInterfaceImpl* impl_;
