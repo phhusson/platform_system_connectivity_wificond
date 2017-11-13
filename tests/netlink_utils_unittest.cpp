@@ -52,6 +52,8 @@ constexpr uint32_t kFakeFrequency3 = 2484;
 constexpr uint32_t kFakeFrequency4 = 5200;
 constexpr uint32_t kFakeFrequency5 = 5400;
 constexpr uint32_t kFakeFrequency6 = 5600;
+// 802.11p channel which is not valid for wifi usage.
+constexpr uint32_t kFakeInvalidFrequency = 5950;
 constexpr uint32_t kFakeSequenceNumber = 162;
 constexpr uint32_t kFakeProtocolFeatures = 0x02;
 constexpr uint16_t kFakeWiphyIndex = 8;
@@ -136,13 +138,19 @@ NL80211NestedAttr GenerateBandsAttributeFor2g() {
 NL80211NestedAttr GenerateBandsAttributeFor5gAndDfs() {
   NL80211NestedAttr freq_5g_1(4);
   NL80211NestedAttr freq_5g_2(5);
-  NL80211NestedAttr freq_dfs_1(6);
+  NL80211NestedAttr freq_5g_3(6);
+  NL80211NestedAttr freq_dfs_1(7);
   freq_5g_1.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
                                                kFakeFrequency4));
   freq_5g_2.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
                                                kFakeFrequency5));
   // This channel is passive only.
   freq_5g_2.AddFlagAttribute(NL80211_FREQUENCY_ATTR_NO_IR);
+
+  // This channel is not valid for wifi usage.
+  // We should not include it in the parse result.
+  freq_5g_3.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
+                                               kFakeInvalidFrequency));
 
   // DFS frequency.
   freq_dfs_1.AddAttribute(NL80211Attr<uint32_t>(NL80211_FREQUENCY_ATTR_FREQ,
@@ -154,6 +162,7 @@ NL80211NestedAttr GenerateBandsAttributeFor5gAndDfs() {
   NL80211NestedAttr band_5g_freqs(NL80211_BAND_ATTR_FREQS);
   band_5g_freqs.AddAttribute(freq_5g_1);
   band_5g_freqs.AddAttribute(freq_5g_2);
+  band_5g_freqs.AddAttribute(freq_5g_3);
   band_5g_freqs.AddAttribute(freq_dfs_1);
 
   NL80211NestedAttr band_5g_attr(1);
