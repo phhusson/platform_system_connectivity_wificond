@@ -77,6 +77,14 @@ class Server : public android::net::wifi::BnWificond {
       android::sp<android::net::wifi::IClientInterface>*
           created_interface) override;
 
+  android::binder::Status tearDownApInterface(
+      const std::string& iface_name,
+      bool* out_success) override;
+
+  android::binder::Status tearDownClientInterface(
+      const std::string& iface_name,
+      bool* out_success) override;
+
   android::binder::Status tearDownInterfaces() override;
   android::binder::Status enableSupplicant(bool* success) override;
   android::binder::Status disableSupplicant(bool* success) override;
@@ -119,8 +127,8 @@ class Server : public android::net::wifi::BnWificond {
   ScanUtils* const scan_utils_;
 
   uint32_t wiphy_index_;
-  std::vector<std::unique_ptr<ApInterfaceImpl>> ap_interfaces_;
-  std::vector<std::unique_ptr<ClientInterfaceImpl>> client_interfaces_;
+  std::map<std::string, std::unique_ptr<ApInterfaceImpl>> ap_interfaces_;
+  std::map<std::string, std::unique_ptr<ClientInterfaceImpl>> client_interfaces_;
   std::vector<android::sp<android::net::wifi::IInterfaceEventCallback>>
       interface_event_callbacks_;
 
