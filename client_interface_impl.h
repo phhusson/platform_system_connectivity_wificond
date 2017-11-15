@@ -80,9 +80,6 @@ class ClientInterfaceImpl {
   const std::vector<uint8_t>& GetMacAddress();
   const std::string& GetInterfaceName() const { return interface_name_; }
   const android::sp<ScannerImpl> GetScanner() { return scanner_; };
-  bool requestANQP(
-      const ::std::vector<uint8_t>& bssid,
-      const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback);
   virtual bool IsAssociated() const;
   void Dump(std::stringstream* ss) const;
 

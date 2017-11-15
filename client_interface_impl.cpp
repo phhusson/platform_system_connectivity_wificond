@@ -219,13 +219,6 @@ const vector<uint8_t>& ClientInterfaceImpl::GetMacAddress() {
   return interface_mac_addr_;
 }
 
-bool ClientInterfaceImpl::requestANQP(
-      const ::std::vector<uint8_t>& bssid,
-      const ::android::sp<::android::net::wifi::IANQPDoneCallback>& callback) {
-  // TODO(nywang): query ANQP information from wpa_supplicant.
-  return true;
-}
-
 bool ClientInterfaceImpl::RefreshAssociateFreq() {
   // wpa_supplicant fetches associate frequency using the latest scan result.
   // We should follow the same method here before we find a better solution.

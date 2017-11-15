@@ -23,7 +23,6 @@
 #include "wificond/client_interface_impl.h"
 
 using android::binder::Status;
-using android::net::wifi::IANQPDoneCallback;
 using android::net::wifi::IWifiScannerImpl;
 using std::vector;
 
@@ -88,18 +87,6 @@ Status ClientInterfaceBinder::getWifiScannerImpl(
     return Status::ok();
   }
   *out_wifi_scanner_impl = impl_->GetScanner();
-  return Status::ok();
-}
-
-Status ClientInterfaceBinder::requestANQP(
-    const vector<uint8_t>& bssid,
-    const sp<IANQPDoneCallback>& callback,
-    bool* out_success) {
-  if (impl_ == nullptr) {
-    *out_success = false;
-    return Status::ok();
-  }
-  *out_success = impl_->requestANQP(bssid, callback);
   return Status::ok();
 }
 
