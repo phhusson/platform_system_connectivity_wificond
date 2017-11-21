@@ -21,15 +21,6 @@ import android.net.wifi.IWifiScannerImpl;
 // IClientInterface represents a network interface that can be used to connect
 // to access points and obtain internet connectivity.
 interface IClientInterface {
-
-  // Enable a wpa_supplicant instance running against this interface.
-  // Returns true if supplicant was successfully enabled, or is already enabled.
-  boolean enableSupplicant();
-
-  // Remove this interface from wpa_supplicant's control.
-  // Returns true if removal was successful.
-  boolean disableSupplicant();
-
   // Get packet counters for this interface.
   // First element in array is the number of successfully transmitted packets.
   // Second element in array is the number of tramsmission failure.

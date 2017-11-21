@@ -23,6 +23,7 @@
 
 #include <android-base/macros.h>
 #include <wifi_system/interface_tool.h>
+#include <wifi_system/supplicant_manager.h>
 
 #include "android/net/wifi/BnWificond.h"
 #include "android/net/wifi/IApInterface.h"
@@ -77,6 +78,8 @@ class Server : public android::net::wifi::BnWificond {
           created_interface) override;
 
   android::binder::Status tearDownInterfaces() override;
+  android::binder::Status enableSupplicant(bool* success) override;
+  android::binder::Status disableSupplicant(bool* success) override;
 
   android::binder::Status GetClientInterfaces(
       std::vector<android::sp<android::IBinder>>* out_client_ifs) override;

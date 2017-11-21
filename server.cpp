@@ -127,7 +127,6 @@ Status Server::createClientInterface(const std::string& iface_name,
       interface.index,
       interface.mac_address,
       if_tool_.get(),
-      supplicant_manager_.get(),
       netlink_utils_,
       scan_utils_));
   *created_interface = client_interface->GetBinder();
@@ -152,6 +151,16 @@ Status Server::tearDownInterfaces() {
 
   netlink_utils_->UnsubscribeRegDomainChange(wiphy_index_);
 
+  return Status::ok();
+}
+
+Status Server::enableSupplicant(bool* success) {
+  *success = supplicant_manager_->StartSupplicant();
+  return Status::ok();
+}
+
+Status Server::disableSupplicant(bool* success) {
+  *success = supplicant_manager_->StopSupplicant();
   return Status::ok();
 }
 

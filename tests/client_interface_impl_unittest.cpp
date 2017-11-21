@@ -19,9 +19,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <wifi_system/supplicant_manager.h>
 #include <wifi_system_test/mock_interface_tool.h>
-#include <wifi_system_test/mock_supplicant_manager.h>
 
 #include "wificond/client_interface_impl.h"
 #include "wificond/tests/mock_netlink_manager.h"
@@ -29,8 +27,6 @@
 #include "wificond/tests/mock_scan_utils.h"
 
 using android::wifi_system::MockInterfaceTool;
-using android::wifi_system::MockSupplicantManager;
-using android::wifi_system::SupplicantManager;
 using std::unique_ptr;
 using std::vector;
 using testing::NiceMock;
@@ -59,7 +55,6 @@ class ClientInterfaceImplTest : public ::testing::Test {
         kTestInterfaceIndex,
         vector<uint8_t>{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
         if_tool_.get(),
-        supplicant_manager_.get(),
         netlink_utils_.get(),
         scan_utils_.get()});
   }
@@ -67,14 +62,10 @@ class ClientInterfaceImplTest : public ::testing::Test {
   void TearDown() override {
     EXPECT_CALL(*netlink_utils_,
                 UnsubscribeMlmeEvent(kTestInterfaceIndex));
-    EXPECT_CALL(*supplicant_manager_, StopSupplicant())
-        .WillOnce(Return(false));
   }
 
   unique_ptr<NiceMock<MockInterfaceTool>> if_tool_{
       new NiceMock<MockInterfaceTool>};
-  unique_ptr<NiceMock<MockSupplicantManager>> supplicant_manager_{
-      new NiceMock<MockSupplicantManager>};
   unique_ptr<NiceMock<MockNetlinkManager>> netlink_manager_{
       new NiceMock<MockNetlinkManager>()};
   unique_ptr<NiceMock<MockNetlinkUtils>> netlink_utils_{
@@ -85,30 +76,6 @@ class ClientInterfaceImplTest : public ::testing::Test {
 };  // class ClientInterfaceImplTest
 
 }  // namespace
-
-TEST_F(ClientInterfaceImplTest, ShouldReportEnableFailure) {
-  EXPECT_CALL(*supplicant_manager_, StartSupplicant())
-      .WillOnce(Return(false));
-  EXPECT_FALSE(client_interface_->EnableSupplicant());
-}
-
-TEST_F(ClientInterfaceImplTest, ShouldReportEnableSuccess) {
-  EXPECT_CALL(*supplicant_manager_, StartSupplicant())
-      .WillOnce(Return(true));
-  EXPECT_TRUE(client_interface_->EnableSupplicant());
-}
-
-TEST_F(ClientInterfaceImplTest, ShouldReportDisableFailure) {
-  EXPECT_CALL(*supplicant_manager_, StopSupplicant())
-      .WillOnce(Return(false));
-  EXPECT_FALSE(client_interface_->DisableSupplicant());
-}
-
-TEST_F(ClientInterfaceImplTest, ShouldReportDisableSuccess) {
-  EXPECT_CALL(*supplicant_manager_, StopSupplicant())
-      .WillOnce(Return(true));
-  EXPECT_TRUE(client_interface_->DisableSupplicant());
-}
 
 }  // namespace wificond
 }  // namespace android

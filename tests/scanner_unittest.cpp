@@ -34,7 +34,6 @@
 
 using ::android::binder::Status;
 using ::android::wifi_system::MockInterfaceTool;
-using ::android::wifi_system::MockSupplicantManager;
 using ::com::android::server::wifi::wificond::SingleScanSettings;
 using ::com::android::server::wifi::wificond::PnoSettings;
 using ::com::android::server::wifi::wificond::NativeScanResult;
@@ -122,9 +121,8 @@ class ScannerTest : public ::testing::Test {
   NiceMock<MockNetlinkUtils> netlink_utils_{&netlink_manager_};
   NiceMock<MockScanUtils> scan_utils_{&netlink_manager_};
   NiceMock<MockInterfaceTool> if_tool_;
-  NiceMock<MockSupplicantManager> supplicant_manager_;
   NiceMock<MockClientInterfaceImpl> client_interface_impl_{
-      &if_tool_, &supplicant_manager_, &netlink_utils_, &scan_utils_};
+      &if_tool_, &netlink_utils_, &scan_utils_};
   shared_ptr<NiceMock<MockOffloadServiceUtils>> offload_service_utils_{
       new NiceMock<MockOffloadServiceUtils>()};
   shared_ptr<NiceMock<MockOffloadScanCallbackInterfaceImpl>>

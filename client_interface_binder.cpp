@@ -36,16 +36,6 @@ ClientInterfaceBinder::ClientInterfaceBinder(ClientInterfaceImpl* impl)
 ClientInterfaceBinder::~ClientInterfaceBinder() {
 }
 
-Status ClientInterfaceBinder::enableSupplicant(bool* success) {
-  *success = impl_ && impl_->EnableSupplicant();
-  return Status::ok();
-}
-
-Status ClientInterfaceBinder::disableSupplicant(bool* success) {
-  *success = impl_ && impl_->DisableSupplicant();
-  return Status::ok();
-}
-
 Status ClientInterfaceBinder::getPacketCounters(
     vector<int32_t>* out_packet_counters) {
   if (impl_ == nullptr) {
