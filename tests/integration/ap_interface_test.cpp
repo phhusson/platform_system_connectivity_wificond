@@ -69,7 +69,7 @@ TEST(ApInterfaceTest, CanCreateApInterfaces) {
   InterfaceTool if_tool;
   EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
 
-  // Mark the interface as up, just to test that we mark it down on teardown.
+  // Mark the interface as up, just to test that we mark it down on tearDown.
   EXPECT_TRUE(if_tool.SetUpState(if_name.c_str(), true));
   EXPECT_TRUE(if_tool.GetUpState(if_name.c_str()));
 
@@ -80,8 +80,13 @@ TEST(ApInterfaceTest, CanCreateApInterfaces) {
   EXPECT_EQ(nullptr, ap_interface2.get());
 
   // We can tear down the created interface.
-  EXPECT_TRUE(service->tearDownInterfaces().isOk());
+  bool success = false;
+  EXPECT_TRUE(service->tearDownApInterface(kInterfaceName, &success).isOk());
+  EXPECT_TRUE(success);
   EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
+
+  // Teardown everything at the end of the test.
+  EXPECT_TRUE(service->tearDownInterfaces().isOk());
 }
 
 // TODO: b/30311493 this test fails because hostapd fails to set the driver

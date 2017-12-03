@@ -59,7 +59,7 @@ TEST(ClientInterfaceTest, CanCreateClientInterfaces) {
   InterfaceTool if_tool;
   EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
 
-  // Mark the interface as up, just to test that we mark it down on teardown.
+  // Mark the interface as up, just to test that we mark it down on tearDown.
   EXPECT_TRUE(if_tool.SetUpState(if_name.c_str(), true));
   EXPECT_TRUE(if_tool.GetUpState(if_name.c_str()));
 
@@ -70,8 +70,13 @@ TEST(ClientInterfaceTest, CanCreateClientInterfaces) {
   EXPECT_EQ(nullptr, client_interface2.get());
 
   // We can tear down the created interface.
-  EXPECT_TRUE(service->tearDownInterfaces().isOk());
+  bool succes = false;
+  EXPECT_TRUE(service->tearDownClientInterface(kInterfaceName, &succes).isOk());
+  EXPECT_TRUE(succes);
   EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
+
+  // Teardown everything at the end of the test.
+  EXPECT_TRUE(service->tearDownInterfaces().isOk());
 }
 
 TEST(ClientInterfaceTest, CanGetMacAddress) {

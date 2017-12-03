@@ -30,6 +30,12 @@ interface IWificond {
     // Create a network interface suitable for use as a WiFi client.
     @nullable IClientInterface createClientInterface(@utf8InCpp String iface_name);
 
+    // Remove a previously created AP network interface.
+    boolean tearDownApInterface(@utf8InCpp String iface_name);
+
+    // Remove a previously created STA network interface.
+    boolean tearDownClientInterface(@utf8InCpp String iface_name);
+
     // Tear down all existing interfaces.  This should enable clients to create
     // future interfaces immediately after this method returns.
     void tearDownInterfaces();
