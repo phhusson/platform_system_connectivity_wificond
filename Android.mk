@@ -14,9 +14,6 @@
 
 LOCAL_PATH := $(call my-dir)
 wificond_cpp_flags := -Wall -Werror -Wno-unused-parameter
-ifdef WIFI_OFFLOAD_SCANS
-wificond_cpp_flags += -DWIFI_OFFLOAD_SCANS=\"$(WIFI_OFFLOAD_SCANS)\"
-endif
 wificond_parent_dir := $(LOCAL_PATH)/../
 wificond_includes := \
     $(wificond_parent_dir)
@@ -62,10 +59,9 @@ LOCAL_SRC_FILES := \
     client_interface_impl.cpp \
     logging_utils.cpp \
     looper_backed_event_loop.cpp \
-    rtt/rtt_controller_binder.cpp \
-    rtt/rtt_controller_impl.cpp \
     scanning/channel_settings.cpp \
     scanning/hidden_network.cpp \
+    scanning/offload_scan_callback_interface_impl.cpp \
     scanning/pno_network.cpp \
     scanning/pno_settings.cpp \
     scanning/scan_result.cpp \
@@ -124,8 +120,6 @@ LOCAL_SRC_FILES := \
     aidl/android/net/wifi/IClientInterface.aidl \
     aidl/android/net/wifi/IInterfaceEventCallback.aidl \
     aidl/android/net/wifi/IPnoScanEvent.aidl \
-    aidl/android/net/wifi/IRttClient.aidl \
-    aidl/android/net/wifi/IRttController.aidl \
     aidl/android/net/wifi/IScanEvent.aidl \
     aidl/android/net/wifi/IWificond.aidl \
     aidl/android/net/wifi/IWifiScannerImpl.aidl \
@@ -175,6 +169,9 @@ LOCAL_SRC_FILES := \
     tests/mock_netlink_utils.cpp \
     tests/mock_offload.cpp \
     tests/mock_offload_callback_handlers.cpp \
+    tests/mock_offload_scan_callback_interface.cpp \
+    tests/mock_offload_scan_callback_interface_impl.cpp \
+    tests/mock_offload_scan_manager.cpp \
     tests/mock_offload_service_utils.cpp \
     tests/mock_scan_utils.cpp \
     tests/netlink_manager_unittest.cpp \
@@ -203,6 +200,7 @@ LOCAL_SHARED_LIBRARIES := \
     android.hardware.wifi.offload@1.0 \
     libbase \
     libbinder \
+    libcutils \
     libhidltransport \
     libhidlbase \
     libhwbinder \

@@ -14,36 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef WIFICOND_RTT_CONTROLLER_BINDER_H_
-#define WIFICOND_RTT_CONTROLLER_BINDER_H_
+#ifndef WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_IMPL_H__
+#define WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_IMPL_H__
 
-#include <android-base/macros.h>
-#include <binder/Status.h>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
-#include "android/net/wifi/BnRttController.h"
+#include "wificond/scanning/offload_scan_callback_interface_impl.h"
 
 namespace android {
 namespace wificond {
 
-class RttControllerImpl;
+class ScannerImpl;
 
-class RttControllerBinder : public android::net::wifi::BnRttController {
+class MockOffloadScanCallbackInterfaceImpl
+    : public OffloadScanCallbackInterfaceImpl {
  public:
-  explicit RttControllerBinder(RttControllerImpl* impl);
-  ~RttControllerBinder() override;
+  MockOffloadScanCallbackInterfaceImpl(ScannerImpl*);
+  ~MockOffloadScanCallbackInterfaceImpl() override = default;
 
-  // Called by |impl_| its destruction.
-  // This informs the binder proxy that no future manipulations of |impl_|
-  // by remote processes are possible.
-  void NotifyImplDead() { impl_ = nullptr; }
-
- private:
-  RttControllerImpl* impl_;
-
-  DISALLOW_COPY_AND_ASSIGN(RttControllerBinder);
+  MOCK_METHOD0(OnOffloadScanResult, void());
+  MOCK_METHOD1(OnOffloadError,
+               void(OffloadScanCallbackInterface::AsyncErrorReason));
 };
 
 }  // namespace wificond
 }  // namespace android
 
-#endif  // WIFICOND_RTT_CONTROLLER_BINDER_H_
+#endif  // WIFICOND_TESTS_MOCK_OFFLOAD_SCAN_CALLBACK_INTERFACE_IMPL_H__

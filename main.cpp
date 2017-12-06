@@ -139,7 +139,9 @@ int main(int argc, char** argv) {
       &OnHwBinderReadReady)) << "Failed to watch Hw Binder FD";
 
   android::wificond::NetlinkManager netlink_manager(event_dispatcher.get());
-  CHECK(netlink_manager.Start()) << "Failed to start netlink manager";
+  if (!netlink_manager.Start()) {
+    LOG(ERROR) << "Failed to start netlink manager";
+  }
   android::wificond::NetlinkUtils netlink_utils(&netlink_manager);
   android::wificond::ScanUtils scan_utils(&netlink_manager);
 

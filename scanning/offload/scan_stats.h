@@ -40,6 +40,7 @@ class NativeScanStats : public ::android::Parcelable {
   bool operator==(const NativeScanStats&) const;
   ::android::status_t writeToParcel(::android::Parcel* parcel) const override;
   ::android::status_t readFromParcel(const ::android::Parcel* parcel) override;
+  void DebugLog();
 
   uint32_t num_scans_requested_by_wifi_;
   uint32_t num_scans_serviced_by_wifi_;

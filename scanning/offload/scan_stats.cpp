@@ -46,6 +46,7 @@ NativeScanStats::NativeScanStats()
     : num_scans_requested_by_wifi_(0),
       num_scans_serviced_by_wifi_(0),
       subscription_duration_ms_(0),
+      scan_duration_ms_(0),
       num_channels_scanned_(0),
       time_stamp_(0) {}
 
@@ -85,6 +86,20 @@ status_t NativeScanStats::readFromParcel(const ::android::Parcel* parcel) {
   RETURN_IF_FAILED(parcel->readUint32(&num_channels_scanned_));
   RETURN_IF_FAILED(parcel->readByteVector(&histogram_channels_));
   return ::android::OK;
+}
+
+void NativeScanStats::DebugLog() {
+  LOG(INFO) << "num_scans_requested_by_wifi=" << num_scans_requested_by_wifi_;
+  LOG(INFO) << "num_scans_serviced_by_wifi=" << num_scans_serviced_by_wifi_;
+  LOG(INFO) << "subscription_duration=" << subscription_duration_ms_;
+  LOG(INFO) << "scan_duration_ms_=" << scan_duration_ms_;
+  LOG(INFO) << "num_channels_scanned=" << num_channels_scanned_;
+  for (size_t i = 0; i < histogram_channels_.size(); i++) {
+    if (histogram_channels_[i] > 0) {
+      LOG(INFO) << "Channel=" << i << " ScannedTimes="
+                << static_cast<uint32_t>(histogram_channels_[i]);
+    }
+  }
 }
 
 }  // namespace wificond

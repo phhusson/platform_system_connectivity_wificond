@@ -19,7 +19,7 @@
 #include <android/hardware/wifi/offload/1.0/IOffload.h>
 #include "wificond/scanning/offload/offload_callback.h"
 #include "wificond/scanning/offload/offload_callback_handlers.h"
-#include "wificond/scanning/offload/offload_service_utils.h"
+#include "wificond/scanning/offload_scan_callback_interface_impl.h"
 
 #include <vector>
 
@@ -42,11 +42,8 @@ namespace android {
 namespace wificond {
 
 class OffloadScanManager;
-
-typedef std::function<void(
-    const std::vector<::com::android::server::wifi::wificond::NativeScanResult>
-        scanResult)>
-    OnNativeScanResultsReadyHandler;
+class OffloadDeathRecipient;
+class OffloadServiceUtils;
 
 // Provides callback interface implementation from Offload HAL
 class OffloadCallbackHandlersImpl : public OffloadCallbackHandlers {
@@ -86,38 +83,40 @@ class OffloadScanManager {
     kNone,
     /* Offload HAL scans is not available */
     kNotAvailable,
-    /* Offload HAL service is not subscribed to */
-    kNotSubscribed,
     /* Offload HAL requested operation failure */
     kOperationFailed,
     /* Binder failed to deliver message to Offload HAL*/
     kTransactionFailed,
   };
 
-  explicit OffloadScanManager(std::weak_ptr<OffloadServiceUtils> utils,
-                              OnNativeScanResultsReadyHandler handler);
+  explicit OffloadScanManager(
+      std::weak_ptr<OffloadServiceUtils> utils,
+      std::shared_ptr<OffloadScanCallbackInterface> callback);
   virtual ~OffloadScanManager();
   /* Request start of offload scans with scan parameters and scan filter
    * settings. Internally calls Offload HAL service with configureScans()
-   * and subscribeScanResults() APIs. If already subscribed, it updates
-   * the scan configuration only. Reason code is updated in failure case
+   * and subscribeScanResults() APIs. Reason code indicates failure reason.
    */
-  bool startScan(uint32_t /* interval_ms */, int32_t /* rssi_threshold */,
-                 const std::vector<std::vector<uint8_t>>& /* scan_ssids */,
-                 const std::vector<std::vector<uint8_t>>& /* match_ssids */,
-                 const std::vector<uint8_t>& /* match_security */,
-                 const std::vector<uint32_t>& /* freqs */,
-                 ReasonCode* /* failure reason */);
-  /* Request stop of offload scans, returns true if scans were subscribed
-   * to from the Offload HAL service. Otherwise, returns false. Reason code
-   * is updated in case of failure.
+  virtual bool startScan(
+      uint32_t /* interval_ms */, int32_t /* rssi_threshold */,
+      const std::vector<std::vector<uint8_t>>& /* scan_ssids */,
+      const std::vector<std::vector<uint8_t>>& /* match_ssids */,
+      const std::vector<uint8_t>& /* match_security */,
+      const std::vector<uint32_t>& /* freqs */,
+      ReasonCode* /* failure reason */);
+  /* Request stop of offload scans, returns true if the operation succeeds
+   * Otherwise, returns false. Reason code is updated in case of failure.
    */
-  bool stopScan(ReasonCode* /* failure reason */);
+  virtual bool stopScan(ReasonCode* /* failure reason */);
   /* Get statistics for scans performed by Offload HAL */
-  bool getScanStats(
+  virtual bool getScanStats(
       ::com::android::server::wifi::wificond::NativeScanStats* /* scanStats */);
   /* Otain status of the Offload HAL service */
-  StatusCode getOffloadStatus() const;
+  virtual StatusCode getOffloadStatus() const;
+  /* Returns the most recent scan result available from Offload HAL */
+  virtual bool getScanResults(
+      std::vector<::com::android::server::wifi::wificond::NativeScanResult>*
+          out_scan_results);
 
  private:
   void ReportScanResults(
@@ -131,10 +130,15 @@ class OffloadScanManager {
       OffloadScanManager::ReasonCode* reason_code);
   bool GetScanStats(
       ::com::android::server::wifi::wificond::NativeScanStats* stats);
-  bool SubscribeScanResults(OffloadScanManager::ReasonCode* reason_code);
-  bool ConfigureScans(android::hardware::wifi::offload::V1_0::ScanParam,
-                      android::hardware::wifi::offload::V1_0::ScanFilter,
-                      OffloadScanManager::ReasonCode* reason_code);
+  bool SubscribeScanResults(
+      OffloadScanManager::ReasonCode* reason_code);
+  bool ConfigureScans(
+      android::hardware::wifi::offload::V1_0::ScanParam,
+      android::hardware::wifi::offload::V1_0::ScanFilter,
+      OffloadScanManager::ReasonCode* reason_code);
+  bool InitServiceIfNeeded();
+  bool InitService();
+
   /* Handle binder death */
   void OnObjectDeath(uint64_t /* cookie */);
 
@@ -143,10 +147,13 @@ class OffloadScanManager {
   android::sp<OffloadCallback> wifi_offload_callback_;
   android::sp<OffloadDeathRecipient> death_recipient_;
   StatusCode offload_status_;
-  bool subscription_enabled_;
+  std::vector<::com::android::server::wifi::wificond::NativeScanResult>
+      cached_scan_results_;
+  bool service_available_;
 
-  const std::unique_ptr<OffloadCallbackHandlersImpl> offload_callback_handlers_;
-  OnNativeScanResultsReadyHandler scan_result_handler_;
+  const std::weak_ptr<OffloadServiceUtils> offload_service_utils_;
+  const std::shared_ptr<OffloadCallbackHandlersImpl> offload_callback_handlers_;
+  std::shared_ptr<OffloadScanCallbackInterface> event_callback_;
 
   friend class OffloadCallbackHandlersImpl;
 };

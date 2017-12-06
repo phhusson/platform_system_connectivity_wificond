@@ -22,9 +22,9 @@
 #include <android-base/logging.h>
 
 #include "wificond/client_interface_impl.h"
-#include "wificond/scanning/scan_utils.h"
-#include "wificond/scanning/offload/offload_service_utils.h"
 #include "wificond/scanning/offload/offload_scan_manager.h"
+#include "wificond/scanning/offload/offload_service_utils.h"
+#include "wificond/scanning/scan_utils.h"
 
 using android::binder::Status;
 using android::net::wifi::IPnoScanEvent;
@@ -39,24 +39,25 @@ using std::pair;
 using std::string;
 using std::vector;
 using std::weak_ptr;
+using std::shared_ptr;
 
 using namespace std::placeholders;
 
 namespace android {
 namespace wificond {
 
-ScannerImpl::ScannerImpl(uint32_t wiphy_index,
-                         uint32_t interface_index,
+ScannerImpl::ScannerImpl(uint32_t wiphy_index, uint32_t interface_index,
                          const ScanCapabilities& scan_capabilities,
                          const WiphyFeatures& wiphy_features,
                          ClientInterfaceImpl* client_interface,
-                         NetlinkUtils* netlink_utils,
-                         ScanUtils* scan_utils,
+                         NetlinkUtils* netlink_utils, ScanUtils* scan_utils,
                          weak_ptr<OffloadServiceUtils> offload_service_utils)
     : valid_(true),
       scan_started_(false),
       pno_scan_started_(false),
       offload_scan_supported_(false),
+      pno_scan_running_over_offload_(false),
+      pno_scan_results_from_offload_(false),
       wiphy_index_(wiphy_index),
       interface_index_(interface_index),
       scan_capabilities_(scan_capabilities),
@@ -70,25 +71,22 @@ ScannerImpl::ScannerImpl(uint32_t wiphy_index,
             << (int)interface_index_;
   scan_utils_->SubscribeScanResultNotification(
       interface_index_,
-      std::bind(&ScannerImpl::OnScanResultsReady,
-                this,
-                _1, _2, _3, _4));
+      std::bind(&ScannerImpl::OnScanResultsReady, this, _1, _2, _3, _4));
   // Subscribe scheduled scan result notification from kernel.
   scan_utils_->SubscribeSchedScanResultNotification(
       interface_index_,
       std::bind(&ScannerImpl::OnSchedScanResultsReady,
                 this,
                 _1, _2));
-  offload_scan_manager_.reset(
-      new OffloadScanManager(
-          offload_service_utils,
-          std::bind(&ScannerImpl::OnOffloadScanResult,
-              this, _1)));
+  std::shared_ptr<OffloadScanCallbackInterfaceImpl>
+      offload_scan_callback_interface =
+          offload_service_utils.lock()->GetOffloadScanCallbackInterface(this);
+  offload_scan_manager_ = offload_service_utils.lock()->GetOffloadScanManager(
+      offload_service_utils, offload_scan_callback_interface);
   offload_scan_supported_ = offload_service_utils.lock()->IsOffloadScanSupported();
 }
 
-ScannerImpl::~ScannerImpl() {
-}
+ScannerImpl::~ScannerImpl() {}
 
 void ScannerImpl::Invalidate() {
   LOG(INFO) << "Unsubscribe scan result for interface with index: "
@@ -111,17 +109,15 @@ Status ScannerImpl::getAvailable2gChannels(
     return Status::ok();
   }
   BandInfo band_info;
-  if (!netlink_utils_->GetWiphyInfo(wiphy_index_,
-                               &band_info,
-                               &scan_capabilities_,
-                               &wiphy_features_)) {
+  if (!netlink_utils_->GetWiphyInfo(wiphy_index_, &band_info,
+                                    &scan_capabilities_, &wiphy_features_)) {
     LOG(ERROR) << "Failed to get wiphy info from kernel";
     out_frequencies->reset(nullptr);
     return Status::ok();
   }
 
-  out_frequencies->reset(new vector<int32_t>(band_info.band_2g.begin(),
-                                             band_info.band_2g.end()));
+  out_frequencies->reset(
+      new vector<int32_t>(band_info.band_2g.begin(), band_info.band_2g.end()));
   return Status::ok();
 }
 
@@ -131,17 +127,15 @@ Status ScannerImpl::getAvailable5gNonDFSChannels(
     return Status::ok();
   }
   BandInfo band_info;
-  if (!netlink_utils_->GetWiphyInfo(wiphy_index_,
-                               &band_info,
-                               &scan_capabilities_,
-                               &wiphy_features_)) {
+  if (!netlink_utils_->GetWiphyInfo(wiphy_index_, &band_info,
+                                    &scan_capabilities_, &wiphy_features_)) {
     LOG(ERROR) << "Failed to get wiphy info from kernel";
     out_frequencies->reset(nullptr);
     return Status::ok();
   }
 
-  out_frequencies->reset(new vector<int32_t>(band_info.band_5g.begin(),
-                                             band_info.band_5g.end()));
+  out_frequencies->reset(
+      new vector<int32_t>(band_info.band_5g.begin(), band_info.band_5g.end()));
   return Status::ok();
 }
 
@@ -151,10 +145,8 @@ Status ScannerImpl::getAvailableDFSChannels(
     return Status::ok();
   }
   BandInfo band_info;
-  if (!netlink_utils_->GetWiphyInfo(wiphy_index_,
-                               &band_info,
-                               &scan_capabilities_,
-                               &wiphy_features_)) {
+  if (!netlink_utils_->GetWiphyInfo(wiphy_index_, &band_info,
+                                    &scan_capabilities_, &wiphy_features_)) {
     LOG(ERROR) << "Failed to get wiphy info from kernel";
     out_frequencies->reset(nullptr);
     return Status::ok();
@@ -175,6 +167,23 @@ Status ScannerImpl::getScanResults(vector<NativeScanResult>* out_scan_results) {
   return Status::ok();
 }
 
+Status ScannerImpl::getPnoScanResults(
+    vector<NativeScanResult>* out_scan_results) {
+  if (!CheckIsValid()) {
+    return Status::ok();
+  }
+  if (pno_scan_results_from_offload_) {
+    if (!offload_scan_manager_->getScanResults(out_scan_results)) {
+      LOG(ERROR) << "Failed to get scan results via Offload HAL";
+    }
+  } else {
+    if (!scan_utils_->GetScanResult(interface_index_, out_scan_results)) {
+      LOG(ERROR) << "Failed to get scan results via NL80211";
+    }
+  }
+  return Status::ok();
+}
+
 Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
                          bool* out_success) {
   if (!CheckIsValid()) {
@@ -186,8 +195,8 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
     LOG(WARNING) << "Scan already started";
   }
   // Only request MAC address randomization when station is not associated.
-  bool request_random_mac =  wiphy_features_.supports_random_mac_oneshot_scan &&
-      !client_interface_->IsAssociated();
+  bool request_random_mac = wiphy_features_.supports_random_mac_oneshot_scan &&
+                            !client_interface_->IsAssociated();
 
   // Initialize it with an empty ssid for a wild card scan.
   vector<vector<uint8_t>> ssids = {{}};
@@ -222,11 +231,14 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
 
 Status ScannerImpl::startPnoScan(const PnoSettings& pno_settings,
                                  bool* out_success) {
-  if (!offload_scan_supported_ || !StartPnoScanOffload(pno_settings)) {
-    *out_success = StartPnoScanDefault(pno_settings);
-  } else {
+  pno_settings_ = pno_settings;
+  pno_scan_results_from_offload_ = false;
+  LOG(VERBOSE) << "startPnoScan";
+  if (offload_scan_supported_ && StartPnoScanOffload(pno_settings)) {
     // scanning over offload succeeded
     *out_success = true;
+  } else {
+    *out_success = StartPnoScanDefault(pno_settings);
   }
   return Status::ok();
 }
@@ -239,25 +251,27 @@ bool ScannerImpl::StartPnoScanOffload(const PnoSettings& pno_settings) {
   // Empty frequency list: scan all frequencies.
   vector<uint32_t> freqs;
 
-  ParsePnoSettings(pno_settings, &scan_ssids, &match_ssids, &freqs, &match_security);
-
-  bool success = offload_scan_manager_->startScan(
-          pno_settings.interval_ms_,
-          // TODO: honor both rssi thresholds.
-          pno_settings.min_5g_rssi_,
-          scan_ssids,
-          match_ssids,
-          match_security,
-          freqs,
-          &reason_code);
-  return success;
+  ParsePnoSettings(pno_settings, &scan_ssids, &match_ssids, &freqs,
+                   &match_security);
+  pno_scan_running_over_offload_ = offload_scan_manager_->startScan(
+      pno_settings.interval_ms_,
+      // TODO: honor both rssi thresholds.
+      pno_settings.min_5g_rssi_, scan_ssids, match_ssids, match_security, freqs,
+      &reason_code);
+  if (pno_scan_running_over_offload_) {
+    LOG(VERBOSE) << "Pno scans requested over Offload HAL";
+    if (pno_scan_event_handler_ != nullptr) {
+      pno_scan_event_handler_->OnPnoScanOverOffloadStarted();
+    }
+  }
+  return pno_scan_running_over_offload_;
 }
 
 void ScannerImpl::ParsePnoSettings(const PnoSettings& pno_settings,
-    vector<vector<uint8_t>>* scan_ssids,
-    vector<vector<uint8_t>>* match_ssids,
-    vector<uint32_t>* freqs,
-    vector<uint8_t>* match_security) {
+                                   vector<vector<uint8_t>>* scan_ssids,
+                                   vector<vector<uint8_t>>* match_ssids,
+                                   vector<uint32_t>* freqs,
+                                   vector<uint8_t>* match_security) {
   // TODO provide actionable security match parameters
   const uint8_t kNetworkFlagsDefault = 0;
   vector<vector<uint8_t>> skipped_scan_ssids;
@@ -266,7 +280,8 @@ void ScannerImpl::ParsePnoSettings(const PnoSettings& pno_settings,
     // Add hidden network ssid.
     if (network.is_hidden_) {
       // TODO remove pruning for Offload Scans
-      if (scan_ssids->size() + 1 > scan_capabilities_.max_num_sched_scan_ssids) {
+      if (scan_ssids->size() + 1 >
+          scan_capabilities_.max_num_sched_scan_ssids) {
         skipped_scan_ssids.emplace_back(network.ssid_);
         continue;
       }
@@ -287,7 +302,7 @@ void ScannerImpl::ParsePnoSettings(const PnoSettings& pno_settings,
 
 bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
   if (!CheckIsValid()) {
-      return false;
+    return false;
   }
   if (pno_scan_started_) {
     LOG(WARNING) << "Pno scan already started";
@@ -324,18 +339,27 @@ bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
 }
 
 Status ScannerImpl::stopPnoScan(bool* out_success) {
-  if (!offload_scan_supported_ || !StopPnoScanOffload()) {
-    *out_success = StopPnoScanDefault();
-  } else {
+  if (offload_scan_supported_ && StopPnoScanOffload()) {
     // Pno scans over offload stopped successfully
     *out_success = true;
+  } else {
+    // Pno scans were not requested over offload
+    *out_success = StopPnoScanDefault();
   }
   return Status::ok();
 }
 
 bool ScannerImpl::StopPnoScanOffload() {
   OffloadScanManager::ReasonCode reason_code;
-  return(offload_scan_manager_->stopScan(&reason_code));
+  if (!pno_scan_running_over_offload_) {
+    return false;
+  }
+  if (!offload_scan_manager_->stopScan(&reason_code)) {
+    LOG(WARNING) << "Unable to unsubscribe to Offload scan results";
+  }
+  pno_scan_running_over_offload_ = false;
+  LOG(VERBOSE) << "Pno scans over Offload stopped";
+  return true;
 }
 
 bool ScannerImpl::StopPnoScanDefault() {
@@ -387,7 +411,6 @@ Status ScannerImpl::unsubscribeScanEvents() {
   return Status::ok();
 }
 
-
 Status ScannerImpl::subscribePnoScanEvents(const sp<IPnoScanEvent>& handler) {
   if (!CheckIsValid()) {
     return Status::ok();
@@ -407,11 +430,9 @@ Status ScannerImpl::unsubscribePnoScanEvents() {
   return Status::ok();
 }
 
-void ScannerImpl::OnScanResultsReady(
-    uint32_t interface_index,
-    bool aborted,
-    vector<vector<uint8_t>>& ssids,
-    vector<uint32_t>& frequencies) {
+void ScannerImpl::OnScanResultsReady(uint32_t interface_index, bool aborted,
+                                     vector<vector<uint8_t>>& ssids,
+                                     vector<uint32_t>& frequencies) {
   if (!scan_started_) {
     LOG(INFO) << "Received external scan result notification from kernel.";
   }
@@ -443,6 +464,7 @@ void ScannerImpl::OnSchedScanResultsReady(uint32_t interface_index,
       pno_scan_started_ = false;
     } else {
       LOG(INFO) << "Pno scan result ready event";
+      pno_scan_results_from_offload_ = false;
       pno_scan_event_handler_->OnPnoNetworkFound();
     }
   }
@@ -476,6 +498,65 @@ SchedScanIntervalSetting ScannerImpl::GenerateIntervalSetting(
   }
 }
 
+void ScannerImpl::OnOffloadScanResult() {
+  if (!pno_scan_running_over_offload_) {
+    LOG(WARNING) << "Scan results from Offload HAL but scan not requested over "
+                    "this interface";
+    return;
+  }
+  LOG(INFO) << "Offload Scan results received";
+  pno_scan_results_from_offload_ = true;
+  if (pno_scan_event_handler_ != nullptr) {
+    pno_scan_event_handler_->OnPnoNetworkFound();
+  } else {
+    LOG(WARNING) << "No scan event handler Offload Scan result";
+  }
+}
+
+void ScannerImpl::OnOffloadError(
+    OffloadScanCallbackInterface::AsyncErrorReason error_code) {
+  if (!pno_scan_running_over_offload_) {
+    // Ignore irrelevant error notifications
+    LOG(WARNING) << "Offload HAL Async Error occured but Offload HAL is not "
+                    "subscribed to";
+    return;
+  }
+  LOG(ERROR) << "Offload Service Async Failure error_code=" << error_code;
+  switch (error_code) {
+    case OffloadScanCallbackInterface::AsyncErrorReason::BINDER_DEATH:
+      LOG(ERROR) << "Binder death";
+      if (pno_scan_event_handler_ != nullptr) {
+        pno_scan_event_handler_->OnPnoScanOverOffloadFailed(
+            net::wifi::IPnoScanEvent::PNO_SCAN_OVER_OFFLOAD_BINDER_FAILURE);
+      }
+      break;
+    case OffloadScanCallbackInterface::AsyncErrorReason::REMOTE_FAILURE:
+      LOG(ERROR) << "Remote failure";
+      if (pno_scan_event_handler_ != nullptr) {
+        pno_scan_event_handler_->OnPnoScanOverOffloadFailed(
+            net::wifi::IPnoScanEvent::PNO_SCAN_OVER_OFFLOAD_REMOTE_FAILURE);
+      }
+      break;
+    default:
+      LOG(WARNING) << "Invalid Error code";
+      break;
+  }
+  bool success = false;
+  // Stop scans over Offload HAL and request them over netlink
+  stopPnoScan(&success);
+  if (success) {
+    LOG(INFO) << "Pno scans stopped";
+  }
+  // Restart PNO scans over netlink interface
+  success = StartPnoScanDefault(pno_settings_);
+  if (success) {
+    LOG(INFO) << "Pno scans restarted";
+  } else {
+    LOG(ERROR) << "Unable to fall back to netlink pno scan";
+    pno_scan_event_handler_->OnPnoScanFailed();
+  }
+}
+
 void ScannerImpl::LogSsidList(vector<vector<uint8_t>>& ssid_list,
                               string prefix) {
   if (ssid_list.empty()) {
@@ -489,16 +570,6 @@ void ScannerImpl::LogSsidList(vector<vector<uint8_t>>& ssid_list,
     }
   }
   LOG(WARNING) << prefix << ": " << ssid_list_string;
-}
-
-void ScannerImpl::OnOffloadScanResult(
-    std::vector<NativeScanResult> scanResult) {
-  LOG(INFO) << "Offload Scan results received";
-  if (pno_scan_event_handler_ != nullptr) {
-    pno_scan_event_handler_->OnPnoNetworkFound();
-  } else {
-    LOG(WARNING) << "No scan event handler Offload Scan result";
-  }
 }
 
 }  // namespace wificond

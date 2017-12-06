@@ -24,6 +24,7 @@
 #include "wificond/scanning/offload/offload_callback.h"
 #include "wificond/scanning/offload/offload_callback_handlers.h"
 #include "wificond/scanning/offload/offload_service_utils.h"
+#include "wificond/scanning/offload_scan_callback_interface_impl.h"
 
 namespace android {
 namespace wificond {
@@ -40,6 +41,14 @@ class MockOffloadServiceUtils : public OffloadServiceUtils {
   MOCK_METHOD1(GetOffloadDeathRecipient,
                android::wificond::OffloadDeathRecipient*(
                    OffloadDeathRecipientHandler handler));
+  MOCK_METHOD1(
+      GetOffloadScanCallbackInterface,
+      std::shared_ptr<OffloadScanCallbackInterfaceImpl>(ScannerImpl* scanner));
+  MOCK_METHOD2(GetOffloadScanManager,
+               std::shared_ptr<OffloadScanManager>(
+                   std::weak_ptr<OffloadServiceUtils> service_utils,
+                   std::shared_ptr<OffloadScanCallbackInterfaceImpl>
+                       callback_interface));
 };
 
 }  // namespace wificond

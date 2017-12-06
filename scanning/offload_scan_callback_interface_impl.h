@@ -14,18 +14,31 @@
  * limitations under the License.
  */
 
-#include "wificond/rtt/rtt_controller_binder.h"
+#ifndef WIFICOND_SCANNER_OFFLOAD_SCAN_CALLBACK_INTERFACE_IML_H_
+#define WIFICOND_SCANNER_OFFLOAD_SCAN_CALLBACK_INTERFACE_IML_H_
 
-#include "wificond/rtt/rtt_controller_impl.h"
+#include "wificond/scanning/offload_scan_callback_interface.h"
+#include "wificond/scanning/scanner_impl.h"
 
 namespace android {
 namespace wificond {
 
-RttControllerBinder::RttControllerBinder(RttControllerImpl* impl) : impl_{impl} {
-}
+class ScannerImpl;
 
-RttControllerBinder::~RttControllerBinder() {
-}
+class OffloadScanCallbackInterfaceImpl
+    : public android::wificond::OffloadScanCallbackInterface {
+ public:
+  OffloadScanCallbackInterfaceImpl(ScannerImpl* parent);
+  ~OffloadScanCallbackInterfaceImpl() override;
+
+  void OnOffloadScanResult() override;
+  void OnOffloadError(OffloadScanCallbackInterface::AsyncErrorReason) override;
+
+ private:
+  ScannerImpl* scanner_impl_;
+};
 
 }  // namespace wificond
 }  // namespace android
+
+#endif  //  WIFICOND_SCANNER_OFFLOAD_SCAN_CALLBACK_INTERFACE_IML_H_

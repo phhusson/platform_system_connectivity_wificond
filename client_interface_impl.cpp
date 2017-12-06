@@ -188,7 +188,7 @@ bool ClientInterfaceImpl::DisableSupplicant() {
 bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters) {
   StationInfo station_info;
   if (!netlink_utils_->GetStationInfo(interface_index_,
-                                      interface_mac_addr_,
+                                      bssid_,
                                       &station_info)) {
     return false;
   }
@@ -199,6 +199,11 @@ bool ClientInterfaceImpl::GetPacketCounters(vector<int32_t>* out_packet_counters
 }
 
 bool ClientInterfaceImpl::SignalPoll(vector<int32_t>* out_signal_poll_results) {
+  if (!IsAssociated()) {
+    LOG(INFO) << "Fail RSSI polling because wifi is not associated.";
+    return false;
+  }
+
   StationInfo station_info;
   if (!netlink_utils_->GetStationInfo(interface_index_,
                                       bssid_,

@@ -16,6 +16,7 @@
 #include "wificond/scanning/offload/offload_scan_utils.h"
 
 #include <android-base/logging.h>
+#include <utils/Timers.h>
 
 #include "wificond/scanning/offload/scan_stats.h"
 #include "wificond/scanning/scan_result.h"
@@ -33,23 +34,25 @@ using std::vector;
 namespace android {
 namespace wificond {
 
-vector<NativeScanResult> OffloadScanUtils::convertToNativeScanResults(
-    const vector<ScanResult>& scan_result) {
-  vector<NativeScanResult> native_scan_result;
-  native_scan_result.reserve(scan_result.size());
+bool OffloadScanUtils::convertToNativeScanResults(
+    const vector<ScanResult>& scan_result,
+    vector<NativeScanResult>* native_scan_result) {
+  if (native_scan_result == nullptr) return false;
   for (size_t i = 0; i < scan_result.size(); i++) {
     NativeScanResult single_scan_result;
-    single_scan_result.ssid = scan_result[i].networkInfo.ssid;
-    single_scan_result.bssid.assign(scan_result[i].networkInfo.ssid.begin(),
-                                    scan_result[i].networkInfo.ssid.end());
+    single_scan_result.ssid.assign(scan_result[i].networkInfo.ssid.begin(),
+                                   scan_result[i].networkInfo.ssid.end());
+    for (size_t j = 0; j < scan_result[i].bssid.elementCount(); j++) {
+      single_scan_result.bssid.push_back(scan_result[i].bssid[j]);
+    }
     single_scan_result.frequency = scan_result[i].frequency;
     single_scan_result.signal_mbm = scan_result[i].rssi;
-    single_scan_result.tsf = scan_result[i].tsf;
+    single_scan_result.tsf = systemTime(SYSTEM_TIME_MONOTONIC) / 1000;
     single_scan_result.capability = scan_result[i].capability;
     single_scan_result.associated = false;
-    native_scan_result.emplace_back(single_scan_result);
+    native_scan_result->push_back(std::move(single_scan_result));
   }
-  return native_scan_result;
+  return true;
 }
 
 ScanParam OffloadScanUtils::createScanParam(
