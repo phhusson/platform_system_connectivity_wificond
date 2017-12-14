@@ -222,6 +222,13 @@ status_t Server::dump(int fd, const Vector<String16>& /*args*/) {
        << LoggingUtils::GetMacString(iface.mac_address) << endl;
   }
 
+  string country_code;
+  if (netlink_utils_->GetCountryCode(&country_code)) {
+    ss << "Current country code from kernel: " << country_code << endl;
+  } else {
+    ss << "Failed to get country code from kernel." << endl;
+  }
+
   for (const auto& iface : client_interfaces_) {
     iface.second->Dump(&ss);
   }

@@ -62,6 +62,7 @@ constexpr int kFakeErrorCode = EIO;
 constexpr bool kFakeSupportsRandomMacOneshotScan = true;
 constexpr bool kFakeSupportsRandomMacSchedScan = false;
 const char kFakeInterfaceName[] = "testif0";
+const char kFakeCountryCode[] = "US";
 const uint32_t kFakeInterfaceIndex = 34;
 const uint32_t kFakeInterfaceIndex1 = 36;
 const uint8_t kFakeInterfaceMacAddress[] = {0x45, 0x54, 0xad, 0x67, 0x98, 0xf6};
@@ -621,6 +622,39 @@ TEST_F(NetlinkUtilsTest, CanHandleGetProtocolFeaturesError) {
 
   uint32_t features_ignored;
   EXPECT_FALSE(netlink_utils_->GetProtocolFeatures(&features_ignored));
+}
+
+TEST_F(NetlinkUtilsTest, CanGetCountryCode) {
+  // There is no specification for the response packet id for
+  // NL80211_CMD_GET_REG.
+  // Still use NL80211_CMD_GET_REG here.
+  NL80211Packet get_country_code_response(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_GET_PROTOCOL_FEATURES,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  get_country_code_response.AddAttribute(
+      NL80211Attr<string>(NL80211_ATTR_REG_ALPHA2,
+                          kFakeCountryCode));
+  vector<NL80211Packet> response = {get_country_code_response};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+
+  string country_code;
+  EXPECT_TRUE(netlink_utils_->GetCountryCode(&country_code));
+  EXPECT_EQ(kFakeCountryCode, country_code);
+}
+
+TEST_F(NetlinkUtilsTest, CanHandleGetCountryCodeError) {
+  // Mock an error response from kernel.
+  vector<NL80211Packet> response = {CreateControlMessageError(kFakeErrorCode)};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(response), Return(true)));
+
+  string country_code_ignored;
+  EXPECT_FALSE(netlink_utils_->GetCountryCode(&country_code_ignored));
 }
 
 }  // namespace wificond

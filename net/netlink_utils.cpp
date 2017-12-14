@@ -530,6 +530,25 @@ bool NetlinkUtils::MergePacketsForSplitWiphyDump(
   return true;
 }
 
+bool NetlinkUtils::GetCountryCode(string* out_country_code) {
+  NL80211Packet get_country_code(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_GET_REG,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  unique_ptr<const NL80211Packet> response;
+  if (!netlink_manager_->SendMessageAndGetSingleResponse(get_country_code,
+                                                         &response)) {
+    LOG(ERROR) << "NL80211_CMD_GET_REG failed";
+    return false;
+  }
+  if (!response->GetAttributeValue(NL80211_ATTR_REG_ALPHA2, out_country_code)) {
+    LOG(ERROR) << "Get NL80211_ATTR_REG_ALPHA2 failed";
+    return false;
+  }
+  return true;
+}
+
 void NetlinkUtils::SubscribeMlmeEvent(uint32_t interface_index,
                                       MlmeEventHandler* handler) {
   netlink_manager_->SubscribeMlmeEvent(interface_index, handler);
