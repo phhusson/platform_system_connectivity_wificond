@@ -35,7 +35,6 @@ LOCAL_SHARED_LIBRARIES := \
     libbase \
     libcutils \
     libhidlbase \
-    libhwbinder \
     libhidltransport \
     libminijail \
     libutils \
@@ -79,7 +78,6 @@ LOCAL_SHARED_LIBRARIES := \
     libbase \
     libutils \
     libhidlbase \
-    libhwbinder \
     libhidltransport \
     libwifi-system \
     libwifi-system-iface
@@ -203,7 +201,6 @@ LOCAL_SHARED_LIBRARIES := \
     libcutils \
     libhidltransport \
     libhidlbase \
-    libhwbinder \
     liblog \
     libutils \
     libwifi-system \
