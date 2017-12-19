@@ -109,7 +109,7 @@ TEST(ApInterfaceTest, CanStartStopHostapd) {
   EXPECT_TRUE(ap_interface->writeHostapdConfig(
       vector<uint8_t>(kValidSsid, kValidSsid + sizeof(kValidSsid) - 1),
       false,
-      6,
+      IApInterface::BAND_5G,
       IApInterface::ENCRYPTION_TYPE_WPA2,
       vector<uint8_t>(kValidPassphrase,
                       kValidPassphrase + sizeof(kValidPassphrase) - 1),
@@ -166,7 +166,7 @@ TEST(ApInterfaceTest, CanWriteHostapdConfig) {
   EXPECT_TRUE(ap_interface->writeHostapdConfig(
       vector<uint8_t>(kValidSsid, kValidSsid + sizeof(kValidSsid) - 1),
       false,
-      2,
+      IApInterface::BAND_5G,
       IApInterface::ENCRYPTION_TYPE_WPA2,
       vector<uint8_t>(kValidPassphrase,
                       kValidPassphrase + sizeof(kValidPassphrase) - 1),
@@ -177,7 +177,7 @@ TEST(ApInterfaceTest, CanWriteHostapdConfig) {
   EXPECT_TRUE(ap_interface->writeHostapdConfig(
       vector<uint8_t>(kInvalidSsid, kInvalidSsid + sizeof(kInvalidSsid) - 1),
       false,
-      2,
+      IApInterface::BAND_5G,
       IApInterface::ENCRYPTION_TYPE_WPA2,
       vector<uint8_t>(kValidPassphrase,
                       kValidPassphrase + sizeof(kValidPassphrase) - 1),

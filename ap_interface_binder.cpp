@@ -67,7 +67,7 @@ binder::Status ApInterfaceBinder::stopHostapd(bool* out_success) {
 binder::Status ApInterfaceBinder::writeHostapdConfig(
     const std::vector<uint8_t>& ssid,
     bool is_hidden,
-    int32_t channel,
+    int32_t binder_band_type,
     int32_t binder_encryption_type,
     const std::vector<uint8_t>& passphrase,
     bool* out_success) {
@@ -93,8 +93,25 @@ binder::Status ApInterfaceBinder::writeHostapdConfig(
       return binder::Status::ok();
   }
 
+
+  HostapdManager::BandType band_type;
+  switch (binder_band_type) {
+    case IApInterface::BAND_2G:
+      band_type = HostapdManager::BandType::kBand2G;
+      break;
+    case IApInterface::BAND_5G:
+      band_type = HostapdManager::BandType::kBand5G;
+      break;
+    case IApInterface::BAND_ANY:
+      band_type = HostapdManager::BandType::kBandAny;
+      break;
+    default:
+      LOG(ERROR) << "Unknown band type: " << binder_band_type;
+      return binder::Status::ok();
+  }
+
   *out_success = impl_->WriteHostapdConfig(
-      ssid, is_hidden, channel, encryption_type, passphrase);
+      ssid, is_hidden, band_type, encryption_type, passphrase);
 
   return binder::Status::ok();
 }

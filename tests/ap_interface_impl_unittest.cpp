@@ -36,7 +36,9 @@ using std::placeholders::_2;
 using std::unique_ptr;
 using std::vector;
 using testing::NiceMock;
+using testing::Not;
 using testing::Invoke;
+using testing::IsEmpty;
 using testing::Return;
 using testing::Sequence;
 using testing::StrEq;
@@ -113,13 +115,14 @@ TEST_F(ApInterfaceImplTest, ShouldReportStopSuccess) {
 }
 
 TEST_F(ApInterfaceImplTest, ShouldRejectInvalidConfig) {
-  EXPECT_CALL(*hostapd_manager_, CreateHostapdConfig(_, _, _, _, _, _))
+  EXPECT_CALL(*hostapd_manager_, CreateHostapdConfig(
+          _, _, _, _, Not(HostapdManager::EncryptionType::kOpen), IsEmpty()))
       .WillOnce(Return(""));
   EXPECT_CALL(*hostapd_manager_, WriteHostapdConfig(_)).Times(0);
   EXPECT_FALSE(ap_interface_->WriteHostapdConfig(
         vector<uint8_t>(),
         false,
-        0,
+        HostapdManager::BandType::kBandAny,
         HostapdManager::EncryptionType::kWpa2,
         vector<uint8_t>()));
 }
