@@ -50,7 +50,8 @@ constexpr uint32_t kFakeInterfaceIndex = 12;
 constexpr uint32_t kFakeScheduledScanIntervalMs = 20000;
 constexpr uint32_t kFakeSequenceNumber = 1984;
 constexpr int kFakeErrorCode = EIO;
-constexpr int32_t kFakeRssiThreshold = -80;
+constexpr int32_t kFake2gRssiThreshold = -80;
+constexpr int32_t kFake5gRssiThreshold = -77;
 constexpr bool kFakeUseRandomMAC = true;
 
 // Currently, control messages are only created by the kernel and sent to us.
@@ -170,7 +171,8 @@ TEST_F(ScanUtilsTest, CanSendSchedScanRequest) {
   EXPECT_TRUE(scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
       SchedScanIntervalSetting(),
-      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &errno_ignored));
+      kFake2gRssiThreshold, kFake5gRssiThreshold,
+      kFakeUseRandomMAC, {}, {}, {}, &errno_ignored));
   // TODO(b/34231420): Add validation of requested scan ssids, threshold,
   // and frequencies.
 }
@@ -187,7 +189,8 @@ TEST_F(ScanUtilsTest, CanHandleSchedScanRequestFailure) {
   EXPECT_FALSE(scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
       SchedScanIntervalSetting(),
-      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &error_code));
+      kFake2gRssiThreshold, kFake5gRssiThreshold,
+      kFakeUseRandomMAC, {}, {}, {}, &error_code));
   EXPECT_EQ(kFakeErrorCode, error_code);
 }
 
@@ -209,7 +212,8 @@ TEST_F(ScanUtilsTest, CanSpecifyScanPlansForSchedScanRequest) {
   scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
       interval_setting,
-      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &errno_ignored);
+      kFake2gRssiThreshold, kFake5gRssiThreshold,
+      kFakeUseRandomMAC, {}, {}, {}, &errno_ignored);
 }
 
 TEST_F(ScanUtilsTest, CanSpecifySingleIntervalForSchedScanRequest) {
@@ -228,7 +232,8 @@ TEST_F(ScanUtilsTest, CanSpecifySingleIntervalForSchedScanRequest) {
   scan_utils_.StartScheduledScan(
       kFakeInterfaceIndex,
       interval_setting,
-      kFakeRssiThreshold, kFakeUseRandomMAC, {}, {}, {}, &errno_ignored);
+      kFake2gRssiThreshold, kFake5gRssiThreshold,
+      kFakeUseRandomMAC, {}, {}, {}, &errno_ignored);
 }
 
 TEST_F(ScanUtilsTest, CanPrioritizeLastSeenSinceBootNetlinkAttribute) {

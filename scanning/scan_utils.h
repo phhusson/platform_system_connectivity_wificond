@@ -91,7 +91,10 @@ class ScanUtils {
 
   // Send scan request to kernel for interface with index |interface_index|.
   // |inteval_ms| is the expected scan interval in milliseconds.
-  // |rssi_threshold| is the minimum RSSI threshold value as a filter.
+  // |rssi_threshold_2g| is the minimum RSSI threshold value as a filter for
+  // 2GHz band.
+  // |rssi_threshold_5g| is the minimum RSSI threshold value as a filter for
+  // 5GHz band.
   // |scan_ssids| is a vector of ssids we request to scan, which is mostly
   // used for hidden networks.
   // |request_random_mac| is used for asking device/driver to use a random MAC
@@ -110,7 +113,8 @@ class ScanUtils {
   virtual bool StartScheduledScan(
       uint32_t interface_index,
       const SchedScanIntervalSetting& interval_setting,
-      int32_t rssi_threshold,
+      int32_t rssi_threshold_2g,
+      int32_t rssi_threshold_5g,
       bool request_random_mac,
       const std::vector<std::vector<uint8_t>>& scan_ssids,
       const std::vector<std::vector<uint8_t>>& match_ssids,
