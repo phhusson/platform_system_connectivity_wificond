@@ -48,10 +48,11 @@ class MockScanUtils : public ScanUtils {
       const std::vector<uint32_t>& freqs,
       int* error_code));
 
-  MOCK_METHOD8(StartScheduledScan, bool(
+  MOCK_METHOD9(StartScheduledScan, bool(
       uint32_t interface_index,
       const SchedScanIntervalSetting& interval_setting,
-      int32_t rssi_threshold,
+      int32_t rssi_threshold_2g,
+      int32_t rssi_threshold_5g,
       bool request_random_mac,
       const std::vector<std::vector<uint8_t>>& scan_ssids,
       const std::vector<std::vector<uint8_t>>& match_ssids,
