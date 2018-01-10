@@ -55,7 +55,7 @@ class ApInterfaceImpl {
   bool WriteHostapdConfig(
       const std::vector<uint8_t>& ssid,
       bool is_hidden,
-      int32_t channel,
+      wifi_system::HostapdManager::BandType band_type,
       wifi_system::HostapdManager::EncryptionType encryption_type,
       const std::vector<uint8_t>& passphrase);
   std::string GetInterfaceName() { return interface_name_; }

@@ -46,7 +46,7 @@ class ApInterfaceBinder : public android::net::wifi::BnApInterface {
   binder::Status stopHostapd(bool* out_success) override;
   binder::Status writeHostapdConfig(const std::vector<uint8_t>& ssid,
                                     bool is_hidden,
-                                    int32_t channel,
+                                    int32_t band_type,
                                     int32_t encryption_type,
                                     const std::vector<uint8_t>& passphrase,
                                     bool* out_success) override;
