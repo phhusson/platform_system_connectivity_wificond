@@ -32,7 +32,6 @@ using std::unique_ptr;
 using std::vector;
 
 using EncryptionType = android::wifi_system::HostapdManager::EncryptionType;
-using BandType = android::wifi_system::HostapdManager::BandType;
 
 using namespace std::placeholders;
 
@@ -113,12 +112,11 @@ bool ApInterfaceImpl::StopHostapd() {
 
 bool ApInterfaceImpl::WriteHostapdConfig(const vector<uint8_t>& ssid,
                                          bool is_hidden,
-                                         BandType band,
+                                         int32_t channel,
                                          EncryptionType encryption_type,
                                          const vector<uint8_t>& passphrase) {
   string config = hostapd_manager_->CreateHostapdConfig(
-      interface_name_, ssid, is_hidden,
-      band, encryption_type, passphrase);
+      interface_name_, ssid, is_hidden, channel, encryption_type, passphrase);
 
   if (config.empty()) {
     return false;

@@ -26,10 +26,6 @@ interface IApInterface {
   const int ENCRYPTION_TYPE_WPA = 1;
   const int ENCRYPTION_TYPE_WPA2 = 2;
 
-  const int BAND_2G = 0;
-  const int BAND_5G = 1;
-  const int BAND_ANY = 2;
-
   // Start up an instance of hostapd associated with this interface.
   //
   // @param callback Object to add a set of event callbacks.
@@ -45,12 +41,12 @@ interface IApInterface {
   //
   // @param ssid string of <=32 bytes to use as the SSID for this AP.
   // @param isHidden True iff the AP should not broadcast its SSID.
-  // @param band one of the BAND_* above.
+  // @param channel WiFi channel to expose the AP on.
   // @param encryptionType one of ENCRYPTION_TYPE* above.
   // @param passphrase string of bytes to use as the passphrase for this AP.
   //        Ignored if encryptionType is None.
   // @return true on success.
-  boolean writeHostapdConfig(in byte[] ssid, boolean isHidden, int band,
+  boolean writeHostapdConfig(in byte[] ssid, boolean isHidden, int channel,
                              int encryptionType, in byte[] passphrase);
 
   // Retrieve the name of the network interface corresponding to this
