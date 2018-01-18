@@ -44,12 +44,6 @@ class ApInterfaceBinder : public android::net::wifi::BnApInterface {
       const sp<net::wifi::IApInterfaceEventCallback>& callback,
       bool* out_success) override;
   binder::Status stopHostapd(bool* out_success) override;
-  binder::Status writeHostapdConfig(const std::vector<uint8_t>& ssid,
-                                    bool is_hidden,
-                                    int32_t channel,
-                                    int32_t encryption_type,
-                                    const std::vector<uint8_t>& passphrase,
-                                    bool* out_success) override;
   binder::Status getInterfaceName(std::string* out_name) override;
   binder::Status getNumberOfAssociatedStations(
       int* out_num_of_stations) override;

@@ -112,18 +112,6 @@ TEST_F(ApInterfaceImplTest, ShouldReportStopSuccess) {
   testing::Mock::VerifyAndClearExpectations(if_tool_.get());
 }
 
-TEST_F(ApInterfaceImplTest, ShouldRejectInvalidConfig) {
-  EXPECT_CALL(*hostapd_manager_, CreateHostapdConfig(_, _, _, _, _, _))
-      .WillOnce(Return(""));
-  EXPECT_CALL(*hostapd_manager_, WriteHostapdConfig(_)).Times(0);
-  EXPECT_FALSE(ap_interface_->WriteHostapdConfig(
-        vector<uint8_t>(),
-        false,
-        0,
-        HostapdManager::EncryptionType::kWpa2,
-        vector<uint8_t>()));
-}
-
 TEST_F(ApInterfaceImplTest, CanGetNumberOfAssociatedStations) {
   OnStationEventHandler handler;
   EXPECT_CALL(*netlink_utils_,

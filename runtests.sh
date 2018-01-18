@@ -51,9 +51,6 @@ adb sync
 adb shell /data/nativetest/wificond_unit_test/wificond_unit_test
 adb shell /data/nativetest64/wificond_unit_test/wificond_unit_test
 
-adb shell /data/nativetest/libwifi-system_tests/libwifi-system_tests
-adb shell /data/nativetest64/libwifi-system_tests/libwifi-system_tests
-
 # NOTE Integration tests are temporarily disabled until we hook up vendor
 # HAL to wificond for reloading driver/firmware.
 #adb shell /data/nativetest/wificond_integration_test/wificond_integration_test
