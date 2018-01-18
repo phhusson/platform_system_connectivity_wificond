@@ -39,18 +39,9 @@ using std::vector;
 namespace android {
 namespace wificond {
 namespace {
-
+const char kInterfaceName[] = "wlan0";
 constexpr int kHostapdStartupTimeoutSeconds = 3;
 constexpr int kHostapdDeathTimeoutSeconds = 3;
-
-const char kInterfaceName[] = "wlan0";
-const char kValidSsid[] = "foobar";
-const char kInvalidSsid[] = "0123456789"
-                            "0123456789"
-                            "0123456789"
-                            "012";  // 33 bytes is too long
-const char kValidPassphrase[] = "super secret";
-
 }  // namespace
 
 TEST(ApInterfaceTest, CanCreateApInterfaces) {
@@ -105,17 +96,6 @@ TEST(ApInterfaceTest, CanStartStopHostapd) {
   InterfaceTool if_tool;
   EXPECT_FALSE(if_tool.GetUpState(if_name.c_str()));
 
-  bool wrote_config = false;
-  EXPECT_TRUE(ap_interface->writeHostapdConfig(
-      vector<uint8_t>(kValidSsid, kValidSsid + sizeof(kValidSsid) - 1),
-      false,
-      6,
-      IApInterface::ENCRYPTION_TYPE_WPA2,
-      vector<uint8_t>(kValidPassphrase,
-                      kValidPassphrase + sizeof(kValidPassphrase) - 1),
-      &wrote_config).isOk());
-  ASSERT_TRUE(wrote_config);
-
   sp<MockApInterfaceEventCallback> ap_interface_event_callback(
       new MockApInterfaceEventCallback());
 
@@ -153,37 +133,5 @@ TEST(ApInterfaceTest, CanStartStopHostapd) {
         << "Failed on iteration " << iteration;
   }
 }
-
-TEST(ApInterfaceTest, CanWriteHostapdConfig) {
-  ScopedDevModeWificond dev_mode;
-  sp<IWificond> service = dev_mode.EnterDevModeOrDie();
-  sp<IApInterface> ap_interface;
-  EXPECT_TRUE(service->createApInterface(kInterfaceName, &ap_interface).isOk());
-  ASSERT_NE(nullptr, ap_interface.get());
-
-  bool success = false;
-  // Should be able to write out a valid configuration
-  EXPECT_TRUE(ap_interface->writeHostapdConfig(
-      vector<uint8_t>(kValidSsid, kValidSsid + sizeof(kValidSsid) - 1),
-      false,
-      2,
-      IApInterface::ENCRYPTION_TYPE_WPA2,
-      vector<uint8_t>(kValidPassphrase,
-                      kValidPassphrase + sizeof(kValidPassphrase) - 1),
-      &success).isOk());
-  EXPECT_TRUE(success) << "Expected to write out a valid config.";
-
-  // SSIDs have to be 32 bytes or less
-  EXPECT_TRUE(ap_interface->writeHostapdConfig(
-      vector<uint8_t>(kInvalidSsid, kInvalidSsid + sizeof(kInvalidSsid) - 1),
-      false,
-      2,
-      IApInterface::ENCRYPTION_TYPE_WPA2,
-      vector<uint8_t>(kValidPassphrase,
-                      kValidPassphrase + sizeof(kValidPassphrase) - 1),
-      &success).isOk());
-  EXPECT_FALSE(success) << "Did not expect to write out an invalid config.";
-}
-
 }  // namespace wificond
 }  // namespace android
