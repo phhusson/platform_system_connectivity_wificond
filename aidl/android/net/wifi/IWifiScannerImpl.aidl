@@ -23,6 +23,11 @@ import com.android.server.wifi.wificond.PnoSettings;
 import com.android.server.wifi.wificond.SingleScanSettings;
 
 interface IWifiScannerImpl {
+  // Type of scan request. This is used in |SingleScanSettings.scan_type|.
+  const int SCAN_TYPE_LOW_SPAN = 0;
+  const int SCAN_TYPE_LOW_POWER = 1;
+  const int SCAN_TYPE_HIGH_ACCURACY = 2;
+
   // Get the latest single scan results from kernel.
   NativeScanResult[] getScanResults();
 

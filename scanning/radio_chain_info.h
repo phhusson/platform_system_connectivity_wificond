@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2018 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef WIFICOND_SCANNING_SINGLE_SCAN_SETTINGS_H_
-#define WIFICOND_SCANNING_SINGLE_SCAN_SETTINGS_H_
-
-#include <vector>
+#ifndef WIFICOND_SCANNING_RADIO_CHAIN_INFO_H_
+#define WIFICOND_SCANNING_RADIO_CHAIN_INFO_H_
 
 #include <binder/Parcel.h>
 #include <binder/Parcelable.h>
-
-#include "wificond/scanning/channel_settings.h"
-#include "wificond/scanning/hidden_network.h"
 
 namespace com {
 namespace android {
@@ -31,23 +26,20 @@ namespace server {
 namespace wifi {
 namespace wificond {
 
-class SingleScanSettings : public ::android::Parcelable {
+class RadioChainInfo : public ::android::Parcelable {
  public:
-  SingleScanSettings() = default;
-  bool operator==(const SingleScanSettings& rhs) const {
-    return (scan_type_ == rhs.scan_type_ &&
-            channel_settings_ == rhs.channel_settings_ &&
-            hidden_networks_ == rhs.hidden_networks_);
+  RadioChainInfo(int32_t chain_id, int32_t level)
+      : chain_id(chain_id), level(level) {}
+  RadioChainInfo()
+      : chain_id(0), level(0) {}
+  bool operator==(const RadioChainInfo& rhs) const {
+    return chain_id == rhs.chain_id && level == rhs.level;
   }
   ::android::status_t writeToParcel(::android::Parcel* parcel) const override;
   ::android::status_t readFromParcel(const ::android::Parcel* parcel) override;
 
-  int32_t scan_type_;
-  std::vector<ChannelSettings> channel_settings_;
-  std::vector<HiddenNetwork> hidden_networks_;
-
- private:
-  bool isValidScanType() const;
+  int32_t chain_id;
+  int32_t level;
 };
 
 }  // namespace wificond
@@ -56,4 +48,4 @@ class SingleScanSettings : public ::android::Parcelable {
 }  // namespace android
 }  // namespace com
 
-#endif  // WIFICOND_SCANNING_SINGLE_SCAN_SETTINGS_H_
+#endif  // WIFICOND_SCANNING_RADIO_CHAIN_INFO_H_
