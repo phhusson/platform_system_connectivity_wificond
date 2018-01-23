@@ -18,12 +18,14 @@
 
 #include <gtest/gtest.h>
 
+#include "android/net/wifi/IWifiScannerImpl.h"
 #include "wificond/scanning/channel_settings.h"
 #include "wificond/scanning/hidden_network.h"
 #include "wificond/scanning/pno_network.h"
 #include "wificond/scanning/pno_settings.h"
 #include "wificond/scanning/single_scan_settings.h"
 
+using ::android::net::wifi::IWifiScannerImpl;
 using ::com::android::server::wifi::wificond::ChannelSettings;
 using ::com::android::server::wifi::wificond::HiddenNetwork;
 using ::com::android::server::wifi::wificond::PnoNetwork;
@@ -44,6 +46,7 @@ const uint8_t kFakeSsid1[] =
 constexpr int32_t kFakePnoIntervalMs = 20000;
 constexpr int32_t kFakePnoMin2gRssi = -80;
 constexpr int32_t kFakePnoMin5gRssi = -85;
+constexpr int32_t kInvalidScanType = 100;
 
 constexpr uint32_t kFakeFrequency = 5260;
 constexpr uint32_t kFakeFrequency1 = 2460;
@@ -90,6 +93,7 @@ TEST_F(ScanSettingsTest, SingleScanSettingsParcelableTest) {
   channel.frequency_ = kFakeFrequency;
   channel1.frequency_ = kFakeFrequency1;
   channel2.frequency_ = kFakeFrequency2;
+  scan_settings.scan_type_ = IWifiScannerImpl::SCAN_TYPE_LOW_SPAN;
 
   HiddenNetwork network;
   network.ssid_ =
@@ -107,6 +111,27 @@ TEST_F(ScanSettingsTest, SingleScanSettingsParcelableTest) {
 
   EXPECT_EQ(scan_settings, scan_settings_copy);
 }
+
+TEST_F(ScanSettingsTest, SingleScanSettingsParcelableWriteInvalidScanType) {
+  SingleScanSettings scan_settings;
+
+  ChannelSettings channel, channel1, channel2;
+  channel.frequency_ = kFakeFrequency;
+  channel1.frequency_ = kFakeFrequency1;
+  channel2.frequency_ = kFakeFrequency2;
+  scan_settings.scan_type_ = kInvalidScanType;
+
+  HiddenNetwork network;
+  network.ssid_ =
+      vector<uint8_t>(kFakeSsid, kFakeSsid + sizeof(kFakeSsid));
+
+  scan_settings.channel_settings_ = {channel, channel1, channel2};
+  scan_settings.hidden_networks_ = {network};
+
+  Parcel parcel;
+  EXPECT_EQ(::android::BAD_VALUE, scan_settings.writeToParcel(&parcel));
+}
+
 
 TEST_F(ScanSettingsTest, PnoNetworkParcelableTest) {
   PnoNetwork pno_network;

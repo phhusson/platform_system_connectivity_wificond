@@ -62,6 +62,7 @@ LOCAL_SRC_FILES := \
     scanning/offload_scan_callback_interface_impl.cpp \
     scanning/pno_network.cpp \
     scanning/pno_settings.cpp \
+    scanning/radio_chain_info.cpp \
     scanning/scan_result.cpp \
     scanning/offload/scan_stats.cpp \
     scanning/single_scan_settings.cpp \
@@ -140,6 +141,7 @@ LOCAL_SRC_FILES := \
     scanning/hidden_network.cpp \
     scanning/pno_network.cpp \
     scanning/pno_settings.cpp \
+    scanning/radio_chain_info.cpp \
     scanning/scan_result.cpp \
     scanning/single_scan_settings.cpp
 LOCAL_SHARED_LIBRARIES := \
