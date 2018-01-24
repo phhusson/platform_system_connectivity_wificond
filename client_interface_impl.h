@@ -76,6 +76,7 @@ class ClientInterfaceImpl {
   const std::vector<uint8_t>& GetMacAddress();
   const std::string& GetInterfaceName() const { return interface_name_; }
   const android::sp<ScannerImpl> GetScanner() { return scanner_; };
+  bool SetMacAddress(const ::std::vector<uint8_t>& mac);
   virtual bool IsAssociated() const;
   void Dump(std::stringstream* ss) const;
 

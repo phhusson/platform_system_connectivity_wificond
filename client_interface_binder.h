@@ -46,7 +46,8 @@ class ClientInterfaceBinder : public android::net::wifi::BnClientInterface {
   ::android::binder::Status getInterfaceName(std::string* out_name) override;
   ::android::binder::Status getWifiScannerImpl(
       ::android::sp<::android::net::wifi::IWifiScannerImpl>* out_wifi_scanner_impl) override;
-
+  ::android::binder::Status setMacAddress(
+      const ::std::vector<uint8_t>& mac, bool* success) override;
  private:
   ClientInterfaceImpl* impl_;
 
