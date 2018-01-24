@@ -48,4 +48,7 @@ interface IClientInterface {
   // Returns null when the underlying interface object is destroyed.
   @nullable IWifiScannerImpl getWifiScannerImpl();
 
+  // Set the MAC address of this interface
+  // Returns true if the set was successful
+  boolean setMacAddress(in byte[] mac);
 }

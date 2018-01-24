@@ -18,9 +18,12 @@
 
 #include <vector>
 
+#include <linux/if_ether.h>
+
 #include <android-base/logging.h>
 
 #include "wificond/client_interface_binder.h"
+#include "wificond/logging_utils.h"
 #include "wificond/net/mlme_event.h"
 #include "wificond/net/netlink_utils.h"
 #include "wificond/scanning/offload/offload_service_utils.h"
@@ -204,6 +207,29 @@ bool ClientInterfaceImpl::SignalPoll(vector<int32_t>* out_signal_poll_results) {
 
 const vector<uint8_t>& ClientInterfaceImpl::GetMacAddress() {
   return interface_mac_addr_;
+}
+
+bool ClientInterfaceImpl::SetMacAddress(const ::std::vector<uint8_t>& mac) {
+  if (mac.size() != ETH_ALEN) {
+    LOG(ERROR) << "Invalid MAC length " << mac.size();
+    return false;
+  }
+  if (!if_tool_->SetWifiUpState(false)) {
+    LOG(ERROR) << "SetWifiUpState(false) failed.";
+    return false;
+  }
+  if (!if_tool_->SetMacAddress(interface_name_.c_str(),
+      {{mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]}})) {
+    LOG(ERROR) << "SetMacAddress(" << interface_name_ << ", "
+               << LoggingUtils::GetMacString(mac) << ") failed.";
+    return false;
+  }
+  if (!if_tool_->SetWifiUpState(true)) {
+    LOG(ERROR) << "SetWifiUpState(true) failed.";
+    return false;
+  }
+  LOG(DEBUG) << "Successfully SetMacAddress.";
+  return true;
 }
 
 bool ClientInterfaceImpl::RefreshAssociateFreq() {
