@@ -527,6 +527,10 @@ void NetlinkManager::BroadcastHandler(unique_ptr<const NL80211Packet> packet) {
     }
     return;
   }
+  if (command == NL80211_CMD_CH_SWITCH_NOTIFY) {
+    OnChannelSwitchEvent(std::move(packet));
+    return;
+  }
 }
 
 void NetlinkManager::OnRegChangeEvent(unique_ptr<const NL80211Packet> packet) {
@@ -677,6 +681,25 @@ void NetlinkManager::OnScanResultsReady(unique_ptr<const NL80211Packet> packet) 
   handler->second(if_index, aborted, ssids, freqs);
 }
 
+void NetlinkManager::OnChannelSwitchEvent(unique_ptr<const NL80211Packet> packet) {
+    uint32_t if_index = 0;
+    if (!packet->GetAttributeValue(NL80211_ATTR_IFINDEX, &if_index)) {
+      LOG(WARNING) << "Failed to get NL80211_ATTR_IFINDEX"
+                   << "from channel switch event";
+      return;
+    }
+    uint32_t frequency = 0;
+    if (!packet->GetAttributeValue(NL80211_ATTR_WIPHY_FREQ, &frequency)) {
+      LOG(WARNING) << "Failed to get NL80211_ATTR_WIPHY_FREQ"
+                   << "from channel switch event";
+      return;
+    }
+    const auto handler = on_channel_switch_event_handler_.find(if_index);
+    if (handler != on_channel_switch_event_handler_.end()) {
+      handler->second(frequency);
+    }
+}
+
 void NetlinkManager::SubscribeStationEvent(
     uint32_t interface_index,
     OnStationEventHandler handler) {
@@ -686,6 +709,17 @@ void NetlinkManager::SubscribeStationEvent(
 void NetlinkManager::UnsubscribeStationEvent(uint32_t interface_index) {
   on_station_event_handler_.erase(interface_index);
 }
+
+void NetlinkManager::SubscribeChannelSwitchEvent(
+      uint32_t interface_index,
+      OnChannelSwitchEventHandler handler) {
+  on_channel_switch_event_handler_[interface_index] = handler;
+}
+
+void NetlinkManager::UnsubscribeChannelSwitchEvent(uint32_t interface_index) {
+  on_channel_switch_event_handler_.erase(interface_index);
+}
+
 
 void NetlinkManager::SubscribeRegDomainChange(
     uint32_t wiphy_index,

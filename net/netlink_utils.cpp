@@ -577,5 +577,15 @@ void NetlinkUtils::UnsubscribeStationEvent(uint32_t interface_index) {
   netlink_manager_->UnsubscribeStationEvent(interface_index);
 }
 
+void NetlinkUtils::SubscribeChannelSwitchEvent(uint32_t interface_index,
+                                         OnChannelSwitchEventHandler handler) {
+  netlink_manager_->SubscribeChannelSwitchEvent(interface_index, handler);
+}
+
+void NetlinkUtils::UnsubscribeChannelSwitchEvent(uint32_t interface_index) {
+  netlink_manager_->UnsubscribeChannelSwitchEvent(interface_index);
+}
+
+
 }  // namespace wificond
 }  // namespace android

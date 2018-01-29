@@ -217,7 +217,7 @@ class NetlinkUtils {
   // from wiphy with index |wiphy_index|.
   virtual void UnsubscribeRegDomainChange(uint32_t wiphy_index);
 
-  // Sign up to be notified when there is an station event.
+  // Sign up to be notified when there is a station event.
   // Only one handler can be registered per interface index.
   // New handler will replace the registered handler if they are for the
   // same interface index.
@@ -226,6 +226,16 @@ class NetlinkUtils {
 
   // Cancel the sign-up of receiving station events.
   virtual void UnsubscribeStationEvent(uint32_t interface_index);
+
+  // Sign up to be notified when there is a channel switch event.
+  // Only one handler can be registered per interface index.
+  // New handler will replace the registered handler if they are for the
+  // same interface index.
+  virtual void SubscribeChannelSwitchEvent(uint32_t interface_index,
+                                           OnChannelSwitchEventHandler handler);
+
+  // Cancel the sign-up of receiving channel switch events.
+  virtual void UnsubscribeChannelSwitchEvent(uint32_t interface_index);
 
   // Visible for testing.
   bool supports_split_wiphy_dump_;
