@@ -31,6 +31,7 @@ namespace wifi {
 namespace wificond {
 
 class NativeScanResult;
+class RadioChainInfo;
 
 }  // namespace wificond
 }  // namespace wifi
@@ -178,6 +179,10 @@ class ScanUtils {
  private:
   bool GetBssTimestamp(const NL80211NestedAttr& bss,
                        uint64_t* last_seen_since_boot_microseconds);
+  bool ParseRadioChainInfos(
+      const NL80211NestedAttr& bss,
+      std::vector<::com::android::server::wifi::wificond::RadioChainInfo>
+        *radio_chain_infos);
   bool GetSSIDFromInfoElement(const std::vector<uint8_t>& ie,
                               std::vector<uint8_t>* ssid);
   // Converts a NL80211_CMD_NEW_SCAN_RESULTS packet to a ScanResult object.

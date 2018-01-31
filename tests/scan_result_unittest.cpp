@@ -58,8 +58,8 @@ TEST_F(ScanResultTest, ParcelableTest) {
       kFakeRadioChainIds[1], kFakeRadioChainLevels[1]);
 
   NativeScanResult scan_result(ssid, bssid, ie, kFakeFrequency,
-      kFakeSignalMbm, kFakeTsf, kFakeCapability, kFakeAssociated);
-  scan_result.radio_chain_infos = radio_chain_infos;
+      kFakeSignalMbm, kFakeTsf, kFakeCapability, kFakeAssociated,
+      radio_chain_infos);
 
   Parcel parcel;
   EXPECT_EQ(::android::OK, scan_result.writeToParcel(&parcel));

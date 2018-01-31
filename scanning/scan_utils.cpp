@@ -30,6 +30,7 @@
 
 using android::net::wifi::IWifiScannerImpl;
 using com::android::server::wifi::wificond::NativeScanResult;
+using com::android::server::wifi::wificond::RadioChainInfo;
 using std::unique_ptr;
 using std::vector;
 
@@ -176,11 +177,13 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet,
                 bss_status == NL80211_BSS_STATUS_ASSOCIATED)) {
       associated = true;
     }
+    std::vector<RadioChainInfo> radio_chain_infos;
+    ParseRadioChainInfos(bss, &radio_chain_infos);
 
     *scan_result =
         NativeScanResult(ssid, bssid, ie, freq, signal,
                          last_seen_since_boot_microseconds,
-                         capability, associated);
+                         capability, associated, radio_chain_infos);
   }
   return true;
 }
@@ -209,6 +212,39 @@ bool ScanUtils::GetBssTimestamp(const NL80211NestedAttr& bss,
       *last_seen_since_boot_microseconds = std::max(*last_seen_since_boot_microseconds,
                                                     beacon_tsf_microseconds);
     }
+  }
+  return true;
+}
+
+bool ScanUtils::ParseRadioChainInfos(
+    const NL80211NestedAttr& bss,
+    std::vector<RadioChainInfo> *radio_chain_infos) {
+  *radio_chain_infos = {};
+  // Contains a nested array of signal strength attributes: (ChainId, Rssi in dBm)
+  NL80211NestedAttr radio_chain_infos_attr(0);
+  if (!bss.GetAttribute(NL80211_BSS_CHAIN_SIGNAL, &radio_chain_infos_attr)) {
+    return false;
+  }
+  std::vector<NL80211NestedAttr> radio_chain_infos_attrs;
+  if (!radio_chain_infos_attr.GetListOfNestedAttributes(
+        &radio_chain_infos_attrs)) {
+    LOG(ERROR) << "Failed to get radio chain info attrs within "
+               << "NL80211_BSS_CHAIN_SIGNAL";
+    return false;
+  }
+  for (const auto& attr : radio_chain_infos_attrs) {
+    RadioChainInfo radio_chain_info;
+    radio_chain_info.chain_id = attr.GetAttributeId();
+    int8_t level;
+    if (!attr.GetAttributeValue(radio_chain_info.chain_id,
+                                &level)) {
+      LOG(ERROR) << "Failed to get chain signal info within "
+                 << "NL80211_BSS_CHAIN_SIGNAL for chain "
+                 << radio_chain_info.chain_id;
+      continue;
+    }
+    radio_chain_info.level = level;
+    radio_chain_infos->push_back(radio_chain_info);
   }
   return true;
 }
