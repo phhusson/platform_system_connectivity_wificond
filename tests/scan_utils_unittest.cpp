@@ -19,10 +19,10 @@
 #include <vector>
 
 #include <linux/netlink.h>
-#include <linux/nl80211.h>
 
 #include <gtest/gtest.h>
 
+#include "wificond/net/kernel-header-latest/nl80211.h"
 #include "wificond/scanning/scan_result.h"
 #include "wificond/scanning/scan_utils.h"
 #include "wificond/tests/mock_netlink_manager.h"

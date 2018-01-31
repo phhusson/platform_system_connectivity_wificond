@@ -19,10 +19,10 @@
 #include <vector>
 
 #include <linux/netlink.h>
-#include <linux/nl80211.h>
 
 #include <android-base/logging.h>
 
+#include "wificond/net/kernel-header-latest/nl80211.h"
 #include "wificond/net/netlink_manager.h"
 #include "wificond/net/nl80211_packet.h"
 #include "wificond/scanning/scan_result.h"

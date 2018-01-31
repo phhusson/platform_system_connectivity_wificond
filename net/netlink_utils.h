@@ -20,10 +20,9 @@
 #include <string>
 #include <vector>
 
-#include <linux/nl80211.h>
-
 #include <android-base/macros.h>
 
+#include "wificond/net/kernel-header-latest/nl80211.h"
 #include "wificond/net/netlink_manager.h"
 
 namespace android {

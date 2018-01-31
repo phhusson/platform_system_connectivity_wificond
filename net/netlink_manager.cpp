@@ -20,13 +20,13 @@
 #include <vector>
 
 #include <linux/netlink.h>
-#include <linux/nl80211.h>
 #include <poll.h>
 #include <sys/socket.h>
 
 #include <android-base/logging.h>
 #include <utils/Timers.h>
 
+#include "net/kernel-header-latest/nl80211.h"
 #include "net/mlme_event.h"
 #include "net/mlme_event_handler.h"
 #include "net/nl80211_attribute.h"
