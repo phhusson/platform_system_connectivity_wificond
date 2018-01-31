@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include "android/net/wifi/IWifiScannerImpl.h"
 #include "wificond/scanning/scan_utils.h"
 
 #include <vector>
@@ -27,6 +28,7 @@
 #include "wificond/net/nl80211_packet.h"
 #include "wificond/scanning/scan_result.h"
 
+using android::net::wifi::IWifiScannerImpl;
 using com::android::server::wifi::wificond::NativeScanResult;
 using std::unique_ptr;
 using std::vector;
@@ -244,6 +246,7 @@ bool ScanUtils::GetSSIDFromInfoElement(const vector<uint8_t>& ie,
 
 bool ScanUtils::Scan(uint32_t interface_index,
                      bool request_random_mac,
+                     int scan_type,
                      const vector<vector<uint8_t>>& ssids,
                      const vector<uint32_t>& freqs,
                      int* error_code) {
@@ -278,10 +281,29 @@ bool ScanUtils::Scan(uint32_t interface_index,
     trigger_scan.AddAttribute(freqs_attr);
   }
 
+  uint32_t scan_flags = 0;
   if (request_random_mac) {
+    scan_flags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
+  }
+  switch (scan_type) {
+    case IWifiScannerImpl::SCAN_TYPE_LOW_SPAN:
+      scan_flags |= NL80211_SCAN_FLAG_LOW_SPAN;
+      break;
+    case IWifiScannerImpl::SCAN_TYPE_LOW_POWER:
+      scan_flags |= NL80211_SCAN_FLAG_LOW_POWER;
+      break;
+    case IWifiScannerImpl::SCAN_TYPE_HIGH_ACCURACY:
+      scan_flags |= NL80211_SCAN_FLAG_HIGH_ACCURACY;
+      break;
+    case IWifiScannerImpl::SCAN_TYPE_DEFAULT:
+      break;
+    default:
+      CHECK(0) << "Invalid scan type received: " << scan_type;
+  }
+  if (scan_flags) {
     trigger_scan.AddAttribute(
         NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,
-                              NL80211_SCAN_FLAG_RANDOM_ADDR));
+                              scan_flags));
   }
   // We are receiving an ERROR/ACK message instead of the actual
   // scan results here, so it is OK to expect a timely response because
@@ -353,6 +375,7 @@ bool ScanUtils::StartScheduledScan(
     int32_t rssi_threshold_2g,
     int32_t rssi_threshold_5g,
     bool request_random_mac,
+    bool request_low_power,
     const std::vector<std::vector<uint8_t>>& scan_ssids,
     const std::vector<std::vector<uint8_t>>& match_ssids,
     const std::vector<uint32_t>& freqs,
@@ -433,11 +456,17 @@ bool ScanUtils::StartScheduledScan(
         NL80211Attr<uint32_t>(NL80211_ATTR_SCHED_SCAN_INTERVAL,
                               interval_setting.final_interval_ms));
   }
-
+  uint32_t scan_flags = 0;
   if (request_random_mac) {
+    scan_flags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
+  }
+  if (request_low_power) {
+    scan_flags |= NL80211_SCAN_FLAG_LOW_POWER;
+  }
+  if (scan_flags) {
     start_sched_scan.AddAttribute(
         NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,
-                              NL80211_SCAN_FLAG_RANDOM_ADDR));
+                              scan_flags));
   }
 
   vector<unique_ptr<const NL80211Packet>> response;
