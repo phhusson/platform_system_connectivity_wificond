@@ -59,6 +59,8 @@ TEST_F(ScanResultTest, ParcelableTest) {
 
   NativeScanResult scan_result(ssid, bssid, ie, kFakeFrequency,
       kFakeSignalMbm, kFakeTsf, kFakeCapability, kFakeAssociated);
+  scan_result.radio_chain_infos = radio_chain_infos;
+
   Parcel parcel;
   EXPECT_EQ(::android::OK, scan_result.writeToParcel(&parcel));
 
@@ -74,6 +76,7 @@ TEST_F(ScanResultTest, ParcelableTest) {
   EXPECT_EQ(kFakeTsf, scan_result_copy.tsf);
   EXPECT_EQ(kFakeCapability, scan_result_copy.capability);
   EXPECT_EQ(kFakeAssociated, scan_result_copy.associated);
+  EXPECT_EQ(2u, scan_result_copy.radio_chain_infos.size());
   EXPECT_EQ(kFakeRadioChainIds[0], scan_result_copy.radio_chain_infos[0].chain_id);
   EXPECT_EQ(kFakeRadioChainIds[1], scan_result_copy.radio_chain_infos[1].chain_id);
   EXPECT_EQ(kFakeRadioChainLevels[0], scan_result_copy.radio_chain_infos[0].level);
