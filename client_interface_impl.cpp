@@ -163,6 +163,12 @@ void ClientInterfaceImpl::Dump(std::stringstream* ss) const {
       << scan_capabilities_.max_scan_plan_iterations << endl;
   *ss << "Device supports random MAC for single shot scan: "
       << wiphy_features_.supports_random_mac_oneshot_scan << endl;
+  *ss << "Device supports low span single shot scan: "
+      << wiphy_features_.supports_low_span_oneshot_scan << endl;
+  *ss << "Device supports low power single shot scan: "
+      << wiphy_features_.supports_low_power_oneshot_scan << endl;
+  *ss << "Device supports high accuracy single shot scan: "
+      << wiphy_features_.supports_high_accuracy_oneshot_scan << endl;
   *ss << "Device supports random MAC for scheduled scan: "
       << wiphy_features_.supports_random_mac_sched_scan << endl;
   *ss << "------- Dump End -------" << endl;

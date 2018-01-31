@@ -93,18 +93,24 @@ struct ScanCapabilities {
 struct WiphyFeatures {
   WiphyFeatures()
       : supports_random_mac_oneshot_scan(false),
-        supports_random_mac_sched_scan(false) {}
-  WiphyFeatures(uint32_t feature_flags)
-      : supports_random_mac_oneshot_scan(
-            feature_flags & NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR),
-        supports_random_mac_sched_scan(
-            feature_flags & NL80211_FEATURE_SCHED_SCAN_RANDOM_MAC_ADDR) {}
+        supports_random_mac_sched_scan(false),
+        supports_low_span_oneshot_scan(false),
+        supports_low_power_oneshot_scan(false),
+        supports_high_accuracy_oneshot_scan(false) {}
+  WiphyFeatures(uint32_t feature_flags,
+                const std::vector<uint8_t>& ext_feature_flags_bytes);
   // This device/driver supports using a random MAC address during scan
   // (while not associated).
   bool supports_random_mac_oneshot_scan;
   // This device/driver supports using a random MAC address for every
   // scan iteration during scheduled scan (while not associated).
   bool supports_random_mac_sched_scan;
+  // This device/driver supports performing low-span/low-latency one-shot scans.
+  bool supports_low_span_oneshot_scan;
+  // This device/driver supports performing low-power one-shot scans.
+  bool supports_low_power_oneshot_scan;
+  // This device/driver supports performing high-accuracy one-shot scans.
+  bool supports_high_accuracy_oneshot_scan;
   // There are other flags included in NL80211_ATTR_FEATURE_FLAGS.
   // We will add them once we find them useful.
 };
