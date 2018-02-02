@@ -84,10 +84,22 @@ typedef std::function<void(
 typedef std::function<void(
     std::string& country_code)> OnRegDomainChangedHandler;
 
+// Enum used for identifying channel bandwidth.
+// This is used by function |OnChannelSwitchEventHandler|.
+enum ChannelBandwidth {
+    BW_INVALID,
+    BW_20_NOHT,
+    BW_20,
+    BW_40,
+    BW_80,
+    BW_80P80,
+    BW_160,
+};
+
 // This describes a type of function handling channel switch notification.
 // |frequency| represents the frequence of the channel in MHz.
 typedef std::function<void(
-    uint32_t frequency)> OnChannelSwitchEventHandler;
+    uint32_t frequency, ChannelBandwidth bandwidth)> OnChannelSwitchEventHandler;
 
 // Enum used for identifying the type of a station event.
 // This is used by function |OnStationEventHandler|.

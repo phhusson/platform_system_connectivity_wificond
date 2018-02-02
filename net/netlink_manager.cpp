@@ -54,7 +54,27 @@ void AppendPacket(vector<unique_ptr<const NL80211Packet>>* vec,
   vec->push_back(std::move(packet));
 }
 
+// Convert enum nl80211_chan_width to enum ChannelBandwidth
+ChannelBandwidth getBandwidthType(uint32_t bandwidth) {
+  switch (bandwidth) {
+    case NL80211_CHAN_WIDTH_20_NOHT:
+      return BW_20_NOHT;
+    case NL80211_CHAN_WIDTH_20:
+      return BW_20;
+    case NL80211_CHAN_WIDTH_40:
+      return BW_40;
+    case NL80211_CHAN_WIDTH_80:
+      return BW_80;
+    case NL80211_CHAN_WIDTH_80P80:
+      return BW_80P80;
+    case NL80211_CHAN_WIDTH_160:
+      return BW_160;
+  }
+  LOG(ERROR) << "Unknown bandwidth type: " << bandwidth;
+  return BW_INVALID;
 }
+
+}  // namespace
 
 NetlinkManager::NetlinkManager(EventLoop* event_loop)
     : started_(false),
@@ -694,9 +714,16 @@ void NetlinkManager::OnChannelSwitchEvent(unique_ptr<const NL80211Packet> packet
                    << "from channel switch event";
       return;
     }
+    uint32_t bandwidth = 0;
+    if (!packet->GetAttributeValue(NL80211_ATTR_CHANNEL_WIDTH, &bandwidth)) {
+      LOG(WARNING) << "Failed to get NL80211_ATTR_CHANNEL_WIDTH"
+                   << "from channel switch event";
+      return;
+    }
+
     const auto handler = on_channel_switch_event_handler_.find(if_index);
     if (handler != on_channel_switch_event_handler_.end()) {
-      handler->second(frequency);
+      handler->second(frequency, getBandwidthType(bandwidth));
     }
 }
 

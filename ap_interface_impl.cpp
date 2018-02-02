@@ -59,7 +59,7 @@ ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
                 _1, _2));
   netlink_utils_->SubscribeChannelSwitchEvent(
       interface_index_,
-      std::bind(&ApInterfaceImpl::OnChannelSwitchEvent, this, _1));
+      std::bind(&ApInterfaceImpl::OnChannelSwitchEvent, this, _1, _2));
 
 }
 
@@ -139,8 +139,10 @@ void ApInterfaceImpl::OnStationEvent(StationEvent event,
 }
 
 
-void ApInterfaceImpl::OnChannelSwitchEvent(uint32_t frequency) {
-  LOG(INFO) << "New channel on frequency: " << frequency;
+void ApInterfaceImpl::OnChannelSwitchEvent(uint32_t frequency,
+                                           ChannelBandwidth bandwidth) {
+  LOG(INFO) << "New channel on frequency: " << frequency
+            << " with bandwidth: " << LoggingUtils::GetBandwidthString(bandwidth);
 }
 
 int ApInterfaceImpl::GetNumberOfAssociatedStations() const {
