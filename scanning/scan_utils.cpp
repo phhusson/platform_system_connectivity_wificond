@@ -225,8 +225,8 @@ bool ScanUtils::ParseRadioChainInfos(
   if (!bss.GetAttribute(NL80211_BSS_CHAIN_SIGNAL, &radio_chain_infos_attr)) {
     return false;
   }
-  std::vector<NL80211NestedAttr> radio_chain_infos_attrs;
-  if (!radio_chain_infos_attr.GetListOfNestedAttributes(
+  std::vector<NL80211Attr<int8_t>> radio_chain_infos_attrs;
+  if (!radio_chain_infos_attr.GetListOfAttributes(
         &radio_chain_infos_attrs)) {
     LOG(ERROR) << "Failed to get radio chain info attrs within "
                << "NL80211_BSS_CHAIN_SIGNAL";
@@ -235,15 +235,7 @@ bool ScanUtils::ParseRadioChainInfos(
   for (const auto& attr : radio_chain_infos_attrs) {
     RadioChainInfo radio_chain_info;
     radio_chain_info.chain_id = attr.GetAttributeId();
-    int8_t level;
-    if (!attr.GetAttributeValue(radio_chain_info.chain_id,
-                                &level)) {
-      LOG(ERROR) << "Failed to get chain signal info within "
-                 << "NL80211_BSS_CHAIN_SIGNAL for chain "
-                 << radio_chain_info.chain_id;
-      continue;
-    }
-    radio_chain_info.level = level;
+    radio_chain_info.level = attr.GetValue();
     radio_chain_infos->push_back(radio_chain_info);
   }
   return true;
