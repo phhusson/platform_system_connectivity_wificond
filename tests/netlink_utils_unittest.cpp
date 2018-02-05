@@ -19,10 +19,10 @@
 #include <vector>
 
 #include <linux/netlink.h>
-#include <linux/nl80211.h>
 
 #include <gtest/gtest.h>
 
+#include "wificond/net/kernel-header-latest/nl80211.h"
 #include "wificond/net/netlink_utils.h"
 #include "wificond/tests/mock_netlink_manager.h"
 
@@ -67,6 +67,10 @@ const uint32_t kFakeInterfaceIndex = 34;
 const uint32_t kFakeInterfaceIndex1 = 36;
 const uint8_t kFakeInterfaceMacAddress[] = {0x45, 0x54, 0xad, 0x67, 0x98, 0xf6};
 const uint8_t kFakeInterfaceMacAddress1[] = {0x05, 0x04, 0xef, 0x27, 0x12, 0xff};
+const uint8_t kFakeExtFeaturesForLowSpanScan[] = {0x0, 0x0, 0x40};
+const uint8_t kFakeExtFeaturesForLowPowerScan[] = {0x0, 0x0, 0x80};
+const uint8_t kFakeExtFeaturesForHighAccuracy[] = {0x0, 0x0, 0x0, 0x1};
+const uint8_t kFakeExtFeaturesForAllScanType[] = {0x0, 0x0, 0xC0, 0x1};
 
 // Currently, control messages are only created by the kernel and sent to us.
 // Therefore NL80211Packet doesn't have corresponding constructor.
@@ -191,6 +195,39 @@ void AppendWiphyFeaturesAttributes(NL80211Packet* packet) {
   }
   packet->AddAttribute(
       NL80211Attr<uint32_t>(NL80211_ATTR_FEATURE_FLAGS, wiphy_features));
+}
+
+void AppendWiphyExtFeaturesAttributes(NL80211Packet* packet,
+                                      bool support_low_span,
+                                      bool support_low_power,
+                                      bool support_high_accuracy,
+                                      bool support_all) {
+  ASSERT_LE(support_low_span + support_low_power + support_high_accuracy, 1);
+  std::vector<uint8_t> ext_feature_flags_bytes;
+  if (support_low_span) {
+    ext_feature_flags_bytes =
+        std::vector<uint8_t>(kFakeExtFeaturesForLowSpanScan,
+                             kFakeExtFeaturesForLowSpanScan +
+                             sizeof(kFakeExtFeaturesForLowSpanScan));
+  } else if (support_low_power) {
+    ext_feature_flags_bytes =
+        std::vector<uint8_t>(kFakeExtFeaturesForLowPowerScan,
+                             kFakeExtFeaturesForLowPowerScan +
+                             sizeof(kFakeExtFeaturesForLowPowerScan));
+  } else if (support_high_accuracy) {
+    ext_feature_flags_bytes =
+        std::vector<uint8_t>(kFakeExtFeaturesForHighAccuracy,
+                             kFakeExtFeaturesForHighAccuracy +
+                             sizeof(kFakeExtFeaturesForHighAccuracy));
+  } else if (support_all) {
+    ext_feature_flags_bytes =
+        std::vector<uint8_t>(kFakeExtFeaturesForAllScanType,
+                             kFakeExtFeaturesForAllScanType +
+                             sizeof(kFakeExtFeaturesForAllScanType));
+  }
+  packet->AddAttribute(
+      NL80211Attr<std::vector<uint8_t>>(NL80211_ATTR_EXT_FEATURES,
+                                        ext_feature_flags_bytes));
 }
 
 void VerifyScanCapabilities(const ScanCapabilities& scan_capabilities,
@@ -489,6 +526,174 @@ TEST_F(NetlinkUtilsTest, CanGetWiphyInfo) {
   VerifyBandInfo(band_info);
   VerifyScanCapabilities(scan_capabilities, true);
   VerifyWiphyFeatures(wiphy_features);
+  EXPECT_FALSE(wiphy_features.supports_low_span_oneshot_scan);
+  EXPECT_FALSE(wiphy_features.supports_low_power_oneshot_scan);
+  EXPECT_FALSE(wiphy_features.supports_high_accuracy_oneshot_scan);
+}
+
+TEST_F(NetlinkUtilsTest, CanGetWiphyInfoWithNoDbsParam) {
+  SetSplitWiphyDumpSupported(false);
+  NL80211Packet new_wiphy(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_WIPHY,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  new_wiphy.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
+                                               kFakeWiphyIndex));
+  AppendBandInfoAttributes(&new_wiphy);
+  AppendScanCapabilitiesAttributes(&new_wiphy, false);
+  AppendWiphyFeaturesAttributes(&new_wiphy);
+  AppendWiphyExtFeaturesAttributes(&new_wiphy, false, false, false, false);
+  vector<NL80211Packet> get_wiphy_response = {new_wiphy};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
+
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities;
+  WiphyFeatures wiphy_features;
+  EXPECT_TRUE(netlink_utils_->GetWiphyInfo(kFakeWiphyIndex,
+                                           &band_info,
+                                           &scan_capabilities,
+                                           &wiphy_features));
+  VerifyBandInfo(band_info);
+  VerifyScanCapabilities(scan_capabilities, false);
+  VerifyWiphyFeatures(wiphy_features);
+  EXPECT_FALSE(wiphy_features.supports_low_span_oneshot_scan);
+  EXPECT_FALSE(wiphy_features.supports_low_power_oneshot_scan);
+  EXPECT_FALSE(wiphy_features.supports_high_accuracy_oneshot_scan);
+}
+
+TEST_F(NetlinkUtilsTest, CanGetWiphyInfoWithLowSpanScan) {
+  SetSplitWiphyDumpSupported(false);
+  NL80211Packet new_wiphy(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_WIPHY,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  new_wiphy.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
+                                               kFakeWiphyIndex));
+  AppendBandInfoAttributes(&new_wiphy);
+  AppendScanCapabilitiesAttributes(&new_wiphy, false);
+  AppendWiphyFeaturesAttributes(&new_wiphy);
+  AppendWiphyExtFeaturesAttributes(&new_wiphy, true, false, false, false);
+  vector<NL80211Packet> get_wiphy_response = {new_wiphy};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
+
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities;
+  WiphyFeatures wiphy_features;
+  EXPECT_TRUE(netlink_utils_->GetWiphyInfo(kFakeWiphyIndex,
+                                           &band_info,
+                                           &scan_capabilities,
+                                           &wiphy_features));
+  VerifyBandInfo(band_info);
+  VerifyScanCapabilities(scan_capabilities, false);
+  VerifyWiphyFeatures(wiphy_features);
+  EXPECT_TRUE(wiphy_features.supports_low_span_oneshot_scan);
+  EXPECT_FALSE(wiphy_features.supports_low_power_oneshot_scan);
+  EXPECT_FALSE(wiphy_features.supports_high_accuracy_oneshot_scan);
+}
+
+TEST_F(NetlinkUtilsTest, CanGetWiphyInfoWithLowPowerScan) {
+  SetSplitWiphyDumpSupported(false);
+  NL80211Packet new_wiphy(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_WIPHY,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  new_wiphy.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
+                                               kFakeWiphyIndex));
+  AppendBandInfoAttributes(&new_wiphy);
+  AppendScanCapabilitiesAttributes(&new_wiphy, false);
+  AppendWiphyFeaturesAttributes(&new_wiphy);
+  AppendWiphyExtFeaturesAttributes(&new_wiphy, false, true, false, false);
+  vector<NL80211Packet> get_wiphy_response = {new_wiphy};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
+
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities;
+  WiphyFeatures wiphy_features;
+  EXPECT_TRUE(netlink_utils_->GetWiphyInfo(kFakeWiphyIndex,
+                                           &band_info,
+                                           &scan_capabilities,
+                                           &wiphy_features));
+  VerifyBandInfo(band_info);
+  VerifyScanCapabilities(scan_capabilities, false);
+  VerifyWiphyFeatures(wiphy_features);
+  EXPECT_FALSE(wiphy_features.supports_low_span_oneshot_scan);
+  EXPECT_TRUE(wiphy_features.supports_low_power_oneshot_scan);
+  EXPECT_FALSE(wiphy_features.supports_high_accuracy_oneshot_scan);
+}
+
+TEST_F(NetlinkUtilsTest, CanGetWiphyInfoWithHighAccuracyScan) {
+  SetSplitWiphyDumpSupported(false);
+  NL80211Packet new_wiphy(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_WIPHY,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  new_wiphy.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
+                                               kFakeWiphyIndex));
+  AppendBandInfoAttributes(&new_wiphy);
+  AppendScanCapabilitiesAttributes(&new_wiphy, false);
+  AppendWiphyFeaturesAttributes(&new_wiphy);
+  AppendWiphyExtFeaturesAttributes(&new_wiphy, false, false, true, false);
+  vector<NL80211Packet> get_wiphy_response = {new_wiphy};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
+
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities;
+  WiphyFeatures wiphy_features;
+  EXPECT_TRUE(netlink_utils_->GetWiphyInfo(kFakeWiphyIndex,
+                                           &band_info,
+                                           &scan_capabilities,
+                                           &wiphy_features));
+  VerifyBandInfo(band_info);
+  VerifyScanCapabilities(scan_capabilities, false);
+  VerifyWiphyFeatures(wiphy_features);
+  EXPECT_FALSE(wiphy_features.supports_low_span_oneshot_scan);
+  EXPECT_FALSE(wiphy_features.supports_low_power_oneshot_scan);
+  EXPECT_TRUE(wiphy_features.supports_high_accuracy_oneshot_scan);
+}
+
+TEST_F(NetlinkUtilsTest, CanGetWiphyInfoWithAllDbsParams) {
+  SetSplitWiphyDumpSupported(false);
+  NL80211Packet new_wiphy(
+      netlink_manager_->GetFamilyId(),
+      NL80211_CMD_NEW_WIPHY,
+      netlink_manager_->GetSequenceNumber(),
+      getpid());
+  new_wiphy.AddAttribute(NL80211Attr<uint32_t>(NL80211_ATTR_WIPHY,
+                                               kFakeWiphyIndex));
+  AppendBandInfoAttributes(&new_wiphy);
+  AppendScanCapabilitiesAttributes(&new_wiphy, false);
+  AppendWiphyFeaturesAttributes(&new_wiphy);
+  AppendWiphyExtFeaturesAttributes(&new_wiphy, false, false, false, true);
+  vector<NL80211Packet> get_wiphy_response = {new_wiphy};
+
+  EXPECT_CALL(*netlink_manager_, SendMessageAndGetResponses(_, _)).
+      WillOnce(DoAll(MakeupResponse(get_wiphy_response), Return(true)));
+
+  BandInfo band_info;
+  ScanCapabilities scan_capabilities;
+  WiphyFeatures wiphy_features;
+  EXPECT_TRUE(netlink_utils_->GetWiphyInfo(kFakeWiphyIndex,
+                                           &band_info,
+                                           &scan_capabilities,
+                                           &wiphy_features));
+  VerifyBandInfo(band_info);
+  VerifyScanCapabilities(scan_capabilities, false);
+  VerifyWiphyFeatures(wiphy_features);
+  EXPECT_TRUE(wiphy_features.supports_low_span_oneshot_scan);
+  EXPECT_TRUE(wiphy_features.supports_low_power_oneshot_scan);
+  EXPECT_TRUE(wiphy_features.supports_high_accuracy_oneshot_scan);
 }
 
 TEST_F(NetlinkUtilsTest, CanGetWiphyInfoScanPlanNotSupported) {

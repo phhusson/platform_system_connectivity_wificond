@@ -18,8 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <linux/nl80211.h>
-
+#include "wificond/net/kernel-header-latest/nl80211.h"
 #include "wificond/net/nl80211_attribute.h"
 #include "wificond/net/nl80211_packet.h"
 

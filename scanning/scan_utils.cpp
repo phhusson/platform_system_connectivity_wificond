@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
+#include "android/net/wifi/IWifiScannerImpl.h"
 #include "wificond/scanning/scan_utils.h"
 
 #include <vector>
 
 #include <linux/netlink.h>
-#include <linux/nl80211.h>
 
 #include <android-base/logging.h>
 
+#include "wificond/net/kernel-header-latest/nl80211.h"
 #include "wificond/net/netlink_manager.h"
 #include "wificond/net/nl80211_packet.h"
 #include "wificond/scanning/scan_result.h"
 
+using android::net::wifi::IWifiScannerImpl;
 using com::android::server::wifi::wificond::NativeScanResult;
+using com::android::server::wifi::wificond::RadioChainInfo;
 using std::unique_ptr;
 using std::vector;
 
@@ -174,11 +177,13 @@ bool ScanUtils::ParseScanResult(unique_ptr<const NL80211Packet> packet,
                 bss_status == NL80211_BSS_STATUS_ASSOCIATED)) {
       associated = true;
     }
+    std::vector<RadioChainInfo> radio_chain_infos;
+    ParseRadioChainInfos(bss, &radio_chain_infos);
 
     *scan_result =
         NativeScanResult(ssid, bssid, ie, freq, signal,
                          last_seen_since_boot_microseconds,
-                         capability, associated);
+                         capability, associated, radio_chain_infos);
   }
   return true;
 }
@@ -207,6 +212,31 @@ bool ScanUtils::GetBssTimestamp(const NL80211NestedAttr& bss,
       *last_seen_since_boot_microseconds = std::max(*last_seen_since_boot_microseconds,
                                                     beacon_tsf_microseconds);
     }
+  }
+  return true;
+}
+
+bool ScanUtils::ParseRadioChainInfos(
+    const NL80211NestedAttr& bss,
+    std::vector<RadioChainInfo> *radio_chain_infos) {
+  *radio_chain_infos = {};
+  // Contains a nested array of signal strength attributes: (ChainId, Rssi in dBm)
+  NL80211NestedAttr radio_chain_infos_attr(0);
+  if (!bss.GetAttribute(NL80211_BSS_CHAIN_SIGNAL, &radio_chain_infos_attr)) {
+    return false;
+  }
+  std::vector<NL80211Attr<int8_t>> radio_chain_infos_attrs;
+  if (!radio_chain_infos_attr.GetListOfAttributes(
+        &radio_chain_infos_attrs)) {
+    LOG(ERROR) << "Failed to get radio chain info attrs within "
+               << "NL80211_BSS_CHAIN_SIGNAL";
+    return false;
+  }
+  for (const auto& attr : radio_chain_infos_attrs) {
+    RadioChainInfo radio_chain_info;
+    radio_chain_info.chain_id = attr.GetAttributeId();
+    radio_chain_info.level = attr.GetValue();
+    radio_chain_infos->push_back(radio_chain_info);
   }
   return true;
 }
@@ -244,6 +274,7 @@ bool ScanUtils::GetSSIDFromInfoElement(const vector<uint8_t>& ie,
 
 bool ScanUtils::Scan(uint32_t interface_index,
                      bool request_random_mac,
+                     int scan_type,
                      const vector<vector<uint8_t>>& ssids,
                      const vector<uint32_t>& freqs,
                      int* error_code) {
@@ -278,10 +309,29 @@ bool ScanUtils::Scan(uint32_t interface_index,
     trigger_scan.AddAttribute(freqs_attr);
   }
 
+  uint32_t scan_flags = 0;
   if (request_random_mac) {
+    scan_flags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
+  }
+  switch (scan_type) {
+    case IWifiScannerImpl::SCAN_TYPE_LOW_SPAN:
+      scan_flags |= NL80211_SCAN_FLAG_LOW_SPAN;
+      break;
+    case IWifiScannerImpl::SCAN_TYPE_LOW_POWER:
+      scan_flags |= NL80211_SCAN_FLAG_LOW_POWER;
+      break;
+    case IWifiScannerImpl::SCAN_TYPE_HIGH_ACCURACY:
+      scan_flags |= NL80211_SCAN_FLAG_HIGH_ACCURACY;
+      break;
+    case IWifiScannerImpl::SCAN_TYPE_DEFAULT:
+      break;
+    default:
+      CHECK(0) << "Invalid scan type received: " << scan_type;
+  }
+  if (scan_flags) {
     trigger_scan.AddAttribute(
         NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,
-                              NL80211_SCAN_FLAG_RANDOM_ADDR));
+                              scan_flags));
   }
   // We are receiving an ERROR/ACK message instead of the actual
   // scan results here, so it is OK to expect a timely response because
@@ -353,6 +403,7 @@ bool ScanUtils::StartScheduledScan(
     int32_t rssi_threshold_2g,
     int32_t rssi_threshold_5g,
     bool request_random_mac,
+    bool request_low_power,
     const std::vector<std::vector<uint8_t>>& scan_ssids,
     const std::vector<std::vector<uint8_t>>& match_ssids,
     const std::vector<uint32_t>& freqs,
@@ -433,11 +484,17 @@ bool ScanUtils::StartScheduledScan(
         NL80211Attr<uint32_t>(NL80211_ATTR_SCHED_SCAN_INTERVAL,
                               interval_setting.final_interval_ms));
   }
-
+  uint32_t scan_flags = 0;
   if (request_random_mac) {
+    scan_flags |= NL80211_SCAN_FLAG_RANDOM_ADDR;
+  }
+  if (request_low_power) {
+    scan_flags |= NL80211_SCAN_FLAG_LOW_POWER;
+  }
+  if (scan_flags) {
     start_sched_scan.AddAttribute(
         NL80211Attr<uint32_t>(NL80211_ATTR_SCAN_FLAGS,
-                              NL80211_SCAN_FLAG_RANDOM_ADDR));
+                              scan_flags));
   }
 
   vector<unique_ptr<const NL80211Packet>> response;

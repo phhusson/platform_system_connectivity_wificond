@@ -16,15 +16,16 @@
 
 #include "wificond/net/netlink_utils.h"
 
+#include <bitset>
 #include <map>
 #include <string>
 #include <vector>
 
 #include <linux/netlink.h>
-#include <linux/nl80211.h>
 
 #include <android-base/logging.h>
 
+#include "wificond/net/kernel-header-latest/nl80211.h"
 #include "wificond/net/mlme_event_handler.h"
 #include "wificond/net/nl80211_packet.h"
 
@@ -49,7 +50,41 @@ uint32_t k5GHzFrequencyLowerBound = 5000;
 // for "vehicular communication systems".
 uint32_t k5GHzFrequencyUpperBound = 5850;
 
+bool IsExtFeatureFlagSet(
+    const std::vector<uint8_t>& ext_feature_flags_bytes,
+    enum nl80211_ext_feature_index ext_feature_flag) {
+  static_assert(NUM_NL80211_EXT_FEATURES <= SIZE_MAX,
+                "Ext feature values doesn't fit in |size_t|");
+  // TODO:This is an unsafe cast because this assumes that the values
+  // are always unsigned!
+  size_t ext_feature_flag_idx = static_cast<size_t>(ext_feature_flag);
+  size_t ext_feature_flag_byte_pos = ext_feature_flag_idx / 8;
+  size_t ext_feature_flag_bit_pos = ext_feature_flag_idx % 8;
+  if (ext_feature_flag_byte_pos >= ext_feature_flags_bytes.size()) {
+    return false;
+  }
+  uint8_t ext_feature_flag_byte =
+      ext_feature_flags_bytes[ext_feature_flag_byte_pos];
+  return (ext_feature_flag_byte & (1U << ext_feature_flag_bit_pos));
+}
 }  // namespace
+
+WiphyFeatures::WiphyFeatures(uint32_t feature_flags,
+                             const std::vector<uint8_t>& ext_feature_flags_bytes)
+    : supports_random_mac_oneshot_scan(
+            feature_flags & NL80211_FEATURE_SCAN_RANDOM_MAC_ADDR),
+        supports_random_mac_sched_scan(
+            feature_flags & NL80211_FEATURE_SCHED_SCAN_RANDOM_MAC_ADDR) {
+  supports_low_span_oneshot_scan =
+      IsExtFeatureFlagSet(ext_feature_flags_bytes,
+                          NL80211_EXT_FEATURE_LOW_SPAN_SCAN);
+  supports_low_power_oneshot_scan =
+      IsExtFeatureFlagSet(ext_feature_flags_bytes,
+                          NL80211_EXT_FEATURE_LOW_POWER_SCAN);
+  supports_high_accuracy_oneshot_scan =
+      IsExtFeatureFlagSet(ext_feature_flags_bytes,
+                          NL80211_EXT_FEATURE_HIGH_ACCURACY_SCAN);
+}
 
 NetlinkUtils::NetlinkUtils(NetlinkManager* netlink_manager)
     : netlink_manager_(netlink_manager) {
@@ -295,7 +330,13 @@ bool NetlinkUtils::ParseWiphyInfoFromPacket(
     LOG(ERROR) << "Failed to get NL80211_ATTR_FEATURE_FLAGS";
     return false;
   }
-  *out_wiphy_features = WiphyFeatures(feature_flags);
+  std::vector<uint8_t> ext_feature_flags_bytes;
+  if (!packet.GetAttributeValue(NL80211_ATTR_EXT_FEATURES,
+                                &ext_feature_flags_bytes)) {
+    LOG(WARNING) << "Failed to get NL80211_ATTR_EXT_FEATURES";
+  }
+  *out_wiphy_features = WiphyFeatures(feature_flags,
+                                      ext_feature_flags_bytes);
   return true;
 }
 
@@ -576,6 +617,16 @@ void NetlinkUtils::SubscribeStationEvent(uint32_t interface_index,
 void NetlinkUtils::UnsubscribeStationEvent(uint32_t interface_index) {
   netlink_manager_->UnsubscribeStationEvent(interface_index);
 }
+
+void NetlinkUtils::SubscribeChannelSwitchEvent(uint32_t interface_index,
+                                         OnChannelSwitchEventHandler handler) {
+  netlink_manager_->SubscribeChannelSwitchEvent(interface_index, handler);
+}
+
+void NetlinkUtils::UnsubscribeChannelSwitchEvent(uint32_t interface_index) {
+  netlink_manager_->UnsubscribeChannelSwitchEvent(interface_index);
+}
+
 
 }  // namespace wificond
 }  // namespace android

@@ -29,6 +29,7 @@
 using android::binder::Status;
 using android::net::wifi::IPnoScanEvent;
 using android::net::wifi::IScanEvent;
+using android::net::wifi::IWifiScannerImpl;
 using android::hardware::wifi::offload::V1_0::IOffload;
 using android::sp;
 using com::android::server::wifi::wificond::NativeScanResult;
@@ -42,6 +43,23 @@ using std::weak_ptr;
 using std::shared_ptr;
 
 using namespace std::placeholders;
+
+namespace {
+using android::wificond::WiphyFeatures;
+bool IsScanTypeSupported(int scan_type, const WiphyFeatures& wiphy_features) {
+  switch(scan_type) {
+    case IWifiScannerImpl::SCAN_TYPE_LOW_SPAN:
+      return wiphy_features.supports_low_span_oneshot_scan;
+    case IWifiScannerImpl::SCAN_TYPE_LOW_POWER:
+      return wiphy_features.supports_low_power_oneshot_scan;
+    case IWifiScannerImpl::SCAN_TYPE_HIGH_ACCURACY:
+      return wiphy_features.supports_high_accuracy_oneshot_scan;
+    default:
+      CHECK(0) << "Invalid scan type received: " << scan_type;
+  }
+  return {};
+}
+} // namespace
 
 namespace android {
 namespace wificond {
@@ -139,8 +157,14 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
     LOG(WARNING) << "Scan already started";
   }
   // Only request MAC address randomization when station is not associated.
-  bool request_random_mac = wiphy_features_.supports_random_mac_oneshot_scan &&
-                            !client_interface_->IsAssociated();
+  bool request_random_mac =
+      wiphy_features_.supports_random_mac_oneshot_scan &&
+      !client_interface_->IsAssociated();
+  int scan_type = scan_settings.scan_type_;
+  if (!IsScanTypeSupported(scan_settings.scan_type_, wiphy_features_)) {
+    LOG(DEBUG) << "Ignoring scan type because device does not support it";
+    scan_type = SCAN_TYPE_DEFAULT;
+  }
 
   // Initialize it with an empty ssid for a wild card scan.
   vector<vector<uint8_t>> ssids = {{}};
@@ -162,8 +186,8 @@ Status ScannerImpl::scan(const SingleScanSettings& scan_settings,
   }
 
   int error_code = 0;
-  if (!scan_utils_->Scan(interface_index_, request_random_mac, ssids, freqs,
-                         &error_code)) {
+  if (!scan_utils_->Scan(interface_index_, request_random_mac, scan_type,
+                         ssids, freqs, &error_code)) {
     CHECK(error_code != ENODEV) << "Driver is in a bad state, restarting wificond";
     *out_success = false;
     return Status::ok();
@@ -262,6 +286,8 @@ bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
   // Only request MAC address randomization when station is not associated.
   bool request_random_mac = wiphy_features_.supports_random_mac_sched_scan &&
       !client_interface_->IsAssociated();
+  // Always request a low power scan for PNO, if device supports it.
+  bool request_low_power = wiphy_features_.supports_low_power_oneshot_scan;
 
   int error_code = 0;
   if (!scan_utils_->StartScheduledScan(interface_index_,
@@ -269,6 +295,7 @@ bool ScannerImpl::StartPnoScanDefault(const PnoSettings& pno_settings) {
                                        pno_settings.min_2g_rssi_,
                                        pno_settings.min_5g_rssi_,
                                        request_random_mac,
+                                       request_low_power,
                                        scan_ssids,
                                        match_ssids,
                                        freqs,

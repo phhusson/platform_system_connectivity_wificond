@@ -38,7 +38,8 @@ NativeScanResult::NativeScanResult(std::vector<uint8_t>& ssid_,
                                    int32_t signal_mbm_,
                                    uint64_t tsf_,
                                    uint16_t capability_,
-                                   bool associated_)
+                                   bool associated_,
+                                   std::vector<RadioChainInfo>& radio_chain_infos_)
     : ssid(ssid_),
       bssid(bssid_),
       info_element(info_element_),
@@ -46,7 +47,8 @@ NativeScanResult::NativeScanResult(std::vector<uint8_t>& ssid_,
       signal_mbm(signal_mbm_),
       tsf(tsf_),
       capability(capability_),
-      associated(associated_) {
+      associated(associated_),
+      radio_chain_infos(radio_chain_infos_) {
 }
 
 status_t NativeScanResult::writeToParcel(::android::Parcel* parcel) const {

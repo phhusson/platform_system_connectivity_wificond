@@ -41,7 +41,8 @@ class NativeScanResult : public ::android::Parcelable {
                    int32_t signal_mbm,
                    uint64_t tsf,
                    uint16_t capability,
-                   bool associated);
+                   bool associated,
+                   std::vector<RadioChainInfo>& radio_chain_infos);
   ::android::status_t writeToParcel(::android::Parcel* parcel) const override;
   ::android::status_t readFromParcel(const ::android::Parcel* parcel) override;
 

@@ -18,8 +18,7 @@
 
 #include <gtest/gtest.h>
 
-#include <linux/nl80211.h>
-
+#include "wificond/net/kernel-header-latest/nl80211.h"
 #include "wificond/net/nl80211_attribute.h"
 
 namespace android {
@@ -260,6 +259,24 @@ TEST(NL80211AttributeTest, GetListOfStringsFromBuffer) {
   NL80211NestedAttr nested_attr(buffer);
   nested_attr.GetListOfAttributeValues(&strs);
   EXPECT_EQ(expected_strs, strs);
+}
+
+TEST(NL80211AttributeTest, GetListOfAttributesFromBuffer) {
+  std::vector<uint8_t> buffer(
+      kBufferContainsListOfAttributes,
+      kBufferContainsListOfAttributes +
+          sizeof(kBufferContainsListOfAttributes));
+
+  std::vector<NL80211Attr<std::string>> attrs;
+  NL80211NestedAttr attr(buffer);
+  EXPECT_TRUE(attr.GetListOfAttributes(&attrs));
+  EXPECT_TRUE(attrs.size() == 3);
+  ASSERT_EQ(0, attrs[0].GetAttributeId());
+  ASSERT_EQ(1, attrs[1].GetAttributeId());
+  ASSERT_EQ(2, attrs[2].GetAttributeId());
+  ASSERT_EQ("first", attrs[0].GetValue());
+  ASSERT_EQ("second", attrs[1].GetValue());
+  ASSERT_EQ("third", attrs[2].GetValue());
 }
 
 TEST(NL80211AttributeTest, GetListOfNestedAttributesFromBuffer) {

@@ -27,6 +27,10 @@ interface IWifiScannerImpl {
   const int SCAN_TYPE_LOW_SPAN = 0;
   const int SCAN_TYPE_LOW_POWER = 1;
   const int SCAN_TYPE_HIGH_ACCURACY = 2;
+  // Scan type used internally if the device does not support
+  // the type specified in |SingleScanSettings.scan_type|.
+  // Scan requests from framework with this type will be rejected.
+  const int SCAN_TYPE_DEFAULT = -1;
 
   // Get the latest single scan results from kernel.
   NativeScanResult[] getScanResults();

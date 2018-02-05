@@ -70,6 +70,8 @@ class ApInterfaceImpl {
   void OnStationEvent(StationEvent event,
                       const std::vector<uint8_t>& mac_address);
 
+  void OnChannelSwitchEvent(uint32_t frequency, ChannelBandwidth bandwidth);
+
   DISALLOW_COPY_AND_ASSIGN(ApInterfaceImpl);
 };
 

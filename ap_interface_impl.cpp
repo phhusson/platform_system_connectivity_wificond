@@ -57,12 +57,17 @@ ApInterfaceImpl::ApInterfaceImpl(const string& interface_name,
       std::bind(&ApInterfaceImpl::OnStationEvent,
                 this,
                 _1, _2));
+  netlink_utils_->SubscribeChannelSwitchEvent(
+      interface_index_,
+      std::bind(&ApInterfaceImpl::OnChannelSwitchEvent, this, _1, _2));
+
 }
 
 ApInterfaceImpl::~ApInterfaceImpl() {
   binder_->NotifyImplDead();
   if_tool_->SetUpState(interface_name_.c_str(), false);
   netlink_utils_->UnsubscribeStationEvent(interface_index_);
+  netlink_utils_->UnsubscribeChannelSwitchEvent(interface_index_);
 }
 
 sp<IApInterface> ApInterfaceImpl::GetBinder() const {
@@ -131,6 +136,13 @@ void ApInterfaceImpl::OnStationEvent(StationEvent event,
   if (event == NEW_STATION || event == DEL_STATION) {
     binder_->NotifyNumAssociatedStationsChanged(number_of_associated_stations_);
   }
+}
+
+
+void ApInterfaceImpl::OnChannelSwitchEvent(uint32_t frequency,
+                                           ChannelBandwidth bandwidth) {
+  LOG(INFO) << "New channel on frequency: " << frequency
+            << " with bandwidth: " << LoggingUtils::GetBandwidthString(bandwidth);
 }
 
 int ApInterfaceImpl::GetNumberOfAssociatedStations() const {
