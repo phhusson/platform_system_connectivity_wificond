@@ -143,6 +143,7 @@ void ApInterfaceImpl::OnChannelSwitchEvent(uint32_t frequency,
                                            ChannelBandwidth bandwidth) {
   LOG(INFO) << "New channel on frequency: " << frequency
             << " with bandwidth: " << LoggingUtils::GetBandwidthString(bandwidth);
+  binder_->NotifySoftApChannelSwitched(frequency, bandwidth);
 }
 
 int ApInterfaceImpl::GetNumberOfAssociatedStations() const {

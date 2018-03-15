@@ -33,6 +33,7 @@ class MockApInterfaceEventCallback
 
   MOCK_METHOD0(onAsBinder, IBinder*());
   MOCK_METHOD1(onNumAssociatedStationsChanged, ::android::binder::Status(int));
+  MOCK_METHOD2(onSoftApChannelSwitched, ::android::binder::Status(int, int));
 };
 
 }  // namespace wificond
