@@ -57,6 +57,13 @@ void CaptureStationEventHandler(
   *out_handler = handler;
 }
 
+void CaptureChannelSwitchEventHandler(
+    OnChannelSwitchEventHandler* out_handler,
+    uint32_t interface_index,
+    OnChannelSwitchEventHandler handler) {
+  *out_handler = handler;
+}
+
 class ApInterfaceImplTest : public ::testing::Test {
  protected:
   unique_ptr<NiceMock<MockInterfaceTool>> if_tool_{
@@ -159,6 +166,28 @@ TEST_F(ApInterfaceImplTest, CallbackIsCalledOnNumAssociatedStationsChanged) {
   handler(NEW_STATION, fake_mac_address);
   EXPECT_CALL(*callback, onNumAssociatedStationsChanged(1));
   handler(DEL_STATION, fake_mac_address);
+}
+
+TEST_F(ApInterfaceImplTest, CallbackIsCalledOnSoftApChannelSwitched) {
+  OnChannelSwitchEventHandler handler;
+  EXPECT_CALL(*netlink_utils_, SubscribeChannelSwitchEvent(kTestInterfaceIndex, _))
+      .WillOnce(Invoke(bind(CaptureChannelSwitchEventHandler, &handler, _1, _2)));
+  ap_interface_.reset(new ApInterfaceImpl(
+      kTestInterfaceName, kTestInterfaceIndex, netlink_utils_.get(),
+      if_tool_.get(), hostapd_manager_.get()));
+
+  EXPECT_CALL(*hostapd_manager_, StartHostapd()).WillOnce(Return(true));
+  auto binder = ap_interface_->GetBinder();
+  sp<MockApInterfaceEventCallback> callback(new MockApInterfaceEventCallback());
+  bool out_success = false;
+  EXPECT_TRUE(binder->startHostapd(callback, &out_success).isOk());
+  EXPECT_TRUE(out_success);
+
+  const uint32_t kTestChannelFrequency = 2437;
+  const ChannelBandwidth kTestChannelBandwidth = ChannelBandwidth::BW_20;
+  EXPECT_CALL(*callback, onSoftApChannelSwitched(kTestChannelFrequency,
+                                                 kTestChannelBandwidth));
+  handler(kTestChannelFrequency, kTestChannelBandwidth);
 }
 
 }  // namespace wificond

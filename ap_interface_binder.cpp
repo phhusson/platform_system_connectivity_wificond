@@ -38,6 +38,41 @@ void ApInterfaceBinder::NotifyNumAssociatedStationsChanged(int num_stations) {
   }
 }
 
+void ApInterfaceBinder::NotifySoftApChannelSwitched(
+    int frequency, ChannelBandwidth channel_bandwidth) {
+  if (ap_interface_event_callback_ == nullptr) {
+    return;
+  }
+
+  int bandwidth;
+  switch (channel_bandwidth) {
+    case ChannelBandwidth::BW_INVALID:
+      bandwidth = IApInterfaceEventCallback::BANDWIDTH_INVALID;
+      break;
+    case ChannelBandwidth::BW_20_NOHT:
+      bandwidth = IApInterfaceEventCallback::BANDWIDTH_20_NOHT;
+      break;
+    case ChannelBandwidth::BW_20:
+      bandwidth = IApInterfaceEventCallback::BANDWIDTH_20;
+      break;
+    case ChannelBandwidth::BW_40:
+      bandwidth = IApInterfaceEventCallback::BANDWIDTH_40;
+      break;
+    case ChannelBandwidth::BW_80:
+      bandwidth = IApInterfaceEventCallback::BANDWIDTH_80;
+      break;
+    case ChannelBandwidth::BW_80P80:
+      bandwidth = IApInterfaceEventCallback::BANDWIDTH_80P80;
+      break;
+    case ChannelBandwidth::BW_160:
+      bandwidth = IApInterfaceEventCallback::BANDWIDTH_160;
+      break;
+    default:
+      bandwidth = IApInterfaceEventCallback::BANDWIDTH_INVALID;
+  }
+  ap_interface_event_callback_->onSoftApChannelSwitched(frequency, bandwidth);
+}
+
 binder::Status ApInterfaceBinder::startHostapd(
     const sp<IApInterfaceEventCallback>& callback, bool* out_success) {
   *out_success = false;

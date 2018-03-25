@@ -19,8 +19,23 @@ package android.net.wifi;
 // A callback for receiving events related to soft AP.
 interface IApInterfaceEventCallback {
 
+  // Channel bandwidth type. Used in |onSoftApChannelSwitched|
+  const int BANDWIDTH_INVALID = 0;
+  const int BANDWIDTH_20_NOHT = 1;
+  const int BANDWIDTH_20 = 2;
+  const int BANDWIDTH_40 = 3;
+  const int BANDWIDTH_80 = 4;
+  const int BANDWIDTH_80P80 = 5;
+  const int BANDWIDTH_160 = 6;
+
   // Signals that number of stations associated to this soft Ap has changed.
   //
   // @param numStations Number of associated stations after change
   oneway void onNumAssociatedStationsChanged(int numStations);
+
+  // Signals a channel switch event for this soft Ap.
+  //
+  // @param frequency Represents the frequency of the channel in MHz
+  // @param bandwidth Bandwidth of the channel, one of the values from |BANDWIDTH_*|
+  oneway void onSoftApChannelSwitched(int frequency, int bandwidth);
 }

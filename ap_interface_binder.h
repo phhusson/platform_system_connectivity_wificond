@@ -19,6 +19,8 @@
 
 #include <android-base/macros.h>
 
+#include "wificond/net/netlink_manager.h"
+
 #include "android/net/wifi/BnApInterface.h"
 #include "android/net/wifi/IApInterfaceEventCallback.h"
 
@@ -39,6 +41,10 @@ class ApInterfaceBinder : public android::net::wifi::BnApInterface {
 
   // Called by |impl_| everytime number of associated stations changes.
   void NotifyNumAssociatedStationsChanged(int num_stations);
+
+  // Called by |impl_| on every channel switch event.
+  void NotifySoftApChannelSwitched(int frequency,
+                                   ChannelBandwidth channel_bandwidth);
 
   binder::Status startHostapd(
       const sp<net::wifi::IApInterfaceEventCallback>& callback,
