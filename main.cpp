@@ -148,7 +148,6 @@ int main(int argc, char** argv) {
       unique_ptr<HostapdManager>(new HostapdManager()),
       &netlink_utils,
       &scan_utils));
-  server->CleanUpSystemState();
   RegisterServiceOrCrash(server.get());
 
   event_dispatcher->Poll();

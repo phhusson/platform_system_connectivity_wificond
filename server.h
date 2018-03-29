@@ -95,11 +95,6 @@ class Server : public android::net::wifi::BnWificond {
       std::vector<android::sp<android::IBinder>>* out_ap_ifs) override;
   status_t dump(int fd, const Vector<String16>& args) override;
 
-  // Call this once on startup.  It ignores all the invariants held
-  // in wificond and tries to restore ourselves to a blank state by
-  // killing userspace daemons and cleaning up the interface state.
-  void CleanUpSystemState();
-
  private:
   // Request interface information from kernel and setup local interface object.
   // This assumes that interface should be in STATION mode. Even if we setup
