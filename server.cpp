@@ -256,12 +256,6 @@ void Server::MarkDownAllInterfaces() {
   }
 }
 
-void Server::CleanUpSystemState() {
-  supplicant_manager_->StopSupplicant();
-  hostapd_manager_->StopHostapd();
-  MarkDownAllInterfaces();
-}
-
 Status Server::getAvailable2gChannels(
     std::unique_ptr<vector<int32_t>>* out_frequencies) {
   BandInfo band_info;
