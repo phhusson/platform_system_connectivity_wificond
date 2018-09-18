@@ -338,6 +338,16 @@ bool Server::SetupInterface(const std::string& iface_name,
     }
   }
 
+  for (const auto& iface : interfaces_) {
+      LOG(ERROR) << "Got iface '" << iface.name << "' vs '" << iface_name << "'";
+      if (iface.name != "p2p0" &&
+              !android::base::StartsWith(iface.name, "aware_data")) {
+          *interface = iface;
+          return true;
+      }
+
+  }
+
   LOG(ERROR) << "No usable interface found";
   return false;
 }
